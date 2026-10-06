@@ -9,3 +9,5 @@ npm-debug.log
 # Backups and temporary reports
 backups/
 *.log
+model-test-report.json
+*.cache.json

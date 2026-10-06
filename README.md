@@ -1,4 +1,8 @@
-# VS Code Custom Endpoint Models (FreeLLMAPI & OmniRoute)
+# vscode-custom-llm-router
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![VS Code Insiders](https://img.shields.io/badge/VS%20Code-Insiders-purple.svg)](https://code.visualstudio.com/insiders/)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
 
 Unified generator and validator for configuring local custom language model endpoints in Visual Studio Code (Copilot / Chat), adhering to the [VS Code Language Models custom endpoint specification](https://code.visualstudio.com/docs/agent-customization/language-models).
 
@@ -7,6 +11,7 @@ Unified generator and validator for configuring local custom language model endp
 ## ⚡ Key Features
 
 - **Single Orchestrator**: [generate-models.js](file:///d:/VSCodeCustomEndpointModels/generate-models.js) queries and integrates both FreeLLMAPI and OmniRoute.
+- **Pre-flight Status Check (`npm run status`)**: Real-time probe of whether FreeLLMAPI & OmniRoute are online.
 - **Prettified Model Names**: Cleans upstream routing tags (`ddgw/`, `no-think/`, etc.) into clean titles (e.g. `OmniRoute Best Coding`, `Claude 3.7 Sonnet (Fast/Direct)`).
 - **Smart Token & Context Bounds**: Accurately infers `contextWindow` and token limits based on model architectures.
 - **Cache Management**: Auto-evicts cache entries older than 48 hours to prune offline models.

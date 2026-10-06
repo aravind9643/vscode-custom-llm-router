@@ -35,12 +35,12 @@ const VERIFIED_CACHE_FILE = path.resolve(__dirname, "verified-models-cache.json"
 
 // FreeLLMAPI Config
 const FREELLMAPI_URL = process.env.FREELLMAPI_URL || "http://127.0.0.1:31415";
-const FREELLMAPI_KEY = process.env.FREELLMAPI_KEY || "freellmapi-53fd433e61b02ea64a199391bbeb2def6598a5740744d082";
+const FREELLMAPI_KEY = process.env.FREELLMAPI_KEY || "";
 const FREELLMAPI_SECRET = process.env.FREELLMAPI_VSCODE_SECRET || "${input:chat.lm.secret.50cd2a8f}";
 
 // OmniRoute Config
 const OMNIROUTE_URL = process.env.OMNIROUTE_URL || "http://localhost:20128";
-const OMNIROUTE_KEY = process.env.OMNIROUTE_KEY || process.env.OMNIROUTE_API_KEY || "sk-8a033b7c41c6ad68-9d42f7-f9ecc52c";
+const OMNIROUTE_KEY = process.env.OMNIROUTE_KEY || process.env.OMNIROUTE_API_KEY || "";
 const OMNIROUTE_SECRET = process.env.OMNIROUTE_VSCODE_SECRET || "${input:chat.lm.secret.5048ce49}";
 
 // Test settings
@@ -927,10 +927,71 @@ async function runGenerator(options = {}) {
 }
 
 // ============================================================
+// PRE-FLIGHT STATUS CHECK (npm run status)
+// ============================================================
+async function checkStatus() {
+  console.log("============================================================");
+  console.log(" 🩺 Local LLM Endpoints Status Check");
+  console.log("============================================================\n");
+
+  // 1. FreeLLMAPI
+  process.stdout.write(`• FreeLLMAPI (${FREELLMAPI_URL}) ... `);
+  try {
+    const res = await fetch(`${FREELLMAPI_URL}/v1/models`, {
+      headers: { Authorization: `Bearer ${FREELLMAPI_KEY}`, Accept: "application/json" },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const count = Array.isArray(data.data) ? data.data.length : 0;
+      console.log(`✅ ONLINE (${count} models available)`);
+    } else {
+      console.log(`⚠️ HTTP ${res.status} (Check API key or server status)`);
+    }
+  } catch (err) {
+    console.log(`❌ OFFLINE (${err.message})`);
+  }
+
+  // 2. OmniRoute
+  process.stdout.write(`• OmniRoute  (${OMNIROUTE_URL}) ... `);
+  try {
+    const res = await fetch(`${OMNIROUTE_URL}/v1/models`, {
+      headers: { Authorization: `Bearer ${OMNIROUTE_KEY}`, Accept: "application/json" },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const count = Array.isArray(data.data) ? data.data.length : 0;
+      console.log(`✅ ONLINE (${count} models available)`);
+    } else {
+      console.log(`⚠️ HTTP ${res.status} (Check API key or server status)`);
+    }
+  } catch (err) {
+    console.log(`❌ OFFLINE (${err.message})`);
+  }
+
+  console.log("\nTarget VS Code Directories:");
+  const targets = getTargetVSCodePaths();
+  if (targets.length === 0) {
+    console.log("  ⚠️ No VS Code user directories detected.");
+  } else {
+    for (const t of targets) {
+      const exists = fs.existsSync(t.chatModelsJson);
+      console.log(`  • ${t.name}: ${exists ? "✅ Config exists" : "⚪ Config not yet deployed"} (${t.chatModelsJson})`);
+    }
+  }
+}
+
+// ============================================================
 // CLI PARSER & WATCH MODE
 // ============================================================
 async function main() {
   const args = process.argv.slice(2);
+
+  if (args.includes("--status") || args.includes("status")) {
+    await checkStatus();
+    return;
+  }
 
   const skipTest = args.includes("--fast") || args.includes("--skip-test");
   const verifyTools = args.includes("--verify-tools") || args.includes("--tools");

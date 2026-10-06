@@ -1,9 +1,10 @@
 {
-  "name": "vscode-custom-endpoint-models",
+  "name": "vscode-custom-llm-router",
   "version": "1.0.0",
   "description": "Unified generator for VS Code Language Models custom endpoints (FreeLLMAPI & OmniRoute)",
   "main": "generate-models.js",
   "scripts": {
+    "status": "node generate-models.js --status",
     "generate": "node generate-models.js",
     "generate:fast": "node generate-models.js --fast",
     "generate:tools": "node generate-models.js --tools",
