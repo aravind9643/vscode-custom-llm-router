@@ -7,6 +7,7 @@
     "init": "node generate-models.js --init",
     "status": "node generate-models.js --status",
     "validate": "node generate-models.js --validate",
+    "benchmark": "node generate-models.js --benchmark",
     "menu": "node generate-models.js --fast --menu --apply",
     "generate": "node generate-models.js",
     "generate:fast": "node generate-models.js --fast",

@@ -588,13 +588,37 @@ async function fetchOmniRouteModels() {
 }
 
 // ============================================================
-// PROFILE FILTERING
+// FEATURE: MODEL FILTERING (Blacklist, Whitelist & Profiles)
 // ============================================================
-function applyProfileFilter(models, profile) {
-  if (!profile || profile === "all") return models;
+const CONFIG_FILE = path.resolve(__dirname, "models.config.json");
+
+function loadModelRules() {
+  if (!fs.existsSync(CONFIG_FILE)) {
+    return { blacklistPatterns: [], whitelistExactIds: [] };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
+  } catch {
+    return { blacklistPatterns: [], whitelistExactIds: [] };
+  }
+}
+
+function applyModelFilters(models, profile) {
+  const rules = loadModelRules();
+  const blacklist = rules.blacklistPatterns || [];
+  const whitelist = new Set(rules.whitelistExactIds || []);
+
+  let filtered = models.filter((m) => {
+    if (whitelist.has(m.id)) return true;
+    const idLower = m.id.toLowerCase();
+    const isBlacklisted = blacklist.some((pat) => idLower.includes(pat.toLowerCase()));
+    return !isBlacklisted;
+  });
+
+  if (!profile || profile === "all") return filtered;
 
   if (profile === "top") {
-    return models.filter((m) => {
+    return filtered.filter((m) => {
       if (m.id === "auto" || m.id.startsWith("auto/best-") || m.id.startsWith("auto/pro-")) return true;
       const idLower = m.id.toLowerCase();
       return TOP_MODEL_KEYWORDS.some((kw) => idLower.includes(kw));
@@ -602,14 +626,47 @@ function applyProfileFilter(models, profile) {
   }
 
   if (profile === "coding") {
-    return models.filter((m) => {
+    return filtered.filter((m) => {
       if (m.id === "auto" || m.id.includes("coding")) return true;
       const idLower = m.id.toLowerCase();
       return CODING_MODEL_KEYWORDS.some((kw) => idLower.includes(kw));
     });
   }
 
-  return models;
+  return filtered;
+}
+
+// ============================================================
+// FEATURE: BENCHMARK & LATENCY LEADERBOARD (npm run benchmark)
+// ============================================================
+function generateBenchmarkMarkdown(reports) {
+  const benchmarkFile = path.resolve(__dirname, "BENCHMARKS.md");
+  let md = "# 🏆 Model Benchmark & Latency Leaderboard\n\n";
+  md += `*Generated: ${new Date().toUTCString()}*\n\n`;
+
+  for (const [provider, results] of Object.entries(reports)) {
+    md += `## Provider: ${provider.toUpperCase()}\n\n`;
+    md += "| Rank | Model Name | Latency (ms) | Tools | Status |\n";
+    md += "| :--- | :--- | :--- | :---: | :---: |\n";
+
+    const working = results.filter((r) => r.working).sort((a, b) => a.latency - b.latency);
+    working.forEach((r, idx) => {
+      const toolStr = r.verifiedToolCalling ? "✅" : "❌";
+      md += `| ${idx + 1} | \`${r.model}\` | ${r.latency}ms | ${toolStr} | Working |\n`;
+    });
+
+    const failed = results.filter((r) => !r.working);
+    if (failed.length > 0) {
+      md += `\n<details><summary>Offline / Throttled Models (${failed.length})</summary>\n\n`;
+      failed.forEach((f) => {
+        md += `- \`${f.model}\` (HTTP ${f.status || "Timeout"}): ${f.error?.slice(0, 100) || "Failed"}\n`;
+      });
+      md += "\n</details>\n\n";
+    }
+  }
+
+  fs.writeFileSync(benchmarkFile, md, "utf8");
+  console.log(`\n🏆 Benchmark leaderboard saved to: ${benchmarkFile}`);
 }
 
 // ============================================================
@@ -800,7 +857,7 @@ async function runGenerator(options = {}) {
       if (v && v.id !== "auto") freeVSCodeModels.push(v);
     }
 
-    let filteredFree = applyProfileFilter(freeVSCodeModels, profile);
+    let filteredFree = applyModelFilters(freeVSCodeModels, profile);
 
     if (interactive && filteredFree.length > 0) {
       filteredFree = await runInteractiveSelection(filteredFree);
@@ -870,7 +927,7 @@ async function runGenerator(options = {}) {
       if (v) omniVSCodeModels.push(v);
     }
 
-    let filteredOmni = applyProfileFilter(omniVSCodeModels, profile);
+    let filteredOmni = applyModelFilters(omniVSCodeModels, profile);
 
     if (interactive && filteredOmni.length > 0) {
       filteredOmni = await runInteractiveSelection(filteredOmni);
@@ -907,6 +964,7 @@ async function runGenerator(options = {}) {
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(providersConfig, null, 4) + "\n", "utf8");
   if (Object.keys(reports).length > 0) {
     fs.writeFileSync(REPORT_FILE, JSON.stringify(reports, null, 4) + "\n", "utf8");
+    generateBenchmarkMarkdown(reports);
   }
 
   const totalModels = providersConfig.reduce((acc, p) => acc + (p.models?.length || 0), 0);
@@ -1165,6 +1223,12 @@ async function main() {
 
   if (args.includes("--init") || args.includes("init")) {
     initEnvironment();
+    return;
+  }
+
+  if (args.includes("--benchmark") || args.includes("benchmark")) {
+    console.log("Running live benchmarks across all models...");
+    await runGenerator({ skipTest: false, profile: "all", verifyTools: true, apply: false });
     return;
   }
 

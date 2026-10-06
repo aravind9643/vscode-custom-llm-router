@@ -1,0 +1,23 @@
+{
+  "blacklistPatterns": [
+    "image",
+    "inpainting",
+    "pixel-art",
+    "flux",
+    "diffusion",
+    "tts",
+    "voice",
+    "translat",
+    "whisper",
+    "safety"
+  ],
+  "whitelistExactIds": [
+    "auto",
+    "auto/best-coding",
+    "auto/best-fast",
+    "auto/best-reasoning",
+    "auto/best-vision",
+    "auto/best-chat",
+    "auto/best-free"
+  ]
+}

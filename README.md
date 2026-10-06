@@ -53,7 +53,10 @@ graph TD
 
 ---
 
-## 🚀 Usage Guide
+### 0. Quickstart One-Liner (Windows PowerShell)
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
 
 ### 1. Initialize & Check Status
 ```bash
@@ -71,17 +74,19 @@ npm run menu
 
 # Or deploy presets directly to VS Code Insiders:
 npm run apply           # All active models
-npm run apply:coding    # Curated coding models (~24)
-npm run apply:top       # Top-tier models (~14)
+npm run apply:coding    # Curated coding models
+npm run apply:top       # Top-tier models
 ```
 
-### 3. Validation & Testing
+### 3. Validation, Benchmarks & Rules
 ```bash
 # Validate chatLanguageModels.json against VS Code schema
 npm run validate
 
-# Run live tool-calling validation tests
-npm run generate:tools
+# Run live benchmarks and generate BENCHMARKS.md leaderboard
+npm run benchmark
+
+# Configure blacklist/whitelist patterns in models.config.json
 ```
 
 ### 4. Background Sync Service (Windows Scheduled Task)

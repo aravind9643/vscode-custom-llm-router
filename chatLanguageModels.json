@@ -45,16 +45,6 @@
                 "contextWindow": 1048576
             },
             {
-                "id": "diffusiongemma-26b-a4b-it",
-                "name": "Diffusiongemma 26b A4b Instruct",
-                "url": "http://127.0.0.1:31415/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 246144,
-                "maxOutputTokens": 16000,
-                "contextWindow": 262144
-            },
-            {
                 "id": "fusion",
                 "name": "FreeLLMAPI Fusion",
                 "url": "http://127.0.0.1:31415/v1/chat/completions",
@@ -85,28 +75,8 @@
                 "contextWindow": 131072
             },
             {
-                "id": "llama-3.1-nemoguard-8b-content-safety",
-                "name": "Llama 3.1 Nemoguard 8b Content Safety",
-                "url": "http://127.0.0.1:31415/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072
-            },
-            {
                 "id": "llama-3.1-nemoguard-8b-topic-control",
                 "name": "Llama 3.1 Nemoguard 8b Topic Control",
-                "url": "http://127.0.0.1:31415/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072
-            },
-            {
-                "id": "llama-3.1-nemotron-safety-guard-8b-v3",
-                "name": "Llama 3.1 Nemotron Safety Guard 8b V3",
                 "url": "http://127.0.0.1:31415/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -175,16 +145,6 @@
                 "contextWindow": 1048576
             },
             {
-                "id": "nemotron-3.5-content-safety",
-                "name": "Nemotron 3.5 Content Safety",
-                "url": "http://127.0.0.1:31415/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072
-            },
-            {
                 "id": "nemotron-3.5-lightning-30b-a3b",
                 "name": "Nemotron 3.5 Lightning 30b A3b",
                 "url": "http://127.0.0.1:31415/v1/chat/completions",
@@ -203,26 +163,6 @@
                 "maxInputTokens": 246144,
                 "maxOutputTokens": 16000,
                 "contextWindow": 262144
-            },
-            {
-                "id": "riva-translate-4b-instruct-v1.1",
-                "name": "Riva Translate 4b Instruct V1.1",
-                "url": "http://127.0.0.1:31415/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 16768,
-                "maxOutputTokens": 16000,
-                "contextWindow": 32768
-            },
-            {
-                "id": "riva-translate-4b-instruct-v2",
-                "name": "Riva Translate 4b Instruct V2",
-                "url": "http://127.0.0.1:31415/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 16768,
-                "maxOutputTokens": 16000,
-                "contextWindow": 32768
             }
         ]
     },
@@ -246,17 +186,6 @@
             {
                 "id": "aihorde/526Mix-Animated",
                 "name": "526Mix Animated (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/A-Zovya RPG Inpainting",
-                "name": "A Zovya RPG Inpainting (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -376,17 +305,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/Analog Diffusion",
-                "name": "Analog Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/Analog Madness",
                 "name": "Analog Madness (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -420,17 +338,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/Anime Pencil Diffusion",
-                "name": "Anime Pencil Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/Anygen",
                 "name": "Anygen (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -453,28 +360,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/Anything Diffusion",
-                "name": "Anything Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Anything Diffusion Inpainting",
-                "name": "Anything Diffusion Inpainting (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/Anything v3",
                 "name": "Anything V3 (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -488,17 +373,6 @@
             {
                 "id": "aihorde/Anything v5",
                 "name": "Anything V5 (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/App Icon Diffusion",
-                "name": "App Icon Diffusion (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -1476,17 +1350,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/Comic-Diffusion",
-                "name": "Comic Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/Counterfeit",
                 "name": "Counterfeit (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -1674,39 +1537,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/Deliberate Inpainting",
-                "name": "Deliberate Inpainting (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Double Exposure Diffusion",
-                "name": "Double Exposure Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Dreamlike Diffusion",
-                "name": "Dreamlike Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/DreamLikeSamKuvshinov",
                 "name": "DreamLikeSamKuvshinov (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -1720,17 +1550,6 @@
             {
                 "id": "aihorde/Dreamshaper",
                 "name": "Dreamshaper (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/DreamShaper Inpainting",
-                "name": "DreamShaper Inpainting (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -1784,17 +1603,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/Dungeons and Diffusion",
-                "name": "Dungeons And Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/Dungeons n Waifus",
                 "name": "Dungeons N Waifus (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -1817,41 +1625,8 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/Eimis Anime Diffusion",
-                "name": "Eimis Anime Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/Elysium Anime",
                 "name": "Elysium Anime (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Epic Diffusion",
-                "name": "Epic Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Epic Diffusion Inpainting",
-                "name": "Epic Diffusion Inpainting (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -1916,17 +1691,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/Fantasy Card Diffusion",
-                "name": "Fantasy Card Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "auto/fast",
                 "name": "Fast",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -1940,50 +1704,6 @@
             {
                 "id": "aihorde/Flat-2D Animerge",
                 "name": "Flat 2D Animerge (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/FLUX.1-dev fp8",
-                "name": "FLUX.1 Dev Fp8 (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/FLUX.1-Krea dev",
-                "name": "FLUX.1 Krea Dev (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Flux.1-Schnell fp8 (Compact)",
-                "name": "Flux.1 Schnell Fp8 (Compact) (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Fluxmania Legacy",
-                "name": "Fluxmania Legacy (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -2090,17 +1810,6 @@
                 "maxOutputTokens": 65536,
                 "contextWindow": 1048576,
                 "thinking": false
-            },
-            {
-                "id": "agy/gemini-3.1-flash-image",
-                "name": "Gemini 3.1 Flash Image (agy)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": true,
-                "vision": true,
-                "maxInputTokens": 984000,
-                "maxOutputTokens": 16000,
-                "contextWindow": 1000000,
-                "thinking": true
             },
             {
                 "id": "agy/gemini-3.1-flash-lite",
@@ -2320,17 +2029,6 @@
                 "maxInputTokens": 112000,
                 "maxOutputTokens": 16000,
                 "contextWindow": 128000,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Ghibli Diffusion",
-                "name": "Ghibli Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
                 "thinking": true
             },
             {
@@ -3742,17 +3440,6 @@
                 "thinking": false
             },
             {
-                "id": "aihorde/GTA5 Artwork Diffusion",
-                "name": "GTA5 Artwork Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aug/haiku4.5",
                 "name": "Haiku4.5 (aug)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -3788,17 +3475,6 @@
             {
                 "id": "aihorde/Healy's Anime Blend",
                 "name": "Healy'S Anime Blend (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Hentai Diffusion",
-                "name": "Hentai Diffusion (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -3885,28 +3561,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/iCoMix Inpainting",
-                "name": "ICoMix Inpainting (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Illuminati Diffusion",
-                "name": "Illuminati Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "dva/inkling-high",
                 "name": "Inkling High (dva)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -3971,28 +3625,6 @@
                 "maxOutputTokens": 131072,
                 "contextWindow": 200000,
                 "thinking": false
-            },
-            {
-                "id": "aihorde/Inkpunk Diffusion",
-                "name": "Inkpunk Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Jib Mix Flux v12",
-                "name": "Jib Mix Flux V12 (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
             },
             {
                 "id": "aihorde/Jim Eidomode",
@@ -4336,30 +3968,8 @@
                 "thinking": false
             },
             {
-                "id": "aihorde/ModernArt Diffusion",
-                "name": "ModernArt Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/MoonMix Fantasy",
                 "name": "MoonMix Fantasy (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Movie Diffusion",
-                "name": "Movie Diffusion (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -4886,41 +4496,8 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/PixelWave FLUX.1-dev 03",
-                "name": "PixelWave FLUX.1 Dev 03 (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/PixelWave FLUX.1-schnell 04",
-                "name": "PixelWave FLUX.1 Schnell 04 (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/Poison",
                 "name": "Poison (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Pony Diffusion XL",
-                "name": "Pony Diffusion XL (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -5062,17 +4639,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/Qwen-Image_fp8",
-                "name": "Qwen Image_fp8 (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "unc/Lorbus/Qwen3.6-27B-int4-AutoRound",
                 "name": "Qwen3.6 27B Int4 AutoRound (unc/Lorbus)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -5150,17 +4716,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/Realistic Vision Inpainting",
-                "name": "Realistic Vision Inpainting (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "auto/reasoning",
                 "name": "Reasoning",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -5218,17 +4773,6 @@
             {
                 "id": "aihorde/RPG",
                 "name": "RPG (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Sci-Fi Diffusion",
-                "name": "Sci Fi Diffusion (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -5361,39 +4905,6 @@
             {
                 "id": "aihorde/Stable Cascade 1.0",
                 "name": "Stable Cascade 1.0 (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/stable_diffusion",
-                "name": "Stable_diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/stable_diffusion_2.1",
-                "name": "Stable_diffusion_2.1 (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/stable_diffusion_inpainting",
-                "name": "Stable_diffusion_inpainting (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -5645,39 +5156,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/waifu_diffusion",
-                "name": "Waifu_diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Western Animation Diffusion",
-                "name": "Western Animation Diffusion (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/White Pony Diffusion 4",
-                "name": "White Pony Diffusion 4 (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/Woop-Woop Photo",
                 "name": "Woop Woop Photo (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -5691,17 +5169,6 @@
             {
                 "id": "aihorde/Yiffy",
                 "name": "Yiffy (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Z-Image-Turbo",
-                "name": "Z Image Turbo (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
