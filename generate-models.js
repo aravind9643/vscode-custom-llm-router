@@ -983,6 +983,171 @@ async function checkStatus() {
 }
 
 // ============================================================
+// FEATURE: JSON SCHEMA VALIDATION (npm run validate)
+// ============================================================
+function validateConfigurationFile(filePath = OUTPUT_FILE) {
+  console.log("============================================================");
+  console.log(" 🔍 Validating VS Code Language Models Configuration");
+  console.log(` Target: ${filePath}`);
+  console.log("============================================================\n");
+
+  if (!fs.existsSync(filePath)) {
+    console.error(`❌ File not found: ${filePath}`);
+    process.exit(1);
+  }
+
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (err) {
+    console.error(`❌ Invalid JSON syntax: ${err.message}`);
+    process.exit(1);
+  }
+
+  if (!Array.isArray(data)) {
+    console.error("❌ Root must be an array of provider configurations.");
+    process.exit(1);
+  }
+
+  let errors = 0;
+  let totalModels = 0;
+
+  data.forEach((provider, pIdx) => {
+    const pPrefix = `Provider [${pIdx}] (${provider.name || "unnamed"})`;
+    if (!provider.name) {
+      console.error(`❌ ${pPrefix}: missing 'name'`);
+      errors++;
+    }
+    if (provider.vendor !== "customendpoint") {
+      console.error(`❌ ${pPrefix}: vendor must be 'customendpoint', got '${provider.vendor}'`);
+      errors++;
+    }
+    if (!provider.apiKey || typeof provider.apiKey !== "string") {
+      console.error(`❌ ${pPrefix}: missing or invalid 'apiKey'`);
+      errors++;
+    }
+    if (provider.apiType !== "chat-completions") {
+      console.error(`❌ ${pPrefix}: apiType must be 'chat-completions', got '${provider.apiType}'`);
+      errors++;
+    }
+    if (!Array.isArray(provider.models) || provider.models.length === 0) {
+      console.error(`❌ ${pPrefix}: 'models' array is missing or empty`);
+      errors++;
+      return;
+    }
+
+    const seenIds = new Set();
+    provider.models.forEach((model, mIdx) => {
+      totalModels++;
+      const mPrefix = `  ${pPrefix} -> Model [${mIdx}] (${model.id || "no-id"})`;
+      if (!model.id) {
+        console.error(`❌ ${mPrefix}: missing 'id'`);
+        errors++;
+      } else if (seenIds.has(model.id)) {
+        console.error(`❌ ${mPrefix}: duplicate model id '${model.id}'`);
+        errors++;
+      } else {
+        seenIds.add(model.id);
+      }
+
+      if (!model.name) {
+        console.error(`❌ ${mPrefix}: missing 'name'`);
+        errors++;
+      }
+      if (!model.url || !model.url.startsWith("http")) {
+        console.error(`❌ ${mPrefix}: invalid or missing 'url': '${model.url}'`);
+        errors++;
+      }
+      if (typeof model.maxInputTokens !== "number" || model.maxInputTokens <= 0) {
+        console.error(`❌ ${mPrefix}: maxInputTokens must be a positive number`);
+        errors++;
+      }
+      if (typeof model.maxOutputTokens !== "number" || model.maxOutputTokens <= 0) {
+        console.error(`❌ ${mPrefix}: maxOutputTokens must be a positive number`);
+        errors++;
+      }
+    });
+
+    console.log(`[+] ${provider.name}: ${provider.models.length} models verified`);
+  });
+
+  console.log(`\n------------------------------------------------------------`);
+  if (errors === 0) {
+    console.log(`✅ Validation PASSED! All ${totalModels} models conform to the VS Code specification.`);
+  } else {
+    console.error(`❌ Validation FAILED with ${errors} error(s).`);
+    process.exit(1);
+  }
+}
+
+// ============================================================
+// FEATURE: AUTO SECRET & ENV GENERATOR (npm run init)
+// ============================================================
+function initEnvironment() {
+  const envPath = path.resolve(__dirname, ".env");
+  const crypto = require("crypto");
+
+  console.log("============================================================");
+  console.log(" ⚙️ Initializing Environment & Secret Keys");
+  console.log("============================================================\n");
+
+  if (fs.existsSync(envPath)) {
+    console.log("ℹ️  .env already exists. Preserving current values.");
+    return;
+  }
+
+  const freeSecret = "chat.lm.secret." + crypto.randomBytes(4).toString("hex");
+  const omniSecret = "chat.lm.secret." + crypto.randomBytes(4).toString("hex");
+
+  const template = `# Local Model Providers Configuration
+# FreeLLMAPI (Local proxy / default port 31415)
+FREELLMAPI_URL=http://127.0.0.1:31415
+FREELLMAPI_KEY=
+FREELLMAPI_VSCODE_SECRET=\${input:${freeSecret}}
+
+# OmniRoute (Local routing bridge / default port 20128)
+OMNIROUTE_URL=http://localhost:20128
+OMNIROUTE_KEY=
+OMNIROUTE_VSCODE_SECRET=\${input:${omniSecret}}
+`;
+
+  fs.writeFileSync(envPath, template, "utf8");
+  console.log(`✅ Generated .env with unique VS Code secret inputs:`);
+  console.log(`  • FreeLLMAPI: \${input:${freeSecret}}`);
+  console.log(`  • OmniRoute:  \${input:${omniSecret}}`);
+  console.log(`\nPlease add your API keys to .env if required.`);
+}
+
+// ============================================================
+// FEATURE: INTERACTIVE PROFILE SELECTOR MENU
+// ============================================================
+async function showProfileMenu() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  console.log("\n============================================================");
+  console.log(" 🎛️ Select Deployment Profile for VS Code Insiders");
+  console.log("============================================================");
+  console.log("  [1] 🌟 All Models     - Complete catalogue (~90+ models)");
+  console.log("  [2] 💻 Coding Only    - Specialized coding/dev models (~24 models)");
+  console.log("  [3] 🚀 Top Tier       - Premier flagship models (~14 models)");
+  console.log("  [4] 🎯 Custom Picker  - Select individual models by number\n");
+
+  return new Promise((resolve) => {
+    rl.question("Enter choice (1-4) [default: 1]: ", (answer) => {
+      rl.close();
+      const choice = answer.trim();
+      if (choice === "2") resolve({ profile: "coding", interactive: false });
+      else if (choice === "3") resolve({ profile: "top", interactive: false });
+      else if (choice === "4") resolve({ profile: "all", interactive: true });
+      else resolve({ profile: "all", interactive: false });
+    });
+  });
+}
+
+// ============================================================
 // CLI PARSER & WATCH MODE
 // ============================================================
 async function main() {
@@ -993,13 +1158,30 @@ async function main() {
     return;
   }
 
+  if (args.includes("--validate") || args.includes("validate")) {
+    validateConfigurationFile();
+    return;
+  }
+
+  if (args.includes("--init") || args.includes("init")) {
+    initEnvironment();
+    return;
+  }
+
+  let profile = "all";
+  let interactive = args.includes("--select") || args.includes("-i");
+
+  if (args.includes("--menu") || args.includes("menu")) {
+    const selected = await showProfileMenu();
+    profile = selected.profile;
+    interactive = selected.interactive;
+  }
+
   const skipTest = args.includes("--fast") || args.includes("--skip-test");
   const verifyTools = args.includes("--verify-tools") || args.includes("--tools");
   const apply = args.includes("--apply") || args.includes("--install");
-  const interactive = args.includes("--select") || args.includes("-i");
   const forceRefresh = args.includes("--refresh-cache");
 
-  let profile = "all";
   const profileIdx = args.findIndex((a) => a === "--profile");
   if (profileIdx !== -1 && args[profileIdx + 1]) {
     profile = args[profileIdx + 1].toLowerCase();

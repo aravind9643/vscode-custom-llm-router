@@ -4,7 +4,10 @@
   "description": "Unified generator for VS Code Language Models custom endpoints (FreeLLMAPI & OmniRoute)",
   "main": "generate-models.js",
   "scripts": {
+    "init": "node generate-models.js --init",
     "status": "node generate-models.js --status",
+    "validate": "node generate-models.js --validate",
+    "menu": "node generate-models.js --fast --menu --apply",
     "generate": "node generate-models.js",
     "generate:fast": "node generate-models.js --fast",
     "generate:tools": "node generate-models.js --tools",
