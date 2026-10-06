@@ -1,0 +1,29 @@
+{
+  "name": "vscode-custom-endpoint-models",
+  "version": "1.0.0",
+  "description": "Unified generator for VS Code Language Models custom endpoints (FreeLLMAPI & OmniRoute)",
+  "main": "generate-models.js",
+  "scripts": {
+    "generate": "node generate-models.js",
+    "generate:fast": "node generate-models.js --fast",
+    "generate:tools": "node generate-models.js --tools",
+    "generate:coding": "node generate-models.js --fast --coding",
+    "generate:top": "node generate-models.js --fast --top",
+    "select": "node generate-models.js --fast --select --apply",
+    "apply": "node generate-models.js --fast --apply",
+    "apply:coding": "node generate-models.js --fast --coding --apply",
+    "apply:top": "node generate-models.js --fast --top --apply",
+    "watch": "node generate-models.js --watch 30 --apply",
+    "service:install": "powershell -ExecutionPolicy Bypass -File .\\register-task.ps1",
+    "service:uninstall": "powershell -ExecutionPolicy Bypass -File .\\unregister-task.ps1"
+  },
+  "keywords": [
+    "vscode",
+    "copilot",
+    "custom-models",
+    "freellmapi",
+    "omniroute"
+  ],
+  "author": "",
+  "license": "MIT"
+}

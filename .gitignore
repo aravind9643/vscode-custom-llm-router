@@ -1,0 +1,11 @@
+# Environment
+.env
+.env.local
+
+# Node
+node_modules/
+npm-debug.log
+
+# Backups and temporary reports
+backups/
+*.log

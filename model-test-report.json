@@ -1,0 +1,3667 @@
+{
+    "freellmapi": [
+        {
+            "model": "claude-opus-4-5",
+            "working": false,
+            "status": 404,
+            "latency": 49,
+            "error": "{\"error\":{\"message\":\"Model 'claude-opus-4-5' is not in the catalog. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.\",\"type\":\"invalid_request_error\",\"code\":\"model_not_found\"},\"execution_id\":\"b98c82fd-735d-41a9-8bde-3ca18e6e4e8d\"}"
+        },
+        {
+            "model": "claude-sonnet-4-5",
+            "working": false,
+            "status": 404,
+            "latency": 54,
+            "error": "{\"error\":{\"message\":\"Model 'claude-sonnet-4-5' is not in the catalog. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.\",\"type\":\"invalid_request_error\",\"code\":\"model_not_found\"},\"execution_id\":\"15c869c5-07c5-44e9-b93b-6c39103f8538\"}"
+        },
+        {
+            "model": "claude-haiku-4-5",
+            "working": false,
+            "status": 404,
+            "latency": 55,
+            "error": "{\"error\":{\"message\":\"Model 'claude-haiku-4-5' is not in the catalog. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.\",\"type\":\"invalid_request_error\",\"code\":\"model_not_found\"},\"execution_id\":\"09d2679b-cca8-46b2-a585-986033122630\"}"
+        },
+        {
+            "model": "poolside-laguna-xs-2.1",
+            "working": false,
+            "status": 429,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"All models exhausted: 1 route checked (1 rate-limited or on cooldown). Add more API keys or wait for rate limits to reset. Soonest reset ~89s. 2 models skipped: no key configured for their platform.\",\"type\":\"rate_limit_error\",\"code\":\"rate_limit_exceeded\",\"retryAtMs\":179129046888"
+        },
+        {
+            "model": "nemotron-3-super-120b",
+            "working": true,
+            "status": 200,
+            "latency": 294,
+            "response": "The user says: \""
+        },
+        {
+            "model": "auto",
+            "working": true,
+            "status": 200,
+            "latency": 2862,
+            "response": "The user wants me to"
+        },
+        {
+            "model": "nemotron-3-ultra-550b",
+            "working": true,
+            "status": 200,
+            "latency": 2811,
+            "response": "The user wants me to"
+        },
+        {
+            "model": "gpt-oss-20b",
+            "working": true,
+            "status": 200,
+            "latency": 406,
+            "response": "The user"
+        },
+        {
+            "model": "nemotron-3-nano-omni-30b-a3b-reasoning",
+            "working": false,
+            "status": 429,
+            "latency": 4,
+            "error": "{\"error\":{\"message\":\"All models exhausted: 1 route checked (1 rate-limited or on cooldown). Add more API keys or wait for rate limits to reset. Soonest reset ~86s.\",\"type\":\"rate_limit_error\",\"code\":\"rate_limit_exceeded\",\"retryAtMs\":1791290468888},\"execution_id\":\"51832094-a481-4577-8040-07fbaff5ed26\""
+        },
+        {
+            "model": "diffusiongemma-26b-a4b-it",
+            "working": false,
+            "status": 429,
+            "latency": 4,
+            "error": "{\"error\":{\"message\":\"All models exhausted: 1 route checked (1 rate-limited or on cooldown). Add more API keys or wait for rate limits to reset. Soonest reset ~76s.\",\"type\":\"rate_limit_error\",\"code\":\"rate_limit_exceeded\",\"retryAtMs\":1791290468888},\"execution_id\":\"6b45157d-a07d-47bf-90bd-744989212628\""
+        },
+        {
+            "model": "muse-glimmer-30b",
+            "working": true,
+            "status": 200,
+            "latency": 7115,
+            "response": "Reply with"
+        },
+        {
+            "model": "llama-3.2-11b-vision-instruct",
+            "working": true,
+            "status": 200,
+            "latency": 243,
+            "response": "OK."
+        },
+        {
+            "model": "riva-translate-4b-instruct-v1.1",
+            "working": false,
+            "status": 404,
+            "latency": 29,
+            "error": "{\"error\":{\"message\":\"Every routed provider reports the model as not found or removed upstream (1 attempt(s)). The catalog entry looks stale; pick another model or call /v1/models for the available list. Attempt trail: nvidia/nvidia/riva-translate-4b-instruct-v1.1 key1: model_not_found. Last error: N"
+        },
+        {
+            "model": "riva-translate-4b-instruct-v2",
+            "working": true,
+            "status": 200,
+            "latency": 419,
+            "response": "Reply with exactly OK."
+        },
+        {
+            "model": "nemotron-3.5-lightning-30b-a3b",
+            "working": true,
+            "status": 200,
+            "latency": 10444,
+            "response": "Here's a thinking process"
+        },
+        {
+            "model": "llama-3.1-nemoguard-8b-topic-control",
+            "working": false,
+            "status": 429,
+            "latency": 4,
+            "error": "{\"error\":{\"message\":\"All models exhausted: 1 route checked (1 rate-limited or on cooldown). Add more API keys or wait for rate limits to reset. Soonest reset ~61s.\",\"type\":\"rate_limit_error\",\"code\":\"rate_limit_exceeded\",\"retryAtMs\":1791290468888},\"execution_id\":\"5f6b3fe8-b91f-4f22-8ae8-eeddb6e4bb43\""
+        },
+        {
+            "model": "fusion",
+            "working": true,
+            "status": 200,
+            "latency": 14107,
+            "response": "Reply with"
+        },
+        {
+            "model": "nemotron-3.5-content-safety",
+            "working": true,
+            "status": 200,
+            "latency": 231,
+            "response": "User Safety: safe"
+        },
+        {
+            "model": "ising-calibration-1.5-31b",
+            "working": false,
+            "status": 0,
+            "latency": 15005,
+            "error": "Timeout"
+        },
+        {
+            "model": "llama-3.1-nemotron-safety-guard-8b-v3",
+            "working": true,
+            "status": 200,
+            "latency": 14189,
+            "response": "{\"User Safety\": \""
+        },
+        {
+            "model": "llama-3.2-90b-vision",
+            "working": false,
+            "status": 0,
+            "latency": 15006,
+            "error": "Timeout"
+        },
+        {
+            "model": "llama-3.1-nemoguard-8b-content-safety",
+            "working": false,
+            "status": 0,
+            "latency": 15015,
+            "error": "Timeout"
+        }
+    ],
+    "omniroute": [
+        {
+            "model": "auto/best-vision",
+            "working": true,
+            "status": 200,
+            "latency": 7109,
+            "response": "OK"
+        },
+        {
+            "model": "auto/best-coding-fast",
+            "working": true,
+            "status": 200,
+            "latency": 85,
+            "response": "OK"
+        },
+        {
+            "model": "auto/pro-coding",
+            "working": true,
+            "status": 200,
+            "latency": 81,
+            "response": "OK"
+        },
+        {
+            "model": "auto/best-chat",
+            "working": true,
+            "status": 200,
+            "latency": 7283,
+            "response": "OK"
+        },
+        {
+            "model": "auto/pro-reasoning",
+            "working": true,
+            "status": 200,
+            "latency": 98,
+            "response": "OK"
+        },
+        {
+            "model": "auto/pro-vision",
+            "working": true,
+            "status": 200,
+            "latency": 151,
+            "response": "OK"
+        },
+        {
+            "model": "auto/best-fast",
+            "working": true,
+            "status": 200,
+            "latency": 7443,
+            "response": "OK."
+        },
+        {
+            "model": "auto/pro-chat",
+            "working": true,
+            "status": 200,
+            "latency": 184,
+            "response": "OK."
+        },
+        {
+            "model": "auto/pro-fast",
+            "working": true,
+            "status": 200,
+            "latency": 184,
+            "response": "OK."
+        },
+        {
+            "model": "auto/coding",
+            "working": true,
+            "status": 200,
+            "latency": 269,
+            "response": "OK."
+        },
+        {
+            "model": "auto/fast",
+            "working": true,
+            "status": 200,
+            "latency": 236,
+            "response": "OK."
+        },
+        {
+            "model": "auto/chat",
+            "working": true,
+            "status": 200,
+            "latency": 250,
+            "response": "OK."
+        },
+        {
+            "model": "auto/cheap",
+            "working": true,
+            "status": 200,
+            "latency": 230,
+            "response": "OK."
+        },
+        {
+            "model": "auto/offline",
+            "working": true,
+            "status": 200,
+            "latency": 244,
+            "response": "OK."
+        },
+        {
+            "model": "auto/smart",
+            "working": true,
+            "status": 200,
+            "latency": 248,
+            "response": "OK."
+        },
+        {
+            "model": "auto/claude-opus",
+            "working": true,
+            "status": 200,
+            "latency": 256,
+            "response": "OK."
+        },
+        {
+            "model": "auto/claude-sonnet",
+            "working": true,
+            "status": 200,
+            "latency": 245,
+            "response": "OK."
+        },
+        {
+            "model": "auto/claude-haiku",
+            "working": true,
+            "status": 200,
+            "latency": 240,
+            "response": "OK."
+        },
+        {
+            "model": "auto/best-coding",
+            "working": true,
+            "status": 200,
+            "latency": 8378,
+            "response": "OK"
+        },
+        {
+            "model": "auto/subscription",
+            "working": true,
+            "status": 200,
+            "latency": 217,
+            "response": "OK"
+        },
+        {
+            "model": "auto/thrifty",
+            "working": true,
+            "status": 200,
+            "latency": 215,
+            "response": "OK"
+        },
+        {
+            "model": "auto/coding:fast",
+            "working": true,
+            "status": 200,
+            "latency": 192,
+            "response": "OK"
+        },
+        {
+            "model": "auto/coding:cheap",
+            "working": true,
+            "status": 200,
+            "latency": 80,
+            "response": "OK"
+        },
+        {
+            "model": "auto/best-reasoning",
+            "working": true,
+            "status": 200,
+            "latency": 8964,
+            "response": "OK."
+        },
+        {
+            "model": "auto/coding:pro",
+            "working": true,
+            "status": 200,
+            "latency": 1212,
+            "response": "OK."
+        },
+        {
+            "model": "auto/coding:reliable",
+            "working": true,
+            "status": 200,
+            "latency": 55,
+            "response": "OK."
+        },
+        {
+            "model": "auto/reasoning",
+            "working": true,
+            "status": 200,
+            "latency": 129,
+            "response": "OK."
+        },
+        {
+            "model": "auto/reasoning:pro",
+            "working": true,
+            "status": 200,
+            "latency": 50,
+            "response": "OK."
+        },
+        {
+            "model": "auto/vision",
+            "working": true,
+            "status": 200,
+            "latency": 70,
+            "response": "OK."
+        },
+        {
+            "model": "auto/multimodal",
+            "working": true,
+            "status": 200,
+            "latency": 58,
+            "response": "OK."
+        },
+        {
+            "model": "auto/coding:free",
+            "working": true,
+            "status": 200,
+            "latency": 4303,
+            "response": "OK"
+        },
+        {
+            "model": "auto/minimax",
+            "working": true,
+            "status": 200,
+            "latency": 49,
+            "response": "OK."
+        },
+        {
+            "model": "auto/mimo",
+            "working": true,
+            "status": 200,
+            "latency": 50,
+            "response": "OK."
+        },
+        {
+            "model": "auto/zai",
+            "working": true,
+            "status": 200,
+            "latency": 48,
+            "response": "OK."
+        },
+        {
+            "model": "auto/chaos",
+            "working": true,
+            "status": 200,
+            "latency": 5010,
+            "response": "OK."
+        },
+        {
+            "model": "auto/best-chaos",
+            "working": true,
+            "status": 200,
+            "latency": 5914,
+            "response": "OK."
+        },
+        {
+            "model": "auto/gemini",
+            "working": true,
+            "status": 200,
+            "latency": 54,
+            "response": "OK."
+        },
+        {
+            "model": "auto/llama",
+            "working": false,
+            "status": 502,
+            "latency": 2077,
+            "error": "{\"error\":{\"message\":\"cfp/meta/llama-4-scout-17b-16e-instruct: provider — Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path> (HTTP 502)\",\"type\":\"server_error\",\"code\":\"HTTP_502\"},\"diagnostics\":{\"poolSize\":3,\"attempted\":1,\"excluded\":[{\"provider\":\"cloudf"
+        },
+        {
+            "model": "auto/gemma",
+            "working": false,
+            "status": 502,
+            "latency": 2675,
+            "error": "{\"error\":{\"message\":\"cfp/aisingapore/gemma-sea-lion-v4-27b-it: provider — Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path> (HTTP 502); horde/google/gemma-4-31b: model — {\\\"detail\\\":\\\"Model None not known!\\\"} (HTTP 406)\",\"type\":\"server_error\",\"code\""
+        },
+        {
+            "model": "auto/best-free",
+            "working": true,
+            "status": 200,
+            "latency": 25,
+            "response": "OK"
+        },
+        {
+            "model": "auto/qwen",
+            "working": false,
+            "status": 502,
+            "latency": 2091,
+            "error": "{\"error\":{\"message\":\"cfp/qwen/qwen2.5-coder-32b-instruct: provider — Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path> (HTTP 502)\",\"type\":\"server_error\",\"code\":\"HTTP_502\"},\"diagnostics\":{\"poolSize\":2,\"attempted\":1,\"excluded\":[{\"provider\":\"cloudflare"
+        },
+        {
+            "model": "auto/gpt",
+            "working": true,
+            "status": 200,
+            "latency": 3897,
+            "response": "OK"
+        },
+        {
+            "model": "static-best-coding",
+            "working": true,
+            "status": 200,
+            "latency": 3249,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gemini-pro-agent",
+            "working": true,
+            "status": 200,
+            "latency": 49,
+            "response": "OK."
+        },
+        {
+            "model": "auto/kimi",
+            "working": false,
+            "status": 500,
+            "latency": 6610,
+            "error": "{\"error\":{\"message\":\"cfp/moonshotai/kimi-k2.7-code: provider — Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path> (HTTP 502); aug/kimi-k2.7: provider — Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an abs"
+        },
+        {
+            "model": "agy/gemini-3.5-flash-lite",
+            "working": true,
+            "status": 200,
+            "latency": 1656,
+            "response": "OK"
+        },
+        {
+            "model": "agy/claude-sonnet-4-6",
+            "working": true,
+            "status": 200,
+            "latency": 1821,
+            "response": "OK."
+        },
+        {
+            "model": "auto/glm",
+            "working": false,
+            "status": 502,
+            "latency": 10280,
+            "error": "{\"error\":{\"message\":\"dva/glm-5-3-flash-high: provider — DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox (HTTP 500); zc/glm-5.1: provider — spawn zcode ENOENT (HTTP 502); cfp/zai-org/glm-4.7-flash: provider — Cloudflare Playground browser session failed: browserType.launch: Exec"
+        },
+        {
+            "model": "auto/deepseek",
+            "working": false,
+            "status": 502,
+            "latency": 5403,
+            "error": "{\"error\":{\"message\":\"dva/deepseek-v4-flash-high: provider — DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox (HTTP 500); cfp/deepseek-ai/deepseek-v4-flash-0731: provider — Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path> (HTTP "
+        },
+        {
+            "model": "agy/gemini-3.8-flash-high",
+            "working": true,
+            "status": 200,
+            "latency": 3526,
+            "response": "OK"
+        },
+        {
+            "model": "agy/claude-opus-4-6-thinking",
+            "working": true,
+            "status": 200,
+            "latency": 2522,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gemini-3.7-flash-tiered",
+            "working": true,
+            "status": 200,
+            "latency": 2866,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gemini-3.8-flash-medium",
+            "working": true,
+            "status": 200,
+            "latency": 2492,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gemini-3.7-flash-high",
+            "working": true,
+            "status": 200,
+            "latency": 2919,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gemini-3.7-flash-low",
+            "working": true,
+            "status": 200,
+            "latency": 1583,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gpt-oss-120b-medium",
+            "working": true,
+            "status": 200,
+            "latency": 1768,
+            "response": ""
+        },
+        {
+            "model": "agy/gemini-3.8-flash-low",
+            "working": true,
+            "status": 200,
+            "latency": 3184,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gemini-3.8-flash-tiered",
+            "working": true,
+            "status": 200,
+            "latency": 2648,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gemini-3.7-flash-medium",
+            "working": true,
+            "status": 200,
+            "latency": 2753,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gemini-3.1-flash-image",
+            "working": true,
+            "status": 200,
+            "latency": 2212,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gemini-3.1-pro-low",
+            "working": true,
+            "status": 200,
+            "latency": 3862,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gemini-3.6-flash-low",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'gemini-3.6-flash-low' is not available in the active live catalog for provider 'antigravity'.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "agy/claude-sonnet-4-6-low",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'claude-sonnet-4-6-low' is not available in the active live catalog for provider 'antigravity'.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "agy/claude-sonnet-4-6-medium",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'claude-sonnet-4-6-medium' is not available in the active live catalog for provider 'antigravity'.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "agy/claude-sonnet-4-6-high",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'claude-sonnet-4-6-high' is not available in the active live catalog for provider 'antigravity'.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "agy/claude-opus-4-6-thinking-low",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'claude-opus-4-6-thinking-low' is not available in the active live catalog for provider 'antigravity'.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "agy/claude-opus-4-6-thinking-medium",
+            "working": false,
+            "status": 400,
+            "latency": 12,
+            "error": "{\"error\":{\"message\":\"Model 'claude-opus-4-6-thinking-medium' is not available in the active live catalog for provider 'antigravity'.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "agy/claude-opus-4-6-thinking-high",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'claude-opus-4-6-thinking-high' is not available in the active live catalog for provider 'antigravity'.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "no-think/agy/claude-sonnet-4-6",
+            "working": true,
+            "status": 200,
+            "latency": 11,
+            "response": "OK."
+        },
+        {
+            "model": "no-think/agy/claude-opus-4-6-thinking",
+            "working": true,
+            "status": 200,
+            "latency": 13,
+            "response": "OK"
+        },
+        {
+            "model": "agy/gemini-3.1-pro-high",
+            "working": true,
+            "status": 200,
+            "latency": 5029,
+            "response": "OK."
+        },
+        {
+            "model": "agy/gemini-3.1-flash-lite",
+            "working": true,
+            "status": 200,
+            "latency": 1561,
+            "response": "OK"
+        },
+        {
+            "model": "dva/claude-fable-5-1-max",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-fable-5-1-xhigh",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-fable-5-1-high",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-fable-5-1-medium",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-fable-5-1-low",
+            "working": false,
+            "status": 500,
+            "latency": 30,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-5-max-fast",
+            "working": false,
+            "status": 500,
+            "latency": 31,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-5-max",
+            "working": false,
+            "status": 500,
+            "latency": 26,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-5-xhigh-fast",
+            "working": false,
+            "status": 500,
+            "latency": 57,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-5-xhigh",
+            "working": false,
+            "status": 500,
+            "latency": 29,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-5-high-fast",
+            "working": false,
+            "status": 500,
+            "latency": 63,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-5-high",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-5-medium-fast",
+            "working": false,
+            "status": 500,
+            "latency": 24,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-5-medium",
+            "working": false,
+            "status": 500,
+            "latency": 42,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-5-low-fast",
+            "working": false,
+            "status": 500,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-5-low",
+            "working": false,
+            "status": 500,
+            "latency": 26,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-4-8-max-fast",
+            "working": false,
+            "status": 500,
+            "latency": 98,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-4-8-max",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-4-8-xhigh-fast",
+            "working": false,
+            "status": 500,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-4-8-xhigh",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-4-8-high-fast",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-4-8-high",
+            "working": false,
+            "status": 500,
+            "latency": 51,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-4-8-medium-fast",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-4-8-medium",
+            "working": false,
+            "status": 500,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-4-8-low-fast",
+            "working": false,
+            "status": 500,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-opus-4-8-low",
+            "working": false,
+            "status": 500,
+            "latency": 65,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-sonnet-5-max",
+            "working": false,
+            "status": 500,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-sonnet-5-xhigh",
+            "working": false,
+            "status": 500,
+            "latency": 23,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-sonnet-5-high",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-sonnet-5-medium",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-sonnet-5-low",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-sonnet-4-6-thinking-1m",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-sonnet-4-6",
+            "working": true,
+            "status": 200,
+            "latency": 8,
+            "response": "OK."
+        },
+        {
+            "model": "dva/claude-sonnet-4-6-1m",
+            "working": false,
+            "status": 500,
+            "latency": 31,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/claude-sonnet-4-6-thinking",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "agy/gemini-3-flash",
+            "working": true,
+            "status": 200,
+            "latency": 14357,
+            "response": "OK"
+        },
+        {
+            "model": "dva/MODEL_PRIVATE_11",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-max-priority",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-max",
+            "working": false,
+            "status": 500,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-xhigh-priority",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-xhigh",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-high-priority",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-high",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-medium-priority",
+            "working": false,
+            "status": 500,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-medium",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-low-priority",
+            "working": false,
+            "status": 500,
+            "latency": 34,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-low",
+            "working": false,
+            "status": 500,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-none-priority",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-sol-none",
+            "working": false,
+            "status": 500,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-max-priority",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-max",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-xhigh-priority",
+            "working": false,
+            "status": 500,
+            "latency": 54,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-xhigh",
+            "working": false,
+            "status": 500,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-high-priority",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-high",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-medium-priority",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-medium",
+            "working": false,
+            "status": 500,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-low-priority",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-low",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-none-priority",
+            "working": false,
+            "status": 500,
+            "latency": 27,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-terra-none",
+            "working": false,
+            "status": 500,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-max-priority",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-max",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-xhigh-priority",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-xhigh",
+            "working": false,
+            "status": 500,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-high-priority",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-high",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-medium-priority",
+            "working": false,
+            "status": 500,
+            "latency": 30,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-medium",
+            "working": false,
+            "status": 500,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-low-priority",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-low",
+            "working": false,
+            "status": 500,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-none-priority",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gpt-5-6-luna-none",
+            "working": false,
+            "status": 500,
+            "latency": 41,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/kimi-k3-max",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/kimi-k3-high",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/kimi-k3-low",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/kimi-k2-7",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/glm-5-3-max",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/glm-5-3-high",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/glm-5-3-low",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/glm-5-3-flash-max",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/glm-5-3-flash-high",
+            "working": false,
+            "status": 500,
+            "latency": 28,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "agy/gemini-3.6-flash-tiered",
+            "working": false,
+            "status": 0,
+            "latency": 15004,
+            "error": "Timeout"
+        },
+        {
+            "model": "dva/glm-5-3-flash-low",
+            "working": false,
+            "status": 500,
+            "latency": 85,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/swe-1-7",
+            "working": false,
+            "status": 500,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/swe-1-7-medium",
+            "working": false,
+            "status": 500,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/swe-1-7-lightning",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/swe-1-7-lightning-medium",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/adaptive",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/grok-4-6-xhigh",
+            "working": false,
+            "status": 500,
+            "latency": 24,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/grok-4-6-high",
+            "working": false,
+            "status": 500,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/grok-4-6-medium",
+            "working": false,
+            "status": 500,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/grok-4-6-low",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/inkling-max",
+            "working": false,
+            "status": 500,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/inkling-xhigh",
+            "working": false,
+            "status": 500,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/inkling-high",
+            "working": false,
+            "status": 500,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/inkling-medium",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/inkling-low",
+            "working": false,
+            "status": 500,
+            "latency": 41,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/inkling-none",
+            "working": false,
+            "status": 500,
+            "latency": 38,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/deepseek-v4-flash-max",
+            "working": false,
+            "status": 500,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/deepseek-v4-flash-high",
+            "working": false,
+            "status": 500,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/deepseek-v4-flash-low",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/nemotron-3-ultra-high",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/nemotron-3-ultra-medium",
+            "working": false,
+            "status": 500,
+            "latency": 23,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/nemotron-3-ultra-none",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gemini-3-7-flash-high",
+            "working": false,
+            "status": 500,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gemini-3-7-flash-medium",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gemini-3-7-flash-low",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gemini-3-1-pro-high",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/gemini-3-1-pro-low",
+            "working": false,
+            "status": 500,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/deepseek-v4-pro-max",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/deepseek-v4-pro-high",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "dva/deepseek-v4-pro-low",
+            "working": false,
+            "status": 500,
+            "latency": 41,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-5-max-fast",
+            "working": false,
+            "status": 500,
+            "latency": 63,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-5-max",
+            "working": false,
+            "status": 500,
+            "latency": 63,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-5-xhigh-fast",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-5-high-fast",
+            "working": false,
+            "status": 500,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-5-medium-fast",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-5-low-fast",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-4-8-max-fast",
+            "working": false,
+            "status": 500,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-4-8-max",
+            "working": false,
+            "status": 500,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-4-8-xhigh-fast",
+            "working": false,
+            "status": 500,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-4-8-high-fast",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-4-8-medium-fast",
+            "working": false,
+            "status": 500,
+            "latency": 54,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-opus-4-8-low-fast",
+            "working": false,
+            "status": 500,
+            "latency": 106,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-sonnet-4-6",
+            "working": true,
+            "status": 200,
+            "latency": 29,
+            "response": "OK."
+        },
+        {
+            "model": "oc/big-pickle",
+            "working": false,
+            "status": 401,
+            "latency": 28,
+            "error": "{\"error\":{\"message\":\"No active credentials for provider: opencode.\",\"type\":\"authentication_error\",\"code\":\"invalid_api_key\"}}"
+        },
+        {
+            "model": "oc/muse-spark-1.2",
+            "working": false,
+            "status": 401,
+            "latency": 23,
+            "error": "{\"error\":{\"message\":\"No active credentials for provider: opencode.\",\"type\":\"authentication_error\",\"code\":\"invalid_api_key\"}}"
+        },
+        {
+            "model": "oc/muse-spark-1.2-contributor-free",
+            "working": false,
+            "status": 401,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"No active credentials for provider: opencode.\",\"type\":\"authentication_error\",\"code\":\"invalid_api_key\"}}"
+        },
+        {
+            "model": "oc/muse-spark-1.3",
+            "working": false,
+            "status": 401,
+            "latency": 14,
+            "error": "{\"error\":{\"message\":\"No active credentials for provider: opencode.\",\"type\":\"authentication_error\",\"code\":\"invalid_api_key\"}}"
+        },
+        {
+            "model": "oc/muse-spark-1.3-contributor-free",
+            "working": false,
+            "status": 401,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"No active credentials for provider: opencode.\",\"type\":\"authentication_error\",\"code\":\"invalid_api_key\"}}"
+        },
+        {
+            "model": "oc/deepseek-v4-flash-free",
+            "working": false,
+            "status": 401,
+            "latency": 13,
+            "error": "{\"error\":{\"message\":\"No active credentials for provider: opencode.\",\"type\":\"authentication_error\",\"code\":\"invalid_api_key\"}}"
+        },
+        {
+            "model": "oc/mimo-v2.5-free",
+            "working": false,
+            "status": 401,
+            "latency": 13,
+            "error": "{\"error\":{\"message\":\"No active credentials for provider: opencode.\",\"type\":\"authentication_error\",\"code\":\"invalid_api_key\"}}"
+        },
+        {
+            "model": "oc/hy3-free",
+            "working": false,
+            "status": 401,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"No active credentials for provider: opencode.\",\"type\":\"authentication_error\",\"code\":\"invalid_api_key\"}}"
+        },
+        {
+            "model": "oc/nemotron-3-ultra-free",
+            "working": false,
+            "status": 401,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"No active credentials for provider: opencode.\",\"type\":\"authentication_error\",\"code\":\"invalid_api_key\"}}"
+        },
+        {
+            "model": "oc/north-mini-code-free",
+            "working": false,
+            "status": 401,
+            "latency": 7,
+            "error": "{\"error\":{\"message\":\"No active credentials for provider: opencode.\",\"type\":\"authentication_error\",\"code\":\"invalid_api_key\"}}"
+        },
+        {
+            "model": "ddgw/gpt-5.4-mini",
+            "working": true,
+            "status": 200,
+            "latency": 10,
+            "response": "OK"
+        },
+        {
+            "model": "no-think/dva/claude-sonnet-5-max",
+            "working": false,
+            "status": 500,
+            "latency": 24,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-sonnet-4-6-thinking-1m",
+            "working": false,
+            "status": 500,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-sonnet-4-6-1m",
+            "working": false,
+            "status": 500,
+            "latency": 23,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "no-think/dva/claude-sonnet-4-6-thinking",
+            "working": false,
+            "status": 500,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"[500]: DEVIN_AGENTIC_HOME must be an absolute path inside the bridge sandbox\",\"type\":\"server_error\",\"code\":\"internal_server_error\"}}"
+        },
+        {
+            "model": "ddgw/gpt-5.6-luna",
+            "working": true,
+            "status": 200,
+            "latency": 2084,
+            "response": "OK"
+        },
+        {
+            "model": "ddgw/mistral-small-2603",
+            "working": true,
+            "status": 200,
+            "latency": 2152,
+            "response": "OK"
+        },
+        {
+            "model": "ddgw/tinfoil/gpt-oss-120b",
+            "working": true,
+            "status": 200,
+            "latency": 2195,
+            "response": "OK"
+        },
+        {
+            "model": "ddgw/claude-haiku-4-5",
+            "working": true,
+            "status": 200,
+            "latency": 2738,
+            "response": "OK"
+        },
+        {
+            "model": "ddgw/tinfoil/gemma4-31b",
+            "working": true,
+            "status": 200,
+            "latency": 3005,
+            "response": "OK"
+        },
+        {
+            "model": "cfp/zai-org/glm-5.2",
+            "working": false,
+            "status": 502,
+            "latency": 2284,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/moonshotai/kimi-k2.6",
+            "working": false,
+            "status": 502,
+            "latency": 2112,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/deepseek-ai/deepseek-v4-pro-0813",
+            "working": false,
+            "status": 502,
+            "latency": 2381,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/moonshotai/kimi-k2.7-code",
+            "working": false,
+            "status": 502,
+            "latency": 2589,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/deepseek-ai/deepseek-v4-flash-0731",
+            "working": false,
+            "status": 502,
+            "latency": 2160,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/zai-org/glm-4.7-flash",
+            "working": false,
+            "status": 502,
+            "latency": 3152,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/openai/gpt-oss-120b",
+            "working": false,
+            "status": 502,
+            "latency": 2497,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/openai/gpt-oss-20b",
+            "working": false,
+            "status": 502,
+            "latency": 2814,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/meta-llama/llama-3.3-70b-instruct-fp8-fast",
+            "working": false,
+            "status": 502,
+            "latency": 2410,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/meta/llama-3.1-8b-instruct-fp8",
+            "working": false,
+            "status": 502,
+            "latency": 2146,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/qwen/qwen3-30b-a3b-fp8",
+            "working": false,
+            "status": 502,
+            "latency": 2171,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/meta/llama-4-scout-17b-16e-instruct",
+            "working": false,
+            "status": 502,
+            "latency": 2623,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/nvidia/nemotron-3-120b-a12b",
+            "working": false,
+            "status": 502,
+            "latency": 2634,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/qwen/qwen2.5-coder-32b-instruct",
+            "working": false,
+            "status": 502,
+            "latency": 2884,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/qwen/qwq-32b",
+            "working": false,
+            "status": 502,
+            "latency": 2391,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/google/gemma-4-26b-a4b-it",
+            "working": false,
+            "status": 502,
+            "latency": 2558,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/deepseek-ai/deepseek-r1-distill-qwen-32b",
+            "working": false,
+            "status": 502,
+            "latency": 2933,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/aisingapore/gemma-sea-lion-v4-27b-it",
+            "working": false,
+            "status": 502,
+            "latency": 2556,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/mistralai/mistral-small-3.1-24b-instruct",
+            "working": false,
+            "status": 502,
+            "latency": 2941,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cfp/ibm-granite/granite-4.0-h-micro",
+            "working": false,
+            "status": 502,
+            "latency": 2963,
+            "error": "{\"error\":{\"message\":\"[502]: Cloudflare Playground browser session failed: browserType.launch: Executable doesn't exist at <path>\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/sonnet4.6",
+            "working": false,
+            "status": 502,
+            "latency": 3027,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "veoaifree-web/veo",
+            "working": false,
+            "status": 502,
+            "latency": 3058,
+            "error": "{\"error\":{\"message\":\"[502]: fetch failed\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "veo-free/veo",
+            "working": false,
+            "status": 502,
+            "latency": 3058,
+            "error": "{\"error\":{\"message\":\"[502]: fetch failed\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "veo-free/seedance",
+            "working": false,
+            "status": 502,
+            "latency": 3597,
+            "error": "{\"error\":{\"message\":\"[502]: fetch failed\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "veoaifree-web/seedance",
+            "working": false,
+            "status": 502,
+            "latency": 3596,
+            "error": "{\"error\":{\"message\":\"[502]: fetch failed\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/sonnet4.5",
+            "working": false,
+            "status": 502,
+            "latency": 2206,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/fable-5",
+            "working": false,
+            "status": 502,
+            "latency": 2308,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/haiku4.5",
+            "working": false,
+            "status": 502,
+            "latency": 2863,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/sonnet4.6-500k",
+            "working": false,
+            "status": 502,
+            "latency": 2554,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/sonnet5-high",
+            "working": false,
+            "status": 502,
+            "latency": 2125,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/sonnet5-500k",
+            "working": false,
+            "status": 502,
+            "latency": 2278,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/opus4.5",
+            "working": false,
+            "status": 502,
+            "latency": 2446,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/opus4.6-500k",
+            "working": false,
+            "status": 502,
+            "latency": 2412,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/opus4.6",
+            "working": false,
+            "status": 502,
+            "latency": 2757,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/opus4.7",
+            "working": false,
+            "status": 502,
+            "latency": 2548,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/opus4.7-500k",
+            "working": false,
+            "status": 502,
+            "latency": 2360,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/opus4.8",
+            "working": false,
+            "status": 502,
+            "latency": 2655,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/gpt5",
+            "working": false,
+            "status": 502,
+            "latency": 2323,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/gemini-3.1-pro-preview",
+            "working": false,
+            "status": 502,
+            "latency": 2288,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/gpt5.1",
+            "working": false,
+            "status": 502,
+            "latency": 2457,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/gpt5.2",
+            "working": false,
+            "status": 502,
+            "latency": 2566,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/gpt5.5",
+            "working": false,
+            "status": 502,
+            "latency": 2315,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/gpt5.4",
+            "working": false,
+            "status": 502,
+            "latency": 3180,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/gpt5.4-mini",
+            "working": false,
+            "status": 502,
+            "latency": 3046,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/gpt5.6-luna",
+            "working": false,
+            "status": 502,
+            "latency": 2814,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/gpt5.6-sol",
+            "working": false,
+            "status": 502,
+            "latency": 2549,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/gpt5.6-terra",
+            "working": false,
+            "status": 502,
+            "latency": 2301,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/glm-5.2",
+            "working": false,
+            "status": 502,
+            "latency": 2435,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/kimi-k2.6",
+            "working": false,
+            "status": 502,
+            "latency": 2573,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/kimi-k2.7",
+            "working": false,
+            "status": 502,
+            "latency": 2333,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/prism-a",
+            "working": false,
+            "status": 502,
+            "latency": 2750,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "aug/prism-b",
+            "working": false,
+            "status": 502,
+            "latency": 2634,
+            "error": "{\"error\":{\"message\":\"[502]: Auggie CLI not found: auggie.cmd. Install it and run \\\"auggie login\\\", or set AUGGIE_BIN to an absolute path.\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-5.3-flash",
+            "working": false,
+            "status": 502,
+            "latency": 2406,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-5.3-max",
+            "working": false,
+            "status": 502,
+            "latency": 2563,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-5.3",
+            "working": false,
+            "status": 502,
+            "latency": 2824,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-5.2",
+            "working": false,
+            "status": 502,
+            "latency": 2781,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-5.1",
+            "working": false,
+            "status": 502,
+            "latency": 2625,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-5",
+            "working": false,
+            "status": 502,
+            "latency": 2200,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-4.7-flash",
+            "working": false,
+            "status": 502,
+            "latency": 2139,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-5-turbo",
+            "working": false,
+            "status": 502,
+            "latency": 2255,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-4.7",
+            "working": false,
+            "status": 502,
+            "latency": 2120,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-4.6",
+            "working": false,
+            "status": 502,
+            "latency": 2083,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-4.6v",
+            "working": false,
+            "status": 502,
+            "latency": 2775,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-4.5",
+            "working": false,
+            "status": 502,
+            "latency": 2065,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-4.5v",
+            "working": false,
+            "status": 502,
+            "latency": 2139,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "zc/glm-4.5-air",
+            "working": false,
+            "status": 502,
+            "latency": 2468,
+            "error": "{\"error\":{\"message\":\"spawn zcode ENOENT\",\"type\":\"server_error\",\"code\":\"bad_gateway\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-astra",
+            "working": false,
+            "status": 503,
+            "latency": 2259,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-astra-ultra",
+            "working": false,
+            "status": 503,
+            "latency": 2224,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-astra-max",
+            "working": false,
+            "status": 503,
+            "latency": 2043,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-astra-xhigh",
+            "working": false,
+            "status": 503,
+            "latency": 2110,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-astra-medium",
+            "working": false,
+            "status": 503,
+            "latency": 2441,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-astra-high",
+            "working": false,
+            "status": 503,
+            "latency": 2758,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-astra-low",
+            "working": false,
+            "status": 503,
+            "latency": 2194,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-sol",
+            "working": false,
+            "status": 503,
+            "latency": 3026,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-sol-ultra",
+            "working": false,
+            "status": 503,
+            "latency": 2750,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-sol-xhigh",
+            "working": false,
+            "status": 503,
+            "latency": 2527,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-sol-max",
+            "working": false,
+            "status": 503,
+            "latency": 2130,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-sol-medium",
+            "working": false,
+            "status": 503,
+            "latency": 2843,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-sol-high",
+            "working": false,
+            "status": 503,
+            "latency": 3026,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-sol-low",
+            "working": false,
+            "status": 503,
+            "latency": 2610,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-luna",
+            "working": false,
+            "status": 503,
+            "latency": 2752,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-luna-max",
+            "working": false,
+            "status": 503,
+            "latency": 2522,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-luna-high",
+            "working": false,
+            "status": 503,
+            "latency": 2123,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-luna-medium",
+            "working": false,
+            "status": 503,
+            "latency": 2125,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-luna-xhigh",
+            "working": false,
+            "status": 503,
+            "latency": 2836,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-sol",
+            "working": false,
+            "status": 503,
+            "latency": 2238,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-sol-ultra",
+            "working": false,
+            "status": 503,
+            "latency": 2179,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-6-luna-low",
+            "working": false,
+            "status": 503,
+            "latency": 2748,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-sol-max",
+            "working": false,
+            "status": 503,
+            "latency": 2526,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-sol-xhigh",
+            "working": false,
+            "status": 503,
+            "latency": 2248,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-sol-high",
+            "working": false,
+            "status": 503,
+            "latency": 2216,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-sol-medium",
+            "working": false,
+            "status": 503,
+            "latency": 2819,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-terra",
+            "working": false,
+            "status": 503,
+            "latency": 2296,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-sol-low",
+            "working": false,
+            "status": 503,
+            "latency": 2928,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-terra-ultra",
+            "working": false,
+            "status": 503,
+            "latency": 2702,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-terra-max",
+            "working": false,
+            "status": 503,
+            "latency": 2782,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-luna",
+            "working": true,
+            "status": 200,
+            "latency": 9,
+            "response": "OK"
+        },
+        {
+            "model": "cxa/gpt-5.6-terra-xhigh",
+            "working": false,
+            "status": 503,
+            "latency": 2371,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-terra-high",
+            "working": false,
+            "status": 503,
+            "latency": 2117,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-terra-medium",
+            "working": false,
+            "status": 503,
+            "latency": 2962,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-terra-low",
+            "working": false,
+            "status": 503,
+            "latency": 2720,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-luna-max",
+            "working": false,
+            "status": 503,
+            "latency": 2871,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-luna-xhigh",
+            "working": false,
+            "status": 503,
+            "latency": 2459,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-luna-high",
+            "working": false,
+            "status": 503,
+            "latency": 2533,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-luna-low",
+            "working": false,
+            "status": 503,
+            "latency": 2316,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.6-luna-medium",
+            "working": false,
+            "status": 503,
+            "latency": 2551,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.5",
+            "working": false,
+            "status": 503,
+            "latency": 2705,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.5-xhigh",
+            "working": false,
+            "status": 503,
+            "latency": 2296,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "aihorde/2DN",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/2DN' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/526Mix-Animated",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/526Mix-Animated' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/A-Zovya RPG Inpainting",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/A-Zovya RPG Inpainting' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/AAM XL",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/AAM XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/AbsoluteReality",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/AbsoluteReality' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Abyss OrangeMix",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Abyss OrangeMix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/AbyssOrangeMix-AfterDark",
+            "working": false,
+            "status": 400,
+            "latency": 7,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/AbyssOrangeMix-AfterDark' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/ACertainThing",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/ACertainThing' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/AIO Pixel Art",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/AIO Pixel Art' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/AlbedoBase XL (SDXL)",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/AlbedoBase XL (SDXL)' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/AlbedoBase XL 3.1",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/AlbedoBase XL 3.1' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/AMPonyXL",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/AMPonyXL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Analog Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Analog Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Analog Madness",
+            "working": false,
+            "status": 400,
+            "latency": 12,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Analog Madness' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Anima-Turbo-v1.1",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Anima-Turbo-v1.1' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Animagine XL",
+            "working": false,
+            "status": 400,
+            "latency": 14,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Animagine XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Anime Pencil Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 13,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Anime Pencil Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.5-high",
+            "working": false,
+            "status": 503,
+            "latency": 2895,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "aihorde/AnyLoRA",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/AnyLoRA' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Anything Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Anything Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Anything Diffusion Inpainting",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Anything Diffusion Inpainting' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Anything v3",
+            "working": false,
+            "status": 400,
+            "latency": 12,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Anything v3' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Anything v5",
+            "working": false,
+            "status": 400,
+            "latency": 34,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Anything v5' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/App Icon Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 36,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/App Icon Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Art Of Mtg",
+            "working": false,
+            "status": 400,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Art Of Mtg' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Aurora",
+            "working": false,
+            "status": 400,
+            "latency": 21,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Aurora' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Babes",
+            "working": false,
+            "status": 400,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Babes' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/BB95 Furry Mix",
+            "working": false,
+            "status": 400,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/BB95 Furry Mix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/BB95 Furry Mix v14",
+            "working": false,
+            "status": 400,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/BB95 Furry Mix v14' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/BigASP",
+            "working": false,
+            "status": 400,
+            "latency": 12,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/BigASP' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Blank Canvas XL",
+            "working": false,
+            "status": 400,
+            "latency": 13,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Blank Canvas XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/BlenderMix Pony",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/BlenderMix Pony' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/BweshMix",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/BweshMix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/CamelliaMix 2.5D",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/CamelliaMix 2.5D' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Cetus-Mix",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Cetus-Mix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Cheese Daddys Landscape Mix",
+            "working": false,
+            "status": 400,
+            "latency": 7,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Cheese Daddys Landscape Mix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Cheyenne",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Cheyenne' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Comic-Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Comic-Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Counterfeit",
+            "working": false,
+            "status": 400,
+            "latency": 7,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Counterfeit' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/CyberRealistic Pony",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/CyberRealistic Pony' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/CyriousMix",
+            "working": false,
+            "status": 400,
+            "latency": 7,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/CyriousMix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Dan Mumford Style",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Dan Mumford Style' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Deliberate",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Deliberate' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Deliberate 3.0",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Deliberate 3.0' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Deliberate Inpainting",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Deliberate Inpainting' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Double Exposure Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Double Exposure Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Dreamlike Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 7,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Dreamlike Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/DreamLikeSamKuvshinov",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/DreamLikeSamKuvshinov' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Dreamshaper",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Dreamshaper' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/DreamShaper Inpainting",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/DreamShaper Inpainting' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/DreamShaper XL",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/DreamShaper XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/DucHaiten",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/DucHaiten' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/DucHaiten Classic Anime",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/DucHaiten Classic Anime' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.5-low",
+            "working": false,
+            "status": 503,
+            "latency": 2294,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "aihorde/DucHaiten GameArt (Unreal) Pony",
+            "working": false,
+            "status": 400,
+            "latency": 29,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/DucHaiten GameArt (Unreal) Pony' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Dungeons and Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Dungeons and Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Dungeons n Waifus",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Dungeons n Waifus' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Edge Of Realism",
+            "working": false,
+            "status": 400,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Edge Of Realism' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Eimis Anime Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Eimis Anime Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Elysium Anime",
+            "working": false,
+            "status": 400,
+            "latency": 14,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Elysium Anime' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Epic Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Epic Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Epic Diffusion Inpainting",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Epic Diffusion Inpainting' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Ether Real Mix",
+            "working": false,
+            "status": 400,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Ether Real Mix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Experience",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Experience' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/ExpMix Line",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/ExpMix Line' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/FaeTastic",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/FaeTastic' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Fantasy Card Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Fantasy Card Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Flat-2D Animerge",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Flat-2D Animerge' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "unc/Lorbus/Qwen3.6-27B-int4-AutoRound",
+            "working": false,
+            "status": 404,
+            "latency": 1000,
+            "error": "{\"error\":{\"message\":\"[uncloseai/Lorbus/Qwen3.6-27B-int4-AutoRound] [404]: The model `Lorbus/Qwen3.6-27B-int4-AutoRound` does not exist. (reset after 2m)\",\"retry_after\":120,\"reset_at\":\"2026-10-06T12:46:03.876Z\"}}"
+        },
+        {
+            "model": "aihorde/Flux.1-Schnell fp8 (Compact)",
+            "working": false,
+            "status": 400,
+            "latency": 6,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Flux.1-Schnell fp8 (Compact)' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Anygen",
+            "working": false,
+            "status": 406,
+            "latency": 924,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/Fustercluck",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Fustercluck' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Galena Redux",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Galena Redux' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Ghibli Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Ghibli Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/GhostMix",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/GhostMix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Grapefruit Hentai",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Grapefruit Hentai' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/GTA5 Artwork Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/GTA5 Artwork Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "cxa/gpt-5.5-medium",
+            "working": false,
+            "status": 503,
+            "latency": 2945,
+            "error": "{\"error\":{\"message\":\"[503]: Codex app-server transport is not configured (missing url or token)\",\"type\":\"server_error\",\"code\":\"service_unavailable\"}}"
+        },
+        {
+            "model": "aihorde/Hassaku XL",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Hassaku XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Healy's Anime Blend",
+            "working": false,
+            "status": 400,
+            "latency": 12,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Healy's Anime Blend' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Hentai Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Hentai Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Hidden Canvas",
+            "working": false,
+            "status": 400,
+            "latency": 12,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Hidden Canvas' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/HolyMix ILXL",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/HolyMix ILXL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/HRL",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/HRL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/ICBINP - I Can't Believe It's Not Photography",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/ICBINP - I Can't Believe It's Not Photography' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/ICBINP XL",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/ICBINP XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/iCoMix",
+            "working": false,
+            "status": 400,
+            "latency": 12,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/iCoMix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/iCoMix Inpainting",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/iCoMix Inpainting' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Fluxmania Legacy",
+            "working": false,
+            "status": 406,
+            "latency": 526,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/Inkpunk Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Inkpunk Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/FLUX.1-Krea dev",
+            "working": false,
+            "status": 406,
+            "latency": 632,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/FLUX.1-dev fp8",
+            "working": false,
+            "status": 406,
+            "latency": 654,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/Jim Eidomode",
+            "working": false,
+            "status": 400,
+            "latency": 22,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Jim Eidomode' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Juggernaut XL",
+            "working": false,
+            "status": 400,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Juggernaut XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/KaynegIllustriousXL",
+            "working": false,
+            "status": 400,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/KaynegIllustriousXL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Krea2-Turbo_fp8",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Krea2-Turbo_fp8' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Lawlas's yiff mix",
+            "working": false,
+            "status": 400,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Lawlas's yiff mix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Liberty",
+            "working": false,
+            "status": 400,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Liberty' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Lyriel",
+            "working": false,
+            "status": 400,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Lyriel' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/majicMIX realistic",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/majicMIX realistic' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/MeinaMix",
+            "working": false,
+            "status": 400,
+            "latency": 15,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/MeinaMix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/MHXL - Aventis Horizon",
+            "working": false,
+            "status": 400,
+            "latency": 15,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/MHXL - Aventis Horizon' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Midjourney PaintArt",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Midjourney PaintArt' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Mistoon Anime",
+            "working": false,
+            "status": 400,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Mistoon Anime' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/ModernArt Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/ModernArt Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/MoonMix Fantasy",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/MoonMix Fantasy' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Movie Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Movie Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/NatViS",
+            "working": false,
+            "status": 400,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/NatViS' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Neurogen",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Neurogen' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/NeverEnding Dream",
+            "working": false,
+            "status": 400,
+            "latency": 13,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/NeverEnding Dream' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/NEW ERA",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/NEW ERA' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/noob_v_pencil XL",
+            "working": false,
+            "status": 400,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/noob_v_pencil XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/noobEvo",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/noobEvo' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Nova Anime XL",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Nova Anime XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Nova Flat XL",
+            "working": false,
+            "status": 400,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Nova Flat XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Nova Furry Pony",
+            "working": false,
+            "status": 400,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Nova Furry Pony' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Nova Furry XL",
+            "working": false,
+            "status": 400,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Nova Furry XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/NTR MIX IL-Noob XL",
+            "working": false,
+            "status": 400,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/NTR MIX IL-Noob XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Pastel Mix",
+            "working": false,
+            "status": 400,
+            "latency": 15,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Pastel Mix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Perfect World",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Perfect World' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/PerfectDeliberate",
+            "working": false,
+            "status": 400,
+            "latency": 14,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/PerfectDeliberate' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Photon",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Photon' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Pixel Illustrious",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Pixel Illustrious' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/HASDX",
+            "working": false,
+            "status": 406,
+            "latency": 614,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/Illuminati Diffusion",
+            "working": false,
+            "status": 406,
+            "latency": 707,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/Pony Diffusion XL",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Pony Diffusion XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Pony Realism",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Pony Realism' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/PPP",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/PPP' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Prefect Pony",
+            "working": false,
+            "status": 400,
+            "latency": 9,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Prefect Pony' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Pretty 2.5D",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Pretty 2.5D' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Project Unreal Engine 5",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Project Unreal Engine 5' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/PVC Style Movable Realistic (beta 25)",
+            "working": false,
+            "status": 400,
+            "latency": 15,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/PVC Style Movable Realistic (beta 25)' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Quiet Goodnight XL",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Quiet Goodnight XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Qwen-Image_fp8",
+            "working": false,
+            "status": 400,
+            "latency": 8,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Qwen-Image_fp8' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Rag Illustrious Mix",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Rag Illustrious Mix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Real Dos Mix",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Real Dos Mix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/RealBiter",
+            "working": false,
+            "status": 400,
+            "latency": 13,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/RealBiter' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Realism Engine",
+            "working": false,
+            "status": 400,
+            "latency": 12,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Realism Engine' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Realistic Vision",
+            "working": false,
+            "status": 400,
+            "latency": 11,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Realistic Vision' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Jib Mix Flux v12",
+            "working": false,
+            "status": 406,
+            "latency": 790,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/Realistic Vision Inpainting",
+            "working": false,
+            "status": 400,
+            "latency": 46,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Realistic Vision Inpainting' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Reliberate",
+            "working": false,
+            "status": 400,
+            "latency": 41,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Reliberate' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Rev Animated",
+            "working": false,
+            "status": 400,
+            "latency": 32,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Rev Animated' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Ri-Mix",
+            "working": false,
+            "status": 400,
+            "latency": 23,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Ri-Mix' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/RPG",
+            "working": false,
+            "status": 400,
+            "latency": 25,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/RPG' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Sci-Fi Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 30,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Sci-Fi Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/SD-Silicon",
+            "working": false,
+            "status": 400,
+            "latency": 27,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/SD-Silicon' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/SDXL 1.0",
+            "working": false,
+            "status": 400,
+            "latency": 26,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/SDXL 1.0' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Something",
+            "working": false,
+            "status": 400,
+            "latency": 29,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Something' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Stable Cascade 1.0",
+            "working": false,
+            "status": 400,
+            "latency": 31,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Stable Cascade 1.0' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/stable_diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 34,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/stable_diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/PixelWave FLUX.1-schnell 04",
+            "working": false,
+            "status": 406,
+            "latency": 766,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/SwamPonyXL",
+            "working": false,
+            "status": 400,
+            "latency": 13,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/SwamPonyXL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/ToonYou",
+            "working": false,
+            "status": 400,
+            "latency": 15,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/ToonYou' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/TUNIX Pony",
+            "working": false,
+            "status": 400,
+            "latency": 10,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/TUNIX Pony' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Poison",
+            "working": false,
+            "status": 406,
+            "latency": 794,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/PixelWave FLUX.1-dev 03",
+            "working": false,
+            "status": 406,
+            "latency": 831,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/Uhmami",
+            "working": false,
+            "status": 400,
+            "latency": 25,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Uhmami' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Ultraspice",
+            "working": false,
+            "status": 400,
+            "latency": 28,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Ultraspice' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Unstable Diffusers XL",
+            "working": false,
+            "status": 400,
+            "latency": 33,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Unstable Diffusers XL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Unstable Ink Dream",
+            "working": false,
+            "status": 400,
+            "latency": 35,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Unstable Ink Dream' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/URPM",
+            "working": false,
+            "status": 400,
+            "latency": 37,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/URPM' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/WAI-ANI-NSFW-PONYXL",
+            "working": false,
+            "status": 400,
+            "latency": 32,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/WAI-ANI-NSFW-PONYXL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/WAI-CUTE Pony",
+            "working": false,
+            "status": 400,
+            "latency": 30,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/WAI-CUTE Pony' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/WAI-NSFW-illustrious-SDXL",
+            "working": false,
+            "status": 400,
+            "latency": 20,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/WAI-NSFW-illustrious-SDXL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/waifu_diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/waifu_diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Western Animation Diffusion",
+            "working": false,
+            "status": 400,
+            "latency": 15,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Western Animation Diffusion' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/White Pony Diffusion 4",
+            "working": false,
+            "status": 400,
+            "latency": 15,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/White Pony Diffusion 4' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Woop-Woop Photo",
+            "working": false,
+            "status": 400,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Woop-Woop Photo' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Yiffy",
+            "working": false,
+            "status": 400,
+            "latency": 17,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Yiffy' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Z-Image-Turbo",
+            "working": false,
+            "status": 400,
+            "latency": 18,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Z-Image-Turbo' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/ZavyChromaXL",
+            "working": false,
+            "status": 400,
+            "latency": 19,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/ZavyChromaXL' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Zeipher Female Model",
+            "working": false,
+            "status": 400,
+            "latency": 16,
+            "error": "{\"error\":{\"message\":\"Model 'aihorde/Zeipher Female Model' is an image-generation model and cannot be used on <path>. Use POST /v1/images/generations instead.\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+        },
+        {
+            "model": "aihorde/Vector Art",
+            "working": false,
+            "status": 406,
+            "latency": 533,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/stable_diffusion_inpainting",
+            "working": false,
+            "status": 406,
+            "latency": 747,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        },
+        {
+            "model": "aihorde/stable_diffusion_2.1",
+            "working": false,
+            "status": 406,
+            "latency": 771,
+            "error": "{\"error\":{\"message\":\"[406]: Not Acceptable\",\"type\":\"invalid_request_error\",\"code\":\"model_not_supported\"}}"
+        }
+    ]
+}
