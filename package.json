@@ -2,7 +2,7 @@
   "name": "vscode-custom-llm-router",
   "displayName": "Custom LLM Router",
   "description": "Native Language Model Provider for VS Code Copilot & Chat: Connect Ollama, LM Studio, vLLM, OpenRouter, DeepSeek, OpenAI, FreeLLMAPI, OmniRoute & custom OpenAI-compatible endpoints with real-time streaming.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "aravind9643",
   "license": "MIT",
   "keywords": [
