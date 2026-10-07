@@ -1,4 +1,4 @@
-﻿import * as vscode from "vscode";
+import * as vscode from "vscode";
 import { ModelEngine, VSCodeModel } from "./modelEngine";
 
 export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
@@ -23,9 +23,10 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
   ): Promise<vscode.LanguageModelChatInformation[]> {
     try {
       this.engine.reloadConfig();
+      const activeProfile = this.engine.getActiveProfile();
       // Enforce onlyVerifiedWorking so failed/offline models are strictly excluded from VS Code's model picker
       const providers = await this.engine.generateProviders({
-        profile: "all",
+        profile: activeProfile,
         onlyVerifiedWorking: true,
       });
 
@@ -234,12 +235,33 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
     const abortController = new AbortController();
     token.onCancellationRequested(() => abortController.abort());
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(requestBody),
-      signal: abortController.signal,
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody),
+        signal: abortController.signal,
+      });
+
+      // Automatic 1-retry with backoff on transient HTTP 429 / 500 / 502 / 503 errors
+      if (!response.ok && (response.status === 429 || response.status >= 500) && !token.isCancellationRequested) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        if (!token.isCancellationRequested) {
+          response = await fetch(url, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(requestBody),
+            signal: abortController.signal,
+          });
+        }
+      }
+    } catch (fetchErr: any) {
+      if (!token.isCancellationRequested) {
+        progress.report(new vscode.LanguageModelTextPart(`\n\n⚠️ **Connection failed to ${model.id}:** ${fetchErr?.message || fetchErr}\n`));
+      }
+      return;
+    }
 
     if (!response.ok) {
       const errText = await response.text();
@@ -266,6 +288,8 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
+    let isReasoningActive = false;
+    let inThinkTag = false;
 
     const pendingToolCalls: Map<number, { id: string; name: string; args: string }> = new Map();
 
@@ -299,14 +323,36 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
           const delta = choice.delta;
           if (!delta) continue;
 
-          // 1. Text delta
-          if (delta.content) {
-            progress.report(new vscode.LanguageModelTextPart(delta.content));
+          // 1. Reasoning / Thinking delta (DeepSeek R1 / OmniRoute reasoning_content)
+          if (delta.reasoning_content && !delta.content) {
+            if (!isReasoningActive) {
+              isReasoningActive = true;
+              progress.report(new vscode.LanguageModelTextPart("\n> 💭 *Thinking:*\n> "));
+            }
+            const formattedReasoning = delta.reasoning_content.replace(/\n/g, "\n> ");
+            progress.report(new vscode.LanguageModelTextPart(formattedReasoning));
           }
 
-          // 2. Reasoning / Thinking delta (if supported by OmniRoute / DeepSeek R1)
-          if (delta.reasoning_content && !delta.content) {
-            progress.report(new vscode.LanguageModelTextPart(delta.reasoning_content));
+          // 2. Text delta
+          if (delta.content) {
+            if (isReasoningActive) {
+              isReasoningActive = false;
+              progress.report(new vscode.LanguageModelTextPart("\n\n"));
+            }
+
+            let text = delta.content;
+            if (text.includes("<think>")) {
+              inThinkTag = true;
+              text = text.replace("<think>", "\n> 💭 *Thinking:*\n> ");
+            }
+            if (text.includes("</think>")) {
+              inThinkTag = false;
+              text = text.replace("</think>", "\n\n");
+            } else if (inThinkTag) {
+              text = text.replace(/\n/g, "\n> ");
+            }
+
+            progress.report(new vscode.LanguageModelTextPart(text));
           }
 
           // 3. Tool call deltas

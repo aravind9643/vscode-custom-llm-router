@@ -180,6 +180,13 @@
           "items": {
             "type": "string"
           }
+        },
+        "customLlmRouter.testConcurrency": {
+          "type": "integer",
+          "default": 8,
+          "minimum": 1,
+          "maximum": 25,
+          "description": "Number of concurrent workers used during model health and tool calling verification (default: 8)."
         }
       }
     }

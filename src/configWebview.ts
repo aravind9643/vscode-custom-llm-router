@@ -1,5 +1,40 @@
 import * as vscode from "vscode";
+import * as path from "path";
+import * as fs from "fs";
 import { ModelEngine, CustomProviderConfig, VSCodeModel } from "./modelEngine";
+
+let _codiconCssCache: string | undefined;
+
+function getCodiconCss(): string {
+  if (_codiconCssCache) return _codiconCssCache;
+  try {
+    const candidates = [
+      path.join(__dirname, "../media"),
+      path.join(__dirname, "media"),
+      path.join(__dirname, "../../media"),
+    ];
+    const mediaDir = candidates.find(
+      (d) =>
+        fs.existsSync(path.join(d, "codicon.css")) &&
+        fs.existsSync(path.join(d, "codicon.ttf"))
+    );
+    if (mediaDir) {
+      const cssPath = path.join(mediaDir, "codicon.css");
+      const ttfPath = path.join(mediaDir, "codicon.ttf");
+      const ttfB64 = fs.readFileSync(ttfPath).toString("base64");
+      let css = fs.readFileSync(cssPath, "utf8");
+      css = css.replace(
+        /src:\s*url\([^)]+\)/,
+        `src: url("data:font/truetype;charset=utf-8;base64,${ttfB64}")`
+      );
+      _codiconCssCache = css;
+      return css;
+    }
+  } catch (err) {
+    console.error("[Custom LLM Router] Failed to load Codicon font:", err);
+  }
+  return "";
+}
 
 export class ConfigWebviewPanel {
   public static currentPanel: ConfigWebviewPanel | undefined;
@@ -72,6 +107,9 @@ export class ConfigWebviewPanel {
         } else if (msg.cmd === "runAllTests") {
           await vscode.commands.executeCommand("vscode-custom-llm-router.testAllModels", msg.force);
           await this._sendState();
+        } else if (msg.cmd === "testSpecificModels") {
+          await vscode.commands.executeCommand("vscode-custom-llm-router.testSpecificModels", msg.models, msg.force);
+          await this._sendState();
         } else if (msg.cmd === "clearCache") {
           await this._engine.clearCache();
           vscode.window.showInformationMessage("Verified models cache cleared.");
@@ -140,7 +178,7 @@ export class ConfigWebviewPanel {
         const fullKey = `${p.name}::${m.id}`;
         const isDisabled = disabledModels.includes(fullKey) || disabledModels.includes(m.id);
         const idLower = m.id.toLowerCase();
-        const isCoding = Boolean(idLower.match(/(coder|coding|code|dev|claude|gpt-4|deepseek|qwen)/) || m.toolCalling);
+        const isCoding = Boolean(idLower.match(/(coder|coding|code|dev|claude|gpt-4|deepseek|qwen|starcoder|codellama)/));
         const isReasoning = Boolean(idLower.match(/(reasoning|r1|o1|o3|thinking|thought)/) || m.thinking);
         models.push({
           ...m,
@@ -342,9 +380,14 @@ export class ConfigWebviewPanel {
       background: var(--input-bg);
       color: var(--input-fg);
       border: 1px solid var(--border);
-      padding: 7px 10px;
+      padding: 6px 10px;
       border-radius: 4px;
       font-size: 12px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    input[type=text]:focus, input[type=password]:focus, textarea:focus, select:focus {
+      border-color: #0e639c;
     }
     input[type=checkbox] {
       accent-color: #0e639c;
@@ -358,21 +401,28 @@ export class ConfigWebviewPanel {
       background: var(--btn-bg);
       color: var(--btn-fg);
       border: none;
-      padding: 6px 12px;
+      padding: 0 12px;
+      height: 30px;
       border-radius: 4px;
       cursor: pointer;
       font-size: 12px;
       font-weight: 500;
-      transition: background 0.15s ease;
+      transition: background 0.15s ease, border-color 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      box-sizing: border-box;
+      white-space: nowrap;
     }
     button:hover { background: var(--btn-hover); }
     button.sec {
-      background: transparent;
+      background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border);
       color: var(--fg);
     }
-    button.sec:hover { background: rgba(255, 255, 255, 0.08); }
-    button.danger { background: var(--error); }
+    button.sec:hover { background: rgba(255, 255, 255, 0.09); border-color: rgba(255, 255, 255, 0.25); }
+    button.danger { background: var(--error); color: #fff; }
 
     /* Fixed Controls Toolbar: Sticks at top of models panel */
     .models-sticky-toolbar {
@@ -388,6 +438,50 @@ export class ConfigWebviewPanel {
       justify-content: space-between;
       margin-bottom: 8px;
     }
+    .search-wrap {
+      position: relative;
+      flex: 1;
+    }
+    .search-wrap input {
+      width: 100%;
+      height: 30px;
+      padding-left: 28px;
+      padding-right: 24px;
+      box-sizing: border-box;
+    }
+    .search-wrap .search-icon {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.5;
+      font-size: 13px;
+      pointer-events: none;
+    }
+    .search-wrap .clear-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      opacity: 0.6;
+      font-size: 11px;
+    }
+    .search-wrap .clear-btn:hover {
+      opacity: 1;
+    }
+    .prov-select {
+      height: 30px;
+      background: var(--input-bg);
+      color: var(--input-fg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 12px;
+      padding: 0 10px;
+      cursor: pointer;
+      outline: none;
+      box-sizing: border-box;
+    }
 
     /* Filter Chips */
     .filter-chips {
@@ -397,19 +491,30 @@ export class ConfigWebviewPanel {
       flex-wrap: wrap;
       align-items: center;
     }
+    .filter-label {
+      font-size: 11px;
+      opacity: 0.75;
+      margin-right: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 500;
+    }
     .chip {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      color: rgba(255, 255, 255, 0.8);
-      padding: 4px 11px;
-      border-radius: 14px;
+      color: rgba(255, 255, 255, 0.85);
+      height: 26px;
+      padding: 0 10px;
+      border-radius: 13px;
       font-size: 11px;
       cursor: pointer;
       transition: all 0.15s ease;
       user-select: none;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
+      box-sizing: border-box;
     }
     .chip:hover {
       background: rgba(255, 255, 255, 0.1);
@@ -423,26 +528,56 @@ export class ConfigWebviewPanel {
       font-weight: 600;
       box-shadow: 0 0 10px rgba(14, 99, 156, 0.35);
     }
+    .chip-count {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.12);
+      margin-left: 3px;
+    }
+    .chip.active .chip-count {
+      background: rgba(255, 255, 255, 0.24);
+    }
 
     /* Selection Bar */
     .selection-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 7px 12px;
+      padding: 6px 12px;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 6px;
       font-size: 12px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .tool-btn {
+      height: 24px !important;
+      padding: 0 8px !important;
+      font-size: 11px !important;
+      border-radius: 4px;
+      gap: 4px !important;
+    }
+    .v-sep {
+      width: 1px;
+      height: 16px;
+      background: var(--border);
+      margin: 0 3px;
+      flex-shrink: 0;
     }
     .selection-badge {
       font-size: 11px;
-      background: rgba(115, 201, 145, 0.15);
+      background: rgba(115, 201, 145, 0.14);
       color: var(--success);
       border: 1px solid rgba(115, 201, 145, 0.3);
       padding: 2px 10px;
       border-radius: 12px;
       font-weight: 500;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
     }
 
     /* Table Container: This is the ONLY element that scrolls! */
@@ -462,6 +597,7 @@ export class ConfigWebviewPanel {
       border-collapse: separate;
       border-spacing: 0;
       font-size: 12px;
+      table-layout: fixed;
     }
     /* Fixed Sticky Table Header: Stays locked at top of table container */
     th {
@@ -469,48 +605,155 @@ export class ConfigWebviewPanel {
       top: 0;
       z-index: 25;
       background: #252526;
-      padding: 10px 12px;
+      padding: 9px 10px;
       border-bottom: 2px solid var(--border);
       box-shadow: 0 2px 4px rgba(0,0,0,0.25);
       font-weight: 600;
       font-size: 11px;
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255, 255, 255, 0.75);
       text-transform: uppercase;
       letter-spacing: 0.4px;
       white-space: nowrap;
+      text-align: left;
+      user-select: none;
     }
     td {
-      padding: 9px 12px;
+      padding: 7px 10px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       vertical-align: middle;
+      text-align: left;
     }
-    tr.m-row { transition: background 0.12s ease; }
+    tr.m-row { transition: background 0.1s ease; }
     tr.m-row:hover { background: rgba(255, 255, 255, 0.035); }
-    tr.m-row.is-active { background: rgba(14, 99, 156, 0.04); }
+    tr.m-row[data-selected="true"] { background: rgba(14, 99, 156, 0.04); }
+    tr.m-row[data-selected="true"]:hover { background: rgba(14, 99, 156, 0.08); }
 
-    /* Badges & Tags */
-    .tag {
-      font-size: 10px;
+    /* Model cell styles */
+    .model-id {
+      font-family: var(--vscode-editor-font-family, "Consolas", monospace);
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #9cdcfe;
+      display: inline-block;
+      max-width: 175px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .model-name {
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--fg);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .model-err {
+      font-size: 10.5px;
+      color: var(--error);
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .provider-badge {
+      font-size: 10.5px;
       padding: 2px 7px;
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.08);
-      margin-right: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.85);
       font-weight: 500;
       display: inline-block;
       white-space: nowrap;
     }
-    .tag.green { background: rgba(115, 201, 145, 0.18); color: var(--success); }
-    .tag.red { background: rgba(241, 76, 76, 0.18); color: var(--error); }
-    .model-cat { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; margin-right: 4px; display: inline-block; white-space: nowrap; }
-    .model-cat.code { background: rgba(55, 148, 255, 0.15); color: #4fc1ff; border: 1px solid rgba(55, 148, 255, 0.3); }
-    .model-cat.reasoning { background: rgba(191, 122, 240, 0.15); color: #d2a8ff; border: 1px solid rgba(191, 122, 240, 0.3); }
-    .model-cat.vision { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
 
-    /* Action Cell & Truncated Status */
-    .action-cell { display: flex; align-items: center; gap: 8px; }
-    .ping-status {
+    /* Capabilities Badges */
+    .caps-container {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .cap-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      white-space: nowrap;
+      line-height: 1.2;
+    }
+    .cap-badge.code { background: rgba(55, 148, 255, 0.12); color: #4fc1ff; border: 1px solid rgba(55, 148, 255, 0.28); }
+    .cap-badge.reasoning { background: rgba(191, 122, 240, 0.12); color: #d2a8ff; border: 1px solid rgba(191, 122, 240, 0.28); }
+    .cap-badge.vision { background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.28); }
+    .cap-badge.tools { background: rgba(115, 201, 145, 0.12); color: var(--success); border: 1px solid rgba(115, 201, 145, 0.28); }
+
+    /* Limits */
+    .limits-text {
       font-size: 11px;
-      max-width: 170px;
+      opacity: 0.85;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .limits-sep {
+      opacity: 0.35;
+      margin: 0 1px;
+    }
+
+    /* Verification Status Badges */
+    .status-badge {
+      font-size: 10.5px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .status-badge.ok {
+      background: rgba(115, 201, 145, 0.14);
+      color: var(--success);
+      border: 1px solid rgba(115, 201, 145, 0.3);
+    }
+    .status-badge.err {
+      background: rgba(241, 76, 76, 0.14);
+      color: var(--error);
+      border: 1px solid rgba(241, 76, 76, 0.3);
+    }
+    .status-badge.untested {
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Action Cell */
+    .action-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ping-btn {
+      height: 24px !important;
+      padding: 0 8px !important;
+      font-size: 11px !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .ping-status {
+      font-size: 10.5px;
+      max-width: 65px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -519,7 +762,7 @@ export class ConfigWebviewPanel {
 
     /* Presets Bar */
     .presets-bar { display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
-    .preset-btn { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); font-size: 11px; padding: 4px 8px; border-radius: 4px; color: var(--fg); cursor: pointer; }
+    .preset-btn { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); font-size: 11px; height: 26px; padding: 0 8px; border-radius: 4px; color: var(--fg); cursor: pointer; }
     .preset-btn:hover { background: rgba(255, 255, 255, 0.12); }
     .msg { font-size: 11px; margin-top: 6px; padding: 4px 8px; border-radius: 4px; display: none; }
 
@@ -564,811 +807,9 @@ export class ConfigWebviewPanel {
       font-size: 14px;
       vertical-align: -1px;
     }
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+    /* Embedded Codicon Font and Icons */
+    ${getCodiconCss()}
 
-@font-face {
-	font-family: "codicon";
-	font-display: block;
-	src: url("./codicon.ttf?9aab6318a6710999273bab9c78a9fd71") format("truetype");
-}
-
-.codicon[class*='codicon-'] {
-	font: normal normal normal 16px/1 codicon;
-	display: inline-block;
-	text-decoration: none;
-	text-rendering: auto;
-	text-align: center;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-	user-select: none;
-	-webkit-user-select: none;
-	-ms-user-select: none;
-}
-
-/*---------------------
- *  Modifiers
- *-------------------*/
-
-@keyframes codicon-spin {
-	100% {
-		transform:rotate(360deg);
-	}
-}
-
-.codicon-sync.codicon-modifier-spin,
-.codicon-loading.codicon-modifier-spin,
-.codicon-gear.codicon-modifier-spin {
-	/* Use steps to throttle FPS to reduce CPU usage */
-	animation: codicon-spin 1.5s steps(30) infinite;
-}
-
-.codicon-modifier-disabled {
-	opacity: 0.5;
-}
-
-.codicon-modifier-hidden {
-	opacity: 0;
-}
-
-/* custom speed & easing for loading icon */
-.codicon-loading {
-	animation-duration: 1s !important;
-	animation-timing-function: cubic-bezier(0.53, 0.21, 0.29, 0.67) !important;
-}
-
-/*---------------------
- *  Icons
- *-------------------*/
-
-.codicon-add:before { content: "\ea60" }
-.codicon-plus:before { content: "\ea60" }
-.codicon-gist-new:before { content: "\ea60" }
-.codicon-repo-create:before { content: "\ea60" }
-.codicon-lightbulb:before { content: "\ea61" }
-.codicon-light-bulb:before { content: "\ea61" }
-.codicon-repo:before { content: "\ea62" }
-.codicon-repo-delete:before { content: "\ea62" }
-.codicon-gist-fork:before { content: "\ea63" }
-.codicon-repo-forked:before { content: "\ea63" }
-.codicon-git-pull-request:before { content: "\ea64" }
-.codicon-git-pull-request-abandoned:before { content: "\ea64" }
-.codicon-record-keys:before { content: "\ea65" }
-.codicon-keyboard:before { content: "\ea65" }
-.codicon-tag:before { content: "\ea66" }
-.codicon-git-pull-request-label:before { content: "\ea66" }
-.codicon-tag-add:before { content: "\ea66" }
-.codicon-tag-remove:before { content: "\ea66" }
-.codicon-person:before { content: "\ea67" }
-.codicon-person-follow:before { content: "\ea67" }
-.codicon-person-outline:before { content: "\ea67" }
-.codicon-person-filled:before { content: "\ea67" }
-.codicon-source-control:before { content: "\ea68" }
-.codicon-mirror:before { content: "\ea69" }
-.codicon-mirror-public:before { content: "\ea69" }
-.codicon-star:before { content: "\ea6a" }
-.codicon-star-add:before { content: "\ea6a" }
-.codicon-star-delete:before { content: "\ea6a" }
-.codicon-star-empty:before { content: "\ea6a" }
-.codicon-comment:before { content: "\ea6b" }
-.codicon-comment-add:before { content: "\ea6b" }
-.codicon-alert:before { content: "\ea6c" }
-.codicon-warning:before { content: "\ea6c" }
-.codicon-search:before { content: "\ea6d" }
-.codicon-search-save:before { content: "\ea6d" }
-.codicon-log-out:before { content: "\ea6e" }
-.codicon-sign-out:before { content: "\ea6e" }
-.codicon-log-in:before { content: "\ea6f" }
-.codicon-sign-in:before { content: "\ea6f" }
-.codicon-eye:before { content: "\ea70" }
-.codicon-eye-unwatch:before { content: "\ea70" }
-.codicon-eye-watch:before { content: "\ea70" }
-.codicon-circle-filled:before { content: "\ea71" }
-.codicon-primitive-dot:before { content: "\ea71" }
-.codicon-close-dirty:before { content: "\ea71" }
-.codicon-debug-breakpoint:before { content: "\ea71" }
-.codicon-debug-breakpoint-disabled:before { content: "\ea71" }
-.codicon-debug-hint:before { content: "\ea71" }
-.codicon-terminal-decoration-success:before { content: "\ea71" }
-.codicon-primitive-square:before { content: "\ea72" }
-.codicon-edit:before { content: "\ea73" }
-.codicon-pencil:before { content: "\ea73" }
-.codicon-info:before { content: "\ea74" }
-.codicon-issue-opened:before { content: "\ea74" }
-.codicon-gist-private:before { content: "\ea75" }
-.codicon-git-fork-private:before { content: "\ea75" }
-.codicon-lock:before { content: "\ea75" }
-.codicon-mirror-private:before { content: "\ea75" }
-.codicon-close:before { content: "\ea76" }
-.codicon-remove-close:before { content: "\ea76" }
-.codicon-x:before { content: "\ea76" }
-.codicon-repo-sync:before { content: "\ea77" }
-.codicon-sync:before { content: "\ea77" }
-.codicon-clone:before { content: "\ea78" }
-.codicon-desktop-download:before { content: "\ea78" }
-.codicon-beaker:before { content: "\ea79" }
-.codicon-microscope:before { content: "\ea79" }
-.codicon-vm:before { content: "\ea7a" }
-.codicon-device-desktop:before { content: "\ea7a" }
-.codicon-file:before { content: "\ea7b" }
-.codicon-more:before { content: "\ea7c" }
-.codicon-ellipsis:before { content: "\ea7c" }
-.codicon-kebab-horizontal:before { content: "\ea7c" }
-.codicon-mail-reply:before { content: "\ea7d" }
-.codicon-reply:before { content: "\ea7d" }
-.codicon-organization:before { content: "\ea7e" }
-.codicon-organization-filled:before { content: "\ea7e" }
-.codicon-organization-outline:before { content: "\ea7e" }
-.codicon-new-file:before { content: "\ea7f" }
-.codicon-file-add:before { content: "\ea7f" }
-.codicon-new-folder:before { content: "\ea80" }
-.codicon-file-directory-create:before { content: "\ea80" }
-.codicon-trash:before { content: "\ea81" }
-.codicon-trashcan:before { content: "\ea81" }
-.codicon-history:before { content: "\ea82" }
-.codicon-clock:before { content: "\ea82" }
-.codicon-folder:before { content: "\ea83" }
-.codicon-file-directory:before { content: "\ea83" }
-.codicon-symbol-folder:before { content: "\ea83" }
-.codicon-logo-github:before { content: "\ea84" }
-.codicon-mark-github:before { content: "\ea84" }
-.codicon-github:before { content: "\ea84" }
-.codicon-terminal:before { content: "\ea85" }
-.codicon-console:before { content: "\ea85" }
-.codicon-repl:before { content: "\ea85" }
-.codicon-zap:before { content: "\ea86" }
-.codicon-symbol-event:before { content: "\ea86" }
-.codicon-error:before { content: "\ea87" }
-.codicon-stop:before { content: "\ea87" }
-.codicon-variable:before { content: "\ea88" }
-.codicon-symbol-variable:before { content: "\ea88" }
-.codicon-array:before { content: "\ea8a" }
-.codicon-symbol-array:before { content: "\ea8a" }
-.codicon-symbol-module:before { content: "\ea8b" }
-.codicon-symbol-package:before { content: "\ea8b" }
-.codicon-symbol-namespace:before { content: "\ea8b" }
-.codicon-symbol-object:before { content: "\ea8b" }
-.codicon-symbol-method:before { content: "\ea8c" }
-.codicon-symbol-function:before { content: "\ea8c" }
-.codicon-symbol-constructor:before { content: "\ea8c" }
-.codicon-symbol-boolean:before { content: "\ea8f" }
-.codicon-symbol-null:before { content: "\ea8f" }
-.codicon-symbol-numeric:before { content: "\ea90" }
-.codicon-symbol-number:before { content: "\ea90" }
-.codicon-symbol-structure:before { content: "\ea91" }
-.codicon-symbol-struct:before { content: "\ea91" }
-.codicon-symbol-parameter:before { content: "\ea92" }
-.codicon-symbol-type-parameter:before { content: "\ea92" }
-.codicon-symbol-key:before { content: "\ea93" }
-.codicon-symbol-text:before { content: "\ea93" }
-.codicon-symbol-reference:before { content: "\ea94" }
-.codicon-go-to-file:before { content: "\ea94" }
-.codicon-symbol-enum:before { content: "\ea95" }
-.codicon-symbol-value:before { content: "\ea95" }
-.codicon-symbol-ruler:before { content: "\ea96" }
-.codicon-symbol-unit:before { content: "\ea96" }
-.codicon-activate-breakpoints:before { content: "\ea97" }
-.codicon-archive:before { content: "\ea98" }
-.codicon-arrow-both:before { content: "\ea99" }
-.codicon-arrow-down:before { content: "\ea9a" }
-.codicon-arrow-left:before { content: "\ea9b" }
-.codicon-arrow-right:before { content: "\ea9c" }
-.codicon-arrow-small-down:before { content: "\ea9d" }
-.codicon-arrow-small-left:before { content: "\ea9e" }
-.codicon-arrow-small-right:before { content: "\ea9f" }
-.codicon-arrow-small-up:before { content: "\eaa0" }
-.codicon-arrow-up:before { content: "\eaa1" }
-.codicon-bell:before { content: "\eaa2" }
-.codicon-bold:before { content: "\eaa3" }
-.codicon-book:before { content: "\eaa4" }
-.codicon-bookmark:before { content: "\eaa5" }
-.codicon-debug-breakpoint-conditional-unverified:before { content: "\eaa6" }
-.codicon-debug-breakpoint-conditional:before { content: "\eaa7" }
-.codicon-debug-breakpoint-conditional-disabled:before { content: "\eaa7" }
-.codicon-debug-breakpoint-data-unverified:before { content: "\eaa8" }
-.codicon-debug-breakpoint-data:before { content: "\eaa9" }
-.codicon-debug-breakpoint-data-disabled:before { content: "\eaa9" }
-.codicon-debug-breakpoint-log-unverified:before { content: "\eaaa" }
-.codicon-debug-breakpoint-log:before { content: "\eaab" }
-.codicon-debug-breakpoint-log-disabled:before { content: "\eaab" }
-.codicon-briefcase:before { content: "\eaac" }
-.codicon-broadcast:before { content: "\eaad" }
-.codicon-browser:before { content: "\eaae" }
-.codicon-bug:before { content: "\eaaf" }
-.codicon-calendar:before { content: "\eab0" }
-.codicon-case-sensitive:before { content: "\eab1" }
-.codicon-check:before { content: "\eab2" }
-.codicon-checklist:before { content: "\eab3" }
-.codicon-chevron-down:before { content: "\eab4" }
-.codicon-chevron-left:before { content: "\eab5" }
-.codicon-chevron-right:before { content: "\eab6" }
-.codicon-chevron-up:before { content: "\eab7" }
-.codicon-chrome-close:before { content: "\eab8" }
-.codicon-chrome-maximize:before { content: "\eab9" }
-.codicon-chrome-minimize:before { content: "\eaba" }
-.codicon-chrome-restore:before { content: "\eabb" }
-.codicon-circle-outline:before { content: "\eabc" }
-.codicon-circle:before { content: "\eabc" }
-.codicon-debug-breakpoint-unverified:before { content: "\eabc" }
-.codicon-terminal-decoration-incomplete:before { content: "\eabc" }
-.codicon-circle-slash:before { content: "\eabd" }
-.codicon-circuit-board:before { content: "\eabe" }
-.codicon-clear-all:before { content: "\eabf" }
-.codicon-clippy:before { content: "\eac0" }
-.codicon-close-all:before { content: "\eac1" }
-.codicon-cloud-download:before { content: "\eac2" }
-.codicon-cloud-upload:before { content: "\eac3" }
-.codicon-code:before { content: "\eac4" }
-.codicon-collapse-all:before { content: "\eac5" }
-.codicon-color-mode:before { content: "\eac6" }
-.codicon-comment-discussion:before { content: "\eac7" }
-.codicon-credit-card:before { content: "\eac9" }
-.codicon-dash:before { content: "\eacc" }
-.codicon-dashboard:before { content: "\eacd" }
-.codicon-database:before { content: "\eace" }
-.codicon-debug-continue:before { content: "\eacf" }
-.codicon-debug-disconnect:before { content: "\ead0" }
-.codicon-debug-pause:before { content: "\ead1" }
-.codicon-debug-restart:before { content: "\ead2" }
-.codicon-debug-start:before { content: "\ead3" }
-.codicon-debug-step-into:before { content: "\ead4" }
-.codicon-debug-step-out:before { content: "\ead5" }
-.codicon-debug-step-over:before { content: "\ead6" }
-.codicon-debug-stop:before { content: "\ead7" }
-.codicon-debug:before { content: "\ead8" }
-.codicon-device-camera-video:before { content: "\ead9" }
-.codicon-device-camera:before { content: "\eada" }
-.codicon-device-mobile:before { content: "\eadb" }
-.codicon-diff-added:before { content: "\eadc" }
-.codicon-diff-ignored:before { content: "\eadd" }
-.codicon-diff-modified:before { content: "\eade" }
-.codicon-diff-removed:before { content: "\eadf" }
-.codicon-diff-renamed:before { content: "\eae0" }
-.codicon-diff:before { content: "\eae1" }
-.codicon-diff-sidebyside:before { content: "\eae1" }
-.codicon-discard:before { content: "\eae2" }
-.codicon-editor-layout:before { content: "\eae3" }
-.codicon-empty-window:before { content: "\eae4" }
-.codicon-exclude:before { content: "\eae5" }
-.codicon-extensions:before { content: "\eae6" }
-.codicon-eye-closed:before { content: "\eae7" }
-.codicon-file-binary:before { content: "\eae8" }
-.codicon-file-code:before { content: "\eae9" }
-.codicon-file-media:before { content: "\eaea" }
-.codicon-file-pdf:before { content: "\eaeb" }
-.codicon-file-submodule:before { content: "\eaec" }
-.codicon-file-symlink-directory:before { content: "\eaed" }
-.codicon-file-symlink-file:before { content: "\eaee" }
-.codicon-file-zip:before { content: "\eaef" }
-.codicon-files:before { content: "\eaf0" }
-.codicon-filter:before { content: "\eaf1" }
-.codicon-flame:before { content: "\eaf2" }
-.codicon-fold-down:before { content: "\eaf3" }
-.codicon-fold-up:before { content: "\eaf4" }
-.codicon-fold:before { content: "\eaf5" }
-.codicon-folder-active:before { content: "\eaf6" }
-.codicon-folder-opened:before { content: "\eaf7" }
-.codicon-gear:before { content: "\eaf8" }
-.codicon-gift:before { content: "\eaf9" }
-.codicon-gist-secret:before { content: "\eafa" }
-.codicon-gist:before { content: "\eafb" }
-.codicon-git-commit:before { content: "\eafc" }
-.codicon-git-compare:before { content: "\eafd" }
-.codicon-compare-changes:before { content: "\eafd" }
-.codicon-git-merge:before { content: "\eafe" }
-.codicon-github-action:before { content: "\eaff" }
-.codicon-github-alt:before { content: "\eb00" }
-.codicon-globe:before { content: "\eb01" }
-.codicon-grabber:before { content: "\eb02" }
-.codicon-graph:before { content: "\eb03" }
-.codicon-gripper:before { content: "\eb04" }
-.codicon-heart:before { content: "\eb05" }
-.codicon-home:before { content: "\eb06" }
-.codicon-horizontal-rule:before { content: "\eb07" }
-.codicon-hubot:before { content: "\eb08" }
-.codicon-inbox:before { content: "\eb09" }
-.codicon-issue-reopened:before { content: "\eb0b" }
-.codicon-issues:before { content: "\eb0c" }
-.codicon-italic:before { content: "\eb0d" }
-.codicon-jersey:before { content: "\eb0e" }
-.codicon-json:before { content: "\eb0f" }
-.codicon-bracket:before { content: "\eb0f" }
-.codicon-kebab-vertical:before { content: "\eb10" }
-.codicon-key:before { content: "\eb11" }
-.codicon-law:before { content: "\eb12" }
-.codicon-lightbulb-autofix:before { content: "\eb13" }
-.codicon-link-external:before { content: "\eb14" }
-.codicon-link:before { content: "\eb15" }
-.codicon-list-ordered:before { content: "\eb16" }
-.codicon-list-unordered:before { content: "\eb17" }
-.codicon-live-share:before { content: "\eb18" }
-.codicon-loading:before { content: "\eb19" }
-.codicon-location:before { content: "\eb1a" }
-.codicon-mail-read:before { content: "\eb1b" }
-.codicon-mail:before { content: "\eb1c" }
-.codicon-markdown:before { content: "\eb1d" }
-.codicon-megaphone:before { content: "\eb1e" }
-.codicon-mention:before { content: "\eb1f" }
-.codicon-milestone:before { content: "\eb20" }
-.codicon-git-pull-request-milestone:before { content: "\eb20" }
-.codicon-mortar-board:before { content: "\eb21" }
-.codicon-move:before { content: "\eb22" }
-.codicon-multiple-windows:before { content: "\eb23" }
-.codicon-mute:before { content: "\eb24" }
-.codicon-no-newline:before { content: "\eb25" }
-.codicon-note:before { content: "\eb26" }
-.codicon-octoface:before { content: "\eb27" }
-.codicon-open-preview:before { content: "\eb28" }
-.codicon-package:before { content: "\eb29" }
-.codicon-paintcan:before { content: "\eb2a" }
-.codicon-pin:before { content: "\eb2b" }
-.codicon-play:before { content: "\eb2c" }
-.codicon-run:before { content: "\eb2c" }
-.codicon-plug:before { content: "\eb2d" }
-.codicon-preserve-case:before { content: "\eb2e" }
-.codicon-preview:before { content: "\eb2f" }
-.codicon-project:before { content: "\eb30" }
-.codicon-pulse:before { content: "\eb31" }
-.codicon-question:before { content: "\eb32" }
-.codicon-quote:before { content: "\eb33" }
-.codicon-radio-tower:before { content: "\eb34" }
-.codicon-reactions:before { content: "\eb35" }
-.codicon-references:before { content: "\eb36" }
-.codicon-refresh:before { content: "\eb37" }
-.codicon-regex:before { content: "\eb38" }
-.codicon-remote-explorer:before { content: "\eb39" }
-.codicon-remote:before { content: "\eb3a" }
-.codicon-remove:before { content: "\eb3b" }
-.codicon-replace-all:before { content: "\eb3c" }
-.codicon-replace:before { content: "\eb3d" }
-.codicon-repo-clone:before { content: "\eb3e" }
-.codicon-repo-force-push:before { content: "\eb3f" }
-.codicon-repo-pull:before { content: "\eb40" }
-.codicon-repo-push:before { content: "\eb41" }
-.codicon-report:before { content: "\eb42" }
-.codicon-request-changes:before { content: "\eb43" }
-.codicon-rocket:before { content: "\eb44" }
-.codicon-root-folder-opened:before { content: "\eb45" }
-.codicon-root-folder:before { content: "\eb46" }
-.codicon-rss:before { content: "\eb47" }
-.codicon-ruby:before { content: "\eb48" }
-.codicon-save-all:before { content: "\eb49" }
-.codicon-save-as:before { content: "\eb4a" }
-.codicon-save:before { content: "\eb4b" }
-.codicon-screen-full:before { content: "\eb4c" }
-.codicon-screen-normal:before { content: "\eb4d" }
-.codicon-search-stop:before { content: "\eb4e" }
-.codicon-server:before { content: "\eb50" }
-.codicon-settings-gear:before { content: "\eb51" }
-.codicon-settings:before { content: "\eb52" }
-.codicon-shield:before { content: "\eb53" }
-.codicon-smiley:before { content: "\eb54" }
-.codicon-sort-precedence:before { content: "\eb55" }
-.codicon-split-horizontal:before { content: "\eb56" }
-.codicon-split-vertical:before { content: "\eb57" }
-.codicon-squirrel:before { content: "\eb58" }
-.codicon-star-full:before { content: "\eb59" }
-.codicon-star-half:before { content: "\eb5a" }
-.codicon-symbol-class:before { content: "\eb5b" }
-.codicon-symbol-color:before { content: "\eb5c" }
-.codicon-symbol-constant:before { content: "\eb5d" }
-.codicon-symbol-enum-member:before { content: "\eb5e" }
-.codicon-symbol-field:before { content: "\eb5f" }
-.codicon-symbol-file:before { content: "\eb60" }
-.codicon-symbol-interface:before { content: "\eb61" }
-.codicon-symbol-keyword:before { content: "\eb62" }
-.codicon-symbol-misc:before { content: "\eb63" }
-.codicon-symbol-operator:before { content: "\eb64" }
-.codicon-symbol-property:before { content: "\eb65" }
-.codicon-wrench:before { content: "\eb65" }
-.codicon-wrench-subaction:before { content: "\eb65" }
-.codicon-symbol-snippet:before { content: "\eb66" }
-.codicon-tasklist:before { content: "\eb67" }
-.codicon-telescope:before { content: "\eb68" }
-.codicon-text-size:before { content: "\eb69" }
-.codicon-three-bars:before { content: "\eb6a" }
-.codicon-thumbsdown:before { content: "\eb6b" }
-.codicon-thumbsup:before { content: "\eb6c" }
-.codicon-tools:before { content: "\eb6d" }
-.codicon-triangle-down:before { content: "\eb6e" }
-.codicon-triangle-left:before { content: "\eb6f" }
-.codicon-triangle-right:before { content: "\eb70" }
-.codicon-triangle-up:before { content: "\eb71" }
-.codicon-twitter:before { content: "\eb72" }
-.codicon-unfold:before { content: "\eb73" }
-.codicon-unlock:before { content: "\eb74" }
-.codicon-unmute:before { content: "\eb75" }
-.codicon-unverified:before { content: "\eb76" }
-.codicon-verified:before { content: "\eb77" }
-.codicon-versions:before { content: "\eb78" }
-.codicon-vm-active:before { content: "\eb79" }
-.codicon-vm-outline:before { content: "\eb7a" }
-.codicon-vm-running:before { content: "\eb7b" }
-.codicon-watch:before { content: "\eb7c" }
-.codicon-whitespace:before { content: "\eb7d" }
-.codicon-whole-word:before { content: "\eb7e" }
-.codicon-window:before { content: "\eb7f" }
-.codicon-word-wrap:before { content: "\eb80" }
-.codicon-zoom-in:before { content: "\eb81" }
-.codicon-zoom-out:before { content: "\eb82" }
-.codicon-list-filter:before { content: "\eb83" }
-.codicon-list-flat:before { content: "\eb84" }
-.codicon-list-selection:before { content: "\eb85" }
-.codicon-selection:before { content: "\eb85" }
-.codicon-list-tree:before { content: "\eb86" }
-.codicon-debug-breakpoint-function-unverified:before { content: "\eb87" }
-.codicon-debug-breakpoint-function:before { content: "\eb88" }
-.codicon-debug-breakpoint-function-disabled:before { content: "\eb88" }
-.codicon-debug-stackframe-active:before { content: "\eb89" }
-.codicon-circle-small-filled:before { content: "\eb8a" }
-.codicon-debug-stackframe-dot:before { content: "\eb8a" }
-.codicon-terminal-decoration-mark:before { content: "\eb8a" }
-.codicon-debug-stackframe:before { content: "\eb8b" }
-.codicon-debug-stackframe-focused:before { content: "\eb8b" }
-.codicon-debug-breakpoint-unsupported:before { content: "\eb8c" }
-.codicon-symbol-string:before { content: "\eb8d" }
-.codicon-debug-reverse-continue:before { content: "\eb8e" }
-.codicon-debug-step-back:before { content: "\eb8f" }
-.codicon-debug-restart-frame:before { content: "\eb90" }
-.codicon-debug-alt:before { content: "\eb91" }
-.codicon-call-incoming:before { content: "\eb92" }
-.codicon-call-outgoing:before { content: "\eb93" }
-.codicon-menu:before { content: "\eb94" }
-.codicon-expand-all:before { content: "\eb95" }
-.codicon-feedback:before { content: "\eb96" }
-.codicon-git-pull-request-reviewer:before { content: "\eb96" }
-.codicon-group-by-ref-type:before { content: "\eb97" }
-.codicon-ungroup-by-ref-type:before { content: "\eb98" }
-.codicon-account:before { content: "\eb99" }
-.codicon-git-pull-request-assignee:before { content: "\eb99" }
-.codicon-bell-dot:before { content: "\eb9a" }
-.codicon-debug-console:before { content: "\eb9b" }
-.codicon-library:before { content: "\eb9c" }
-.codicon-output:before { content: "\eb9d" }
-.codicon-run-all:before { content: "\eb9e" }
-.codicon-sync-ignored:before { content: "\eb9f" }
-.codicon-pinned:before { content: "\eba0" }
-.codicon-github-inverted:before { content: "\eba1" }
-.codicon-server-process:before { content: "\eba2" }
-.codicon-server-environment:before { content: "\eba3" }
-.codicon-pass:before { content: "\eba4" }
-.codicon-issue-closed:before { content: "\eba4" }
-.codicon-stop-circle:before { content: "\eba5" }
-.codicon-play-circle:before { content: "\eba6" }
-.codicon-record:before { content: "\eba7" }
-.codicon-debug-alt-small:before { content: "\eba8" }
-.codicon-vm-connect:before { content: "\eba9" }
-.codicon-cloud:before { content: "\ebaa" }
-.codicon-merge:before { content: "\ebab" }
-.codicon-export:before { content: "\ebac" }
-.codicon-graph-left:before { content: "\ebad" }
-.codicon-magnet:before { content: "\ebae" }
-.codicon-notebook:before { content: "\ebaf" }
-.codicon-redo:before { content: "\ebb0" }
-.codicon-check-all:before { content: "\ebb1" }
-.codicon-pinned-dirty:before { content: "\ebb2" }
-.codicon-pass-filled:before { content: "\ebb3" }
-.codicon-circle-large-filled:before { content: "\ebb4" }
-.codicon-circle-large:before { content: "\ebb5" }
-.codicon-circle-large-outline:before { content: "\ebb5" }
-.codicon-combine:before { content: "\ebb6" }
-.codicon-gather:before { content: "\ebb6" }
-.codicon-table:before { content: "\ebb7" }
-.codicon-variable-group:before { content: "\ebb8" }
-.codicon-type-hierarchy:before { content: "\ebb9" }
-.codicon-type-hierarchy-sub:before { content: "\ebba" }
-.codicon-type-hierarchy-super:before { content: "\ebbb" }
-.codicon-git-pull-request-create:before { content: "\ebbc" }
-.codicon-run-above:before { content: "\ebbd" }
-.codicon-run-below:before { content: "\ebbe" }
-.codicon-notebook-template:before { content: "\ebbf" }
-.codicon-debug-rerun:before { content: "\ebc0" }
-.codicon-workspace-trusted:before { content: "\ebc1" }
-.codicon-workspace-untrusted:before { content: "\ebc2" }
-.codicon-workspace-unknown:before { content: "\ebc3" }
-.codicon-terminal-cmd:before { content: "\ebc4" }
-.codicon-terminal-debian:before { content: "\ebc5" }
-.codicon-terminal-linux:before { content: "\ebc6" }
-.codicon-terminal-powershell:before { content: "\ebc7" }
-.codicon-terminal-tmux:before { content: "\ebc8" }
-.codicon-terminal-ubuntu:before { content: "\ebc9" }
-.codicon-terminal-bash:before { content: "\ebca" }
-.codicon-arrow-swap:before { content: "\ebcb" }
-.codicon-copy:before { content: "\ebcc" }
-.codicon-person-add:before { content: "\ebcd" }
-.codicon-filter-filled:before { content: "\ebce" }
-.codicon-wand:before { content: "\ebcf" }
-.codicon-debug-line-by-line:before { content: "\ebd0" }
-.codicon-inspect:before { content: "\ebd1" }
-.codicon-layers:before { content: "\ebd2" }
-.codicon-layers-dot:before { content: "\ebd3" }
-.codicon-layers-active:before { content: "\ebd4" }
-.codicon-compass:before { content: "\ebd5" }
-.codicon-compass-dot:before { content: "\ebd6" }
-.codicon-compass-active:before { content: "\ebd7" }
-.codicon-azure:before { content: "\ebd8" }
-.codicon-issue-draft:before { content: "\ebd9" }
-.codicon-git-pull-request-closed:before { content: "\ebda" }
-.codicon-git-pull-request-draft:before { content: "\ebdb" }
-.codicon-debug-all:before { content: "\ebdc" }
-.codicon-debug-coverage:before { content: "\ebdd" }
-.codicon-run-errors:before { content: "\ebde" }
-.codicon-folder-library:before { content: "\ebdf" }
-.codicon-debug-continue-small:before { content: "\ebe0" }
-.codicon-beaker-stop:before { content: "\ebe1" }
-.codicon-graph-line:before { content: "\ebe2" }
-.codicon-graph-scatter:before { content: "\ebe3" }
-.codicon-pie-chart:before { content: "\ebe4" }
-.codicon-bracket-dot:before { content: "\ebe5" }
-.codicon-bracket-error:before { content: "\ebe6" }
-.codicon-lock-small:before { content: "\ebe7" }
-.codicon-azure-devops:before { content: "\ebe8" }
-.codicon-verified-filled:before { content: "\ebe9" }
-.codicon-newline:before { content: "\ebea" }
-.codicon-layout:before { content: "\ebeb" }
-.codicon-layout-activitybar-left:before { content: "\ebec" }
-.codicon-layout-activitybar-right:before { content: "\ebed" }
-.codicon-layout-panel-left:before { content: "\ebee" }
-.codicon-layout-panel-center:before { content: "\ebef" }
-.codicon-layout-panel-justify:before { content: "\ebf0" }
-.codicon-layout-panel-right:before { content: "\ebf1" }
-.codicon-layout-panel:before { content: "\ebf2" }
-.codicon-layout-sidebar-left:before { content: "\ebf3" }
-.codicon-layout-sidebar-right:before { content: "\ebf4" }
-.codicon-layout-statusbar:before { content: "\ebf5" }
-.codicon-layout-menubar:before { content: "\ebf6" }
-.codicon-layout-centered:before { content: "\ebf7" }
-.codicon-target:before { content: "\ebf8" }
-.codicon-indent:before { content: "\ebf9" }
-.codicon-record-small:before { content: "\ebfa" }
-.codicon-error-small:before { content: "\ebfb" }
-.codicon-terminal-decoration-error:before { content: "\ebfb" }
-.codicon-arrow-circle-down:before { content: "\ebfc" }
-.codicon-arrow-circle-left:before { content: "\ebfd" }
-.codicon-arrow-circle-right:before { content: "\ebfe" }
-.codicon-arrow-circle-up:before { content: "\ebff" }
-.codicon-layout-sidebar-right-off:before { content: "\ec00" }
-.codicon-layout-panel-off:before { content: "\ec01" }
-.codicon-layout-sidebar-left-off:before { content: "\ec02" }
-.codicon-blank:before { content: "\ec03" }
-.codicon-heart-filled:before { content: "\ec04" }
-.codicon-map:before { content: "\ec05" }
-.codicon-map-horizontal:before { content: "\ec05" }
-.codicon-fold-horizontal:before { content: "\ec05" }
-.codicon-map-filled:before { content: "\ec06" }
-.codicon-map-horizontal-filled:before { content: "\ec06" }
-.codicon-fold-horizontal-filled:before { content: "\ec06" }
-.codicon-circle-small:before { content: "\ec07" }
-.codicon-bell-slash:before { content: "\ec08" }
-.codicon-bell-slash-dot:before { content: "\ec09" }
-.codicon-comment-unresolved:before { content: "\ec0a" }
-.codicon-git-pull-request-go-to-changes:before { content: "\ec0b" }
-.codicon-git-pull-request-new-changes:before { content: "\ec0c" }
-.codicon-search-fuzzy:before { content: "\ec0d" }
-.codicon-comment-draft:before { content: "\ec0e" }
-.codicon-send:before { content: "\ec0f" }
-.codicon-sparkle:before { content: "\ec10" }
-.codicon-insert:before { content: "\ec11" }
-.codicon-mic:before { content: "\ec12" }
-.codicon-thumbsdown-filled:before { content: "\ec13" }
-.codicon-thumbsup-filled:before { content: "\ec14" }
-.codicon-coffee:before { content: "\ec15" }
-.codicon-snake:before { content: "\ec16" }
-.codicon-game:before { content: "\ec17" }
-.codicon-vr:before { content: "\ec18" }
-.codicon-chip:before { content: "\ec19" }
-.codicon-piano:before { content: "\ec1a" }
-.codicon-music:before { content: "\ec1b" }
-.codicon-mic-filled:before { content: "\ec1c" }
-.codicon-repo-fetch:before { content: "\ec1d" }
-.codicon-copilot:before { content: "\ec1e" }
-.codicon-lightbulb-sparkle:before { content: "\ec1f" }
-.codicon-robot:before { content: "\ec20" }
-.codicon-sparkle-filled:before { content: "\ec21" }
-.codicon-diff-single:before { content: "\ec22" }
-.codicon-diff-multiple:before { content: "\ec23" }
-.codicon-surround-with:before { content: "\ec24" }
-.codicon-share:before { content: "\ec25" }
-.codicon-git-stash:before { content: "\ec26" }
-.codicon-git-stash-apply:before { content: "\ec27" }
-.codicon-git-stash-pop:before { content: "\ec28" }
-.codicon-vscode:before { content: "\ec29" }
-.codicon-vscode-insiders:before { content: "\ec2a" }
-.codicon-code-oss:before { content: "\ec2b" }
-.codicon-run-coverage:before { content: "\ec2c" }
-.codicon-run-all-coverage:before { content: "\ec2d" }
-.codicon-coverage:before { content: "\ec2e" }
-.codicon-github-project:before { content: "\ec2f" }
-.codicon-map-vertical:before { content: "\ec30" }
-.codicon-fold-vertical:before { content: "\ec30" }
-.codicon-map-vertical-filled:before { content: "\ec31" }
-.codicon-fold-vertical-filled:before { content: "\ec31" }
-.codicon-go-to-search:before { content: "\ec32" }
-.codicon-percentage:before { content: "\ec33" }
-.codicon-sort-percentage:before { content: "\ec33" }
-.codicon-attach:before { content: "\ec34" }
-.codicon-go-to-editing-session:before { content: "\ec35" }
-.codicon-edit-session:before { content: "\ec36" }
-.codicon-code-review:before { content: "\ec37" }
-.codicon-copilot-warning:before { content: "\ec38" }
-.codicon-python:before { content: "\ec39" }
-.codicon-copilot-large:before { content: "\ec3a" }
-.codicon-copilot-warning-large:before { content: "\ec3b" }
-.codicon-keyboard-tab:before { content: "\ec3c" }
-.codicon-copilot-blocked:before { content: "\ec3d" }
-.codicon-copilot-not-connected:before { content: "\ec3e" }
-.codicon-flag:before { content: "\ec3f" }
-.codicon-lightbulb-empty:before { content: "\ec40" }
-.codicon-symbol-method-arrow:before { content: "\ec41" }
-.codicon-copilot-unavailable:before { content: "\ec42" }
-.codicon-repo-pinned:before { content: "\ec43" }
-.codicon-keyboard-tab-above:before { content: "\ec44" }
-.codicon-keyboard-tab-below:before { content: "\ec45" }
-.codicon-git-pull-request-done:before { content: "\ec46" }
-.codicon-mcp:before { content: "\ec47" }
-.codicon-extensions-large:before { content: "\ec48" }
-.codicon-layout-panel-dock:before { content: "\ec49" }
-.codicon-layout-sidebar-left-dock:before { content: "\ec4a" }
-.codicon-layout-sidebar-right-dock:before { content: "\ec4b" }
-.codicon-copilot-in-progress:before { content: "\ec4c" }
-.codicon-copilot-error:before { content: "\ec4d" }
-.codicon-copilot-success:before { content: "\ec4e" }
-.codicon-chat-sparkle:before { content: "\ec4f" }
-.codicon-search-sparkle:before { content: "\ec50" }
-.codicon-edit-sparkle:before { content: "\ec51" }
-.codicon-copilot-snooze:before { content: "\ec52" }
-.codicon-send-to-remote-agent:before { content: "\ec53" }
-.codicon-comment-discussion-sparkle:before { content: "\ec54" }
-.codicon-chat-sparkle-warning:before { content: "\ec55" }
-.codicon-chat-sparkle-error:before { content: "\ec56" }
-.codicon-collection:before { content: "\ec57" }
-.codicon-new-collection:before { content: "\ec58" }
-.codicon-thinking:before { content: "\ec59" }
-.codicon-build:before { content: "\ec5a" }
-.codicon-comment-discussion-quote:before { content: "\ec5b" }
-.codicon-cursor:before { content: "\ec5c" }
-.codicon-eraser:before { content: "\ec5d" }
-.codicon-file-text:before { content: "\ec5e" }
-.codicon-quotes:before { content: "\ec60" }
-.codicon-rename:before { content: "\ec61" }
-.codicon-run-with-deps:before { content: "\ec62" }
-.codicon-debug-connected:before { content: "\ec63" }
-.codicon-strikethrough:before { content: "\ec64" }
-.codicon-open-in-product:before { content: "\ec65" }
-.codicon-index-zero:before { content: "\ec66" }
-.codicon-agent:before { content: "\ec67" }
-.codicon-edit-code:before { content: "\ec68" }
-.codicon-repo-selected:before { content: "\ec69" }
-.codicon-skip:before { content: "\ec6a" }
-.codicon-merge-into:before { content: "\ec6b" }
-.codicon-git-branch-changes:before { content: "\ec6c" }
-.codicon-git-branch-staged-changes:before { content: "\ec6d" }
-.codicon-git-branch-conflicts:before { content: "\ec6e" }
-.codicon-git-branch:before { content: "\ec6f" }
-.codicon-git-branch-create:before { content: "\ec6f" }
-.codicon-git-branch-delete:before { content: "\ec6f" }
-.codicon-search-large:before { content: "\ec70" }
-.codicon-terminal-git-bash:before { content: "\ec71" }
-.codicon-window-active:before { content: "\ec72" }
-.codicon-forward:before { content: "\ec73" }
-.codicon-download:before { content: "\ec74" }
-.codicon-clockface:before { content: "\ec75" }
-.codicon-unarchive:before { content: "\ec76" }
-.codicon-session-in-progress:before { content: "\ec77" }
-.codicon-collection-small:before { content: "\ec78" }
-.codicon-vm-small:before { content: "\ec79" }
-.codicon-cloud-small:before { content: "\ec7a" }
-.codicon-add-small:before { content: "\ec7b" }
-.codicon-remove-small:before { content: "\ec7c" }
-.codicon-worktree-small:before { content: "\ec7d" }
-.codicon-worktree:before { content: "\ec7e" }
-.codicon-screen-cut:before { content: "\ec7f" }
-.codicon-ask:before { content: "\ec80" }
-.codicon-openai:before { content: "\ec81" }
-.codicon-claude:before { content: "\ec82" }
-.codicon-open-in-window:before { content: "\ec83" }
-.codicon-new-session:before { content: "\ec84" }
-.codicon-terminal-secure:before { content: "\ec85" }
-.codicon-chat-import:before { content: "\ec86" }
-.codicon-chat-export:before { content: "\ec87" }
-.codicon-share-window:before { content: "\ec88" }
-.codicon-circle-slash-compact:before { content: "\ec89" }
-.codicon-copilot-compact:before { content: "\ec8a" }
-.codicon-folder-opened-compact:before { content: "\ec8b" }
-.codicon-folder-compact:before { content: "\ec8c" }
-.codicon-gear-compact:before { content: "\ec8d" }
-.codicon-git-branch-compact:before { content: "\ec8e" }
-.codicon-library-compact:before { content: "\ec8f" }
-.codicon-record-keys-compact:before { content: "\ec90" }
-.codicon-remote-compact:before { content: "\ec91" }
-.codicon-repo-forked-compact:before { content: "\ec92" }
-.codicon-repo-compact:before { content: "\ec93" }
-.codicon-shield-compact:before { content: "\ec94" }
-.codicon-sparkle-compact:before { content: "\ec95" }
-.codicon-symbol-color-compact:before { content: "\ec96" }
-.codicon-window-compact:before { content: "\ec97" }
-.codicon-error-compact:before { content: "\ec98" }
-.codicon-warning-compact:before { content: "\ec99" }
-.codicon-pass-compact:before { content: "\ec9a" }
-.codicon-important:before { content: "\ec9b" }
-.codicon-important-compact:before { content: "\ec9c" }
-.codicon-rocket-compact:before { content: "\ec9d" }
-.codicon-unpin:before { content: "\ec9e" }
-.codicon-add-compact:before { content: "\ec9f" }
-.codicon-attach-compact:before { content: "\eca0" }
-.codicon-beaker-compact:before { content: "\eca1" }
-.codicon-check-compact:before { content: "\eca2" }
-.codicon-checklist-compact:before { content: "\eca3" }
-.codicon-chevron-down-compact:before { content: "\eca4" }
-.codicon-chevron-left-compact:before { content: "\eca5" }
-.codicon-chevron-right-compact:before { content: "\eca6" }
-.codicon-chevron-up-compact:before { content: "\eca7" }
-.codicon-circle-filled-compact:before { content: "\eca8" }
-.codicon-circle-small-filled-compact:before { content: "\eca9" }
-.codicon-close-compact:before { content: "\ecaa" }
-.codicon-collapse-all-compact:before { content: "\ecab" }
-.codicon-comment-compact:before { content: "\ecac" }
-.codicon-comment-unresolved-compact:before { content: "\ecad" }
-.codicon-debug-connected-compact:before { content: "\ecae" }
-.codicon-debug-disconnect-compact:before { content: "\ecaf" }
-.codicon-edit-compact:before { content: "\ecb0" }
-.codicon-file-media-compact:before { content: "\ecb1" }
-.codicon-git-fetch:before { content: "\ecb2" }
-.codicon-lightbulb-compact:before { content: "\ecb3" }
-.codicon-loading-compact:before { content: "\ecb4" }
-.codicon-pass-filled-compact:before { content: "\ecb5" }
-.codicon-project-compact:before { content: "\ecb6" }
-.codicon-refresh-compact:before { content: "\ecb7" }
-.codicon-search-compact:before { content: "\ecb8" }
-.codicon-session-in-progress-compact:before { content: "\ecb9" }
-.codicon-sync-compact:before { content: "\ecba" }
-.codicon-terminal-compact:before { content: "\ecbb" }
-.codicon-vm-pending:before { content: "\ecbc" }
-.codicon-worktree-compact:before { content: "\ecbd" }
-.codicon-developer-tools:before { content: "\ecbe" }
-.codicon-cloud-compact:before { content: "\ecbf" }
-.codicon-agent-compact:before { content: "\ecc0" }
-.codicon-ask-compact:before { content: "\ecc1" }
-.codicon-settings-compact:before { content: "\ecc2" }
-.codicon-vm-compact:before { content: "\ecc3" }
-.codicon-run-compact:before { content: "\ecc4" }
-.codicon-git-pull-request-comment:before { content: "\ecc5" }
-.codicon-git-pull-request-error:before { content: "\ecc6" }
-.codicon-right-panel-hide:before { content: "\ecc7" }
-.codicon-right-panel-show:before { content: "\ecc8" }
-.codicon-vscode-insiders-outline:before { content: "\ecc9" }
-.codicon-vscode-outline:before { content: "\ecca" }
-.codicon-voice-mode:before { content: "\eccb" }
-.codicon-voice-mode-compact:before { content: "\eccc" }
-.codicon-mic-download:before { content: "\eccd" }
-.codicon-mic-download-compact:before { content: "\ecce" }
-.codicon-voice-mode-download:before { content: "\eccf" }
-.codicon-voice-mode-download-compact:before { content: "\ecd0" }
-.codicon-google-gemini:before { content: "\ecd1" }
-.codicon-kimi:before { content: "\ecd2" }
-.codicon-microsoft:before { content: "\ecd3" }
-.codicon-fish1-happy:before { content: "\ecd4" }
-.codicon-fish1-neutral:before { content: "\ecd5" }
-.codicon-fish1-sad:before { content: "\ecd6" }
-.codicon-fish1-very-sad:before { content: "\ecd7" }
-.codicon-fish2-happy:before { content: "\ecd8" }
-.codicon-fish2-neutral:before { content: "\ecd9" }
-.codicon-fish2-sad:before { content: "\ecda" }
-.codicon-fish2-very-sad:before { content: "\ecdb" }
-.codicon-fish3-happy:before { content: "\ecdc" }
-.codicon-fish3-neutral:before { content: "\ecdd" }
-.codicon-fish3-sad:before { content: "\ecde" }
-.codicon-fish3-very-sad:before { content: "\ecdf" }
-.codicon-fish4-happy:before { content: "\ece0" }
-.codicon-fish4-neutral:before { content: "\ece1" }
-.codicon-fish4-sad:before { content: "\ece2" }
-.codicon-fish4-very-sad:before { content: "\ece3" }
-.codicon-person-voice:before { content: "\ece4" }
-.codicon-person-voice-compact:before { content: "\ece5" }
-.codicon-person-voice-filled:before { content: "\ece6" }
-.codicon-person-voice-filled-compact:before { content: "\ece7" }
 
   </style>
 </head>
@@ -1382,15 +823,15 @@ export class ConfigWebviewPanel {
       </div>
     </div>
     <div class="tabs">
-      <div class="tab active" onclick="setTab('providers', this)"><i class="codicon codicon-server"></i> Providers <span class="tab-badge" id="pCount">0</span></div>
-      <div class="tab" onclick="setTab('models', this)"><i class="codicon codicon-symbol-misc"></i> Models Catalog & Tests <span class="tab-badge" id="mCount">0</span></div>
-      <div class="tab" onclick="setTab('cache', this)"><i class="codicon codicon-database"></i> Verified Cache <span class="tab-badge" id="cacheCount">0</span></div>
+      <div class="tab" id="tab-btn-providers" onclick="setTab('providers', this)"><i class="codicon codicon-server"></i> Providers <span class="tab-badge" id="pCount">0</span></div>
+      <div class="tab active" id="tab-btn-models" onclick="setTab('models', this)"><i class="codicon codicon-symbol-misc"></i> Models Catalog & Tests <span class="tab-badge" id="mCount">0</span></div>
+      <div class="tab" id="tab-btn-cache" onclick="setTab('cache', this)"><i class="codicon codicon-database"></i> Verified Cache <span class="tab-badge" id="cacheCount">0</span></div>
     </div>
   </header>
 
   <main class="app-body">
     <!-- TAB: PROVIDERS -->
-    <div id="tab-providers" class="panel active">
+    <div id="tab-providers" class="panel">
       <div class="presets-bar">
         <span style="font-size:12px; opacity:0.8;"><i class="codicon codicon-zap" style="color:#cca700;"></i> Presets:</span>
         <button class="preset-btn" onclick="applyPreset('Ollama Local', 'http://localhost:11434')">Ollama</button>
@@ -1415,13 +856,28 @@ export class ConfigWebviewPanel {
     </div>
 
     <!-- TAB: MODELS -->
-    <div id="tab-models" class="panel">
+    <div id="tab-models" class="panel active">
       <div class="models-sticky-toolbar">
         <div class="actions-bar">
-          <input type="text" id="mSearch" placeholder="🔍 Search model ID or name..." oninput="filterModels()" style="max-width: 280px;">
-          <div style="display: flex; gap: 8px;">
-            <button onclick="runBatchTest(false)"><i class="codicon codicon-zap"></i> Test All Models (Concurrent)</button>
-            <button class="sec" onclick="runBatchTest(true)"><i class="codicon codicon-sync"></i> Force Retest All</button>
+          <div style="display: flex; gap: 8px; align-items: center; flex: 1; max-width: 650px;">
+            <div class="search-wrap">
+              <i class="codicon codicon-search search-icon"></i>
+              <input type="text" id="mSearch" placeholder="Search model ID or name..." oninput="filterModels()">
+              <span id="clearSearchBtn" class="clear-btn" onclick="clearSearch()" style="display: none;" title="Clear search">✕</span>
+            </div>
+            <select id="provFilter" class="prov-select" onchange="filterModels()" title="Filter by provider">
+              <option value="">All Providers</option>
+            </select>
+            <select id="statusFilter" class="prov-select" onchange="onStatusFilterChange()" title="Filter by health / verification status">
+              <option value="working" id="opt-status-working" selected>✓ Verified Working</option>
+              <option value="all" id="opt-status-all">All Statuses</option>
+              <option value="failed" id="opt-status-failed">✕ Offline / Failed</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="sec" onclick="runVisibleBatchTest()"><i class="codicon codicon-filter"></i> Test Filtered (<span id="btnVisibleCount">0</span>)</button>
+            <button onclick="runBatchTest(false)"><i class="codicon codicon-zap"></i> Test All (Concurrent)</button>
+            <button class="sec" onclick="runBatchTest(true)"><i class="codicon codicon-sync"></i> Force Retest</button>
           </div>
         </div>
 
@@ -1438,23 +894,33 @@ export class ConfigWebviewPanel {
 
         <!-- Filter Chips -->
         <div class="filter-chips">
-          <span style="font-size: 11px; opacity: 0.7; margin-right: 4px;">Filters:</span>
-          <button class="chip active" id="chip-all" onclick="setFilterCategory('all')"><i class="codicon codicon-sparkle"></i> All (<span id="cAll">0</span>)</button>
-          <button class="chip" id="chip-coding" onclick="setFilterCategory('coding')"><i class="codicon codicon-code" style="color:#4fc1ff;"></i> Coding (<span id="cCoding">0</span>)</button>
-          <button class="chip" id="chip-reasoning" onclick="setFilterCategory('reasoning')"><i class="codicon codicon-lightbulb" style="color:#d2a8ff;"></i> Reasoning (<span id="cReasoning">0</span>)</button>
-          <button class="chip" id="chip-vision" onclick="setFilterCategory('vision')"><i class="codicon codicon-eye" style="color:#f59e0b;"></i> Vision (<span id="cVision">0</span>)</button>
-          <button class="chip" id="chip-working" onclick="setFilterCategory('working')"><i class="codicon codicon-check" style="color:var(--success);"></i> Working (<span id="cWorking">0</span>)</button>
-          <button class="chip" id="chip-failed" onclick="setFilterCategory('failed')"><i class="codicon codicon-error" style="color:var(--error);"></i> Failed (<span id="cFailed">0</span>)</button>
-          <button class="chip" id="chip-selected" onclick="setFilterCategory('selected')"><i class="codicon codicon-pin" style="color:#4fc1ff;"></i> In Copilot (<span id="cSelected">0</span>)</button>
+          <span class="filter-label"><i class="codicon codicon-tag"></i> Capability:</span>
+          <button class="chip active" id="chip-cat-all" onclick="setCapabilityFilter('all')"><i class="codicon codicon-sparkle"></i> All <span class="chip-count" id="cAll">0</span></button>
+          <button class="chip" id="chip-cat-coding" onclick="setCapabilityFilter('coding')"><i class="codicon codicon-code" style="color:#4fc1ff;"></i> Coding <span class="chip-count" id="cCoding">0</span></button>
+          <button class="chip" id="chip-cat-reasoning" onclick="setCapabilityFilter('reasoning')"><i class="codicon codicon-lightbulb" style="color:#d2a8ff;"></i> Reasoning <span class="chip-count" id="cReasoning">0</span></button>
+          <button class="chip" id="chip-cat-vision" onclick="setCapabilityFilter('vision')"><i class="codicon codicon-eye" style="color:#f59e0b;"></i> Vision <span class="chip-count" id="cVision">0</span></button>
+
+          <div class="v-sep"></div>
+
+          <span class="filter-label"><i class="codicon codicon-filter"></i> Filters:</span>
+          <button class="chip" id="chip-fast" onclick="toggleFastFilter()" title="Show models with latency < 500ms"><i class="codicon codicon-zap" style="color:#eab308;"></i> Fast &lt;500ms <span class="chip-count" id="cFast">0</span></button>
+          <button class="chip" id="chip-selected" onclick="toggleCopilotFilter()" title="Show models currently enabled for Copilot"><i class="codicon codicon-copilot" style="color:#4fc1ff;"></i> In Copilot <span class="chip-count" id="cSelected">0</span></button>
+          <button class="chip sec" id="clearFiltersBtn" onclick="clearAllFilters()" style="display: none; border-color: rgba(255,255,255,0.2);" title="Reset all search and filter options"><i class="codicon codicon-clear-all"></i> Reset Filters</button>
         </div>
 
-        <!-- Selection Management Bar -->
+        <!-- Copilot Setup & Action Bar -->
         <div class="selection-bar">
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <span style="font-weight: 500;"><i class="codicon codicon-copilot" style="font-size:14px; color:#4fc1ff;"></i> Copilot Model Selection:</span>
-            <button class="sec" style="padding: 2px 8px; font-size: 11px;" onclick="enableAllWorking()"><i class="codicon codicon-pass-filled" style="color:var(--success);"></i> Enable All Working</button>
-            <button class="sec" style="padding: 2px 8px; font-size: 11px;" onclick="selectVisible(true)"><i class="codicon codicon-check"></i> Select Visible</button>
-            <button class="sec" style="padding: 2px 8px; font-size: 11px;" onclick="selectVisible(false)"><i class="codicon codicon-circle-slash"></i> Deselect Visible</button>
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <span style="font-weight: 500; font-size: 11px; margin-right: 4px; display: inline-flex; align-items: center; gap: 4px;">
+              <i class="codicon codicon-copilot" style="font-size:13px; color:#4fc1ff;"></i> Copilot Setup:
+            </span>
+            <button class="sec tool-btn" onclick="enableAllWorking()" title="Enable all verified working models for Copilot"><i class="codicon codicon-pass-filled" style="color:var(--success);"></i> Enable All Working</button>
+            <button class="sec tool-btn" onclick="enableOnlyWorkingCoding()" title="Enable only verified coding models for Copilot"><i class="codicon codicon-code" style="color:#4fc1ff;"></i> Enable Only Coding</button>
+            <div class="v-sep"></div>
+            <button class="sec tool-btn" onclick="selectOnlyVisible()" title="Enable only models currently shown in the table above and disable the rest"><i class="codicon codicon-check-all" style="color:#4fc1ff;"></i> Enable Only Filtered</button>
+            <button class="sec tool-btn" onclick="selectVisible(true)" title="Add all currently visible models to Copilot"><i class="codicon codicon-check"></i> Enable Filtered</button>
+            <button class="sec tool-btn" onclick="selectVisible(false)" title="Remove all currently visible models from Copilot"><i class="codicon codicon-circle-slash"></i> Disable Filtered</button>
+            <button class="sec tool-btn" onclick="disableAll()" title="Disable all models from Copilot"><i class="codicon codicon-clear-all"></i> Disable All</button>
           </div>
           <span class="selection-badge" id="selectionSummary">0 models active in Copilot</span>
         </div>
@@ -1464,16 +930,26 @@ export class ConfigWebviewPanel {
         <table>
           <thead>
             <tr>
-              <th style="width: 34px; text-align: center;">
+              <th style="width: 38px; text-align: center;">
                 <input type="checkbox" id="selectAllBox" onchange="toggleSelectAllBox(this.checked)" title="Toggle Selection for Visible Models">
               </th>
-              <th>Model ID</th>
-              <th>Display Name</th>
-              <th>Provider</th>
-              <th>Capabilities</th>
-              <th>Limits</th>
-              <th>Verification</th>
-              <th>Action</th>
+              <th style="width: 190px;" onclick="sortBy('id')" title="Click to sort by Model ID">
+                Model ID <span id="sort-id" class="sort-icon"></span>
+              </th>
+              <th onclick="sortBy('name')" title="Click to sort by Display Name">
+                Display Name <span id="sort-name" class="sort-icon"></span>
+              </th>
+              <th style="width: 105px;" onclick="sortBy('provider')" title="Click to sort by Provider">
+                Provider <span id="sort-provider" class="sort-icon"></span>
+              </th>
+              <th style="width: 145px;">Capabilities</th>
+              <th style="width: 95px;" onclick="sortBy('contextWindow')" title="Click to sort by Context Window">
+                Limits <span id="sort-contextWindow" class="sort-icon"></span>
+              </th>
+              <th style="width: 130px;" onclick="sortBy('latency')" title="Click to sort by Latency / Speed">
+                Verification <span id="sort-latency" class="sort-icon"></span>
+              </th>
+              <th style="width: 125px;">Action</th>
             </tr>
           </thead>
           <tbody id="modelsBody"></tbody>
@@ -1519,6 +995,10 @@ export class ConfigWebviewPanel {
     let cacheEntries = [];
     let disabledSet = new Set();
     let activeFilterCategory = "all";
+    let currentSortCol = null;
+    let currentSortAsc = true;
+
+    let activeTabName = 'models';
 
     window.addEventListener('message', ev => {
       const msg = ev.data;
@@ -1526,9 +1006,13 @@ export class ConfigWebviewPanel {
         providers = msg.providers || [];
         activeModels = msg.models || [];
         cacheEntries = msg.cacheEntries || [];
+        disabledSet = new Set(msg.disabledModels || []);
         renderProviders();
+        populateProviderFilter();
+        applySort();
         renderModels();
         renderCache();
+        setTab(activeTabName);
       } else if (msg.cmd === 'testResult') {
         const el = document.getElementById('res-' + msg.idx);
         if (el) {
@@ -1549,10 +1033,13 @@ export class ConfigWebviewPanel {
     vscode.postMessage({ cmd: 'init' });
 
     function setTab(name, el) {
+      activeTabName = name;
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      el.classList.add('active');
-      document.getElementById('tab-' + name).classList.add('active');
+      const tabEl = el || document.getElementById('tab-btn-' + name);
+      if (tabEl) tabEl.classList.add('active');
+      const panelEl = document.getElementById('tab-' + name);
+      if (panelEl) panelEl.classList.add('active');
     }
 
     function renderProviders() {
@@ -1601,12 +1088,70 @@ export class ConfigWebviewPanel {
       }).join('');
     }
 
-    function setFilterCategory(cat) {
-      activeFilterCategory = cat;
-      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-      const chip = document.getElementById('chip-' + cat);
-      if (chip) chip.classList.add('active');
+    let activeCapability = 'all';
+    let activeFastOnly = false;
+    let activeCopilotOnly = false;
+
+    function setCapabilityFilter(cat) {
+      activeCapability = cat;
+      ['all', 'coding', 'reasoning', 'vision'].forEach(c => {
+        const chip = document.getElementById('chip-cat-' + c);
+        if (chip) chip.classList.toggle('active', c === cat);
+      });
       filterModels();
+    }
+    const setFilterCategory = setCapabilityFilter;
+
+    function toggleFastFilter() {
+      activeFastOnly = !activeFastOnly;
+      const chip = document.getElementById('chip-fast');
+      if (chip) chip.classList.toggle('active', activeFastOnly);
+      filterModels();
+    }
+
+    function toggleCopilotFilter() {
+      activeCopilotOnly = !activeCopilotOnly;
+      const chip = document.getElementById('chip-selected');
+      if (chip) chip.classList.toggle('active', activeCopilotOnly);
+      filterModels();
+    }
+
+    function onStatusFilterChange() {
+      filterModels();
+    }
+
+    function clearAllFilters() {
+      activeCapability = 'all';
+      activeFastOnly = false;
+      activeCopilotOnly = false;
+      const search = document.getElementById('mSearch');
+      if (search) search.value = '';
+      const prov = document.getElementById('provFilter');
+      if (prov) prov.value = '';
+      const status = document.getElementById('statusFilter');
+      if (status) status.value = 'working';
+
+      ['all', 'coding', 'reasoning', 'vision'].forEach(c => {
+        const chip = document.getElementById('chip-cat-' + c);
+        if (chip) chip.classList.toggle('active', c === 'all');
+      });
+      const chipFast = document.getElementById('chip-fast');
+      if (chipFast) chipFast.classList.remove('active');
+      const chipCopilot = document.getElementById('chip-selected');
+      if (chipCopilot) chipCopilot.classList.remove('active');
+
+      filterModels();
+    }
+
+    function disableAll() {
+      activeModels.forEach(m => {
+        const key = m.provider + '::' + m.id;
+        disabledSet.add(key);
+        disabledSet.add(m.id);
+        m.disabled = true;
+      });
+      saveDisabled();
+      renderModels();
     }
 
     function toggleModelSelection(idx, isChecked) {
@@ -1621,17 +1166,84 @@ export class ConfigWebviewPanel {
         disabledSet.add(key);
         m.disabled = true;
       }
+      const row = document.querySelector('.m-row[data-idx="' + idx + '"]');
+      if (row) {
+        row.setAttribute('data-selected', (!m.disabled && m._verifiedWorking === true) ? 'true' : 'false');
+      }
       saveDisabled();
       updateCounts();
+      updateSelectAllBox();
     }
 
     function enableAllWorking() {
       activeModels.forEach(m => {
+        const key = m.provider + '::' + m.id;
         if (m._verifiedWorking === true) {
-          const key = m.provider + '::' + m.id;
           disabledSet.delete(key);
           disabledSet.delete(m.id);
           m.disabled = false;
+        } else {
+          disabledSet.add(key);
+          m.disabled = true;
+        }
+      });
+      saveDisabled();
+      renderModels();
+    }
+
+    function enableOnlyWorkingCoding() {
+      activeModels.forEach(m => {
+        const key = m.provider + '::' + m.id;
+        if (m._verifiedWorking === true && m.isCoding) {
+          disabledSet.delete(key);
+          disabledSet.delete(m.id);
+          m.disabled = false;
+        } else {
+          disabledSet.add(key);
+          m.disabled = true;
+        }
+      });
+      saveDisabled();
+      renderModels();
+    }
+
+    function enableOnlyFastWorking() {
+      activeModels.forEach(m => {
+        const key = m.provider + '::' + m.id;
+        if (m._verifiedWorking === true && (m._latency || 9999) < 500) {
+          disabledSet.delete(key);
+          disabledSet.delete(m.id);
+          m.disabled = false;
+        } else {
+          disabledSet.add(key);
+          m.disabled = true;
+        }
+      });
+      saveDisabled();
+      renderModels();
+    }
+
+    function selectOnlyVisible() {
+      const visibleWorkingKeys = new Set();
+      document.querySelectorAll('.m-row').forEach(row => {
+        if (row.style.display !== 'none') {
+          const idx = parseInt(row.getAttribute('data-idx'), 10);
+          const m = activeModels[idx];
+          if (m && m._verifiedWorking !== false) {
+            visibleWorkingKeys.add(m.provider + '::' + m.id);
+            visibleWorkingKeys.add(m.id);
+          }
+        }
+      });
+      activeModels.forEach(m => {
+        const key = m.provider + '::' + m.id;
+        if (visibleWorkingKeys.has(key) || visibleWorkingKeys.has(m.id)) {
+          disabledSet.delete(key);
+          disabledSet.delete(m.id);
+          m.disabled = false;
+        } else {
+          disabledSet.add(key);
+          m.disabled = true;
         }
       });
       saveDisabled();
@@ -1646,9 +1258,11 @@ export class ConfigWebviewPanel {
           if (m) {
             const key = m.provider + '::' + m.id;
             if (check) {
-              disabledSet.delete(key);
-              disabledSet.delete(m.id);
-              m.disabled = false;
+              if (m._verifiedWorking !== false) {
+                disabledSet.delete(key);
+                disabledSet.delete(m.id);
+                m.disabled = false;
+              }
             } else {
               disabledSet.add(key);
               m.disabled = true;
@@ -1664,37 +1278,186 @@ export class ConfigWebviewPanel {
       selectVisible(checked);
     }
 
+    function updateSelectAllBox() {
+      const box = document.getElementById('selectAllBox');
+      if (!box) return;
+      const visibleRows = Array.from(document.querySelectorAll('.m-row')).filter(r => r.style.display !== 'none');
+      if (visibleRows.length === 0) {
+        box.checked = false;
+        box.indeterminate = false;
+        return;
+      }
+      let eligibleCount = 0;
+      let enabledCount = 0;
+      visibleRows.forEach(r => {
+        const idx = parseInt(r.getAttribute('data-idx'), 10);
+        const m = activeModels[idx];
+        if (m) {
+          if (m._verifiedWorking !== false) eligibleCount++;
+          if (!m.disabled && m._verifiedWorking !== false) enabledCount++;
+        }
+      });
+      if (enabledCount === 0) {
+        box.checked = false;
+        box.indeterminate = false;
+      } else if (eligibleCount > 0 && enabledCount === eligibleCount) {
+        box.checked = true;
+        box.indeterminate = false;
+      } else {
+        box.checked = false;
+        box.indeterminate = true;
+      }
+    }
+
     function saveDisabled() {
       vscode.postMessage({ cmd: 'saveDisabledModels', disabledModels: Array.from(disabledSet) });
     }
 
     function updateCounts() {
       const allCount = activeModels.length;
-      const codingCount = activeModels.filter(m => m.isCoding).length;
-      const reasoningCount = activeModels.filter(m => m.isReasoning).length;
-      const visionCount = activeModels.filter(m => m.vision).length;
+      const statusVal = document.getElementById('statusFilter')?.value || 'working';
+
+      const eligibleForCounts = activeModels.filter(m => {
+        if (statusVal === 'working') return m._verifiedWorking === true;
+        if (statusVal === 'failed') return m._verifiedWorking === false;
+        return true;
+      });
+
+      const codingCount = eligibleForCounts.filter(m => m.isCoding).length;
+      const reasoningCount = eligibleForCounts.filter(m => m.isReasoning).length;
+      const visionCount = eligibleForCounts.filter(m => m.vision).length;
+      const fastCount = eligibleForCounts.filter(m => (m._latency || 9999) < 500).length;
       const workingCount = activeModels.filter(m => m._verifiedWorking === true).length;
       const failedCount = activeModels.filter(m => m._verifiedWorking === false).length;
       const selectedCount = activeModels.filter(m => !m.disabled && m._verifiedWorking === true).length;
+      const eligibleSelectedCount = eligibleForCounts.filter(m => !m.disabled).length;
 
       const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
       setTxt('mCount', allCount);
-      setTxt('cAll', allCount);
+      setTxt('cAll', eligibleForCounts.length);
       setTxt('cCoding', codingCount);
+      setTxt('cFast', fastCount);
       setTxt('cReasoning', reasoningCount);
       setTxt('cVision', visionCount);
-      setTxt('cWorking', workingCount);
-      setTxt('cFailed', failedCount);
-      setTxt('cSelected', selectedCount);
+      setTxt('cSelected', eligibleSelectedCount);
+
+      // Status dropdown text update
+      const statusOptWorking = document.getElementById('opt-status-working');
+      if (statusOptWorking) statusOptWorking.innerText = '✓ Verified Working (' + workingCount + ')';
+      const statusOptAll = document.getElementById('opt-status-all');
+      if (statusOptAll) statusOptAll.innerText = 'All Statuses (' + allCount + ')';
+      const statusOptFailed = document.getElementById('opt-status-failed');
+      if (statusOptFailed) statusOptFailed.innerText = '✕ Offline / Failed (' + failedCount + ')';
+
+      const visibleRows = Array.from(document.querySelectorAll('.m-row')).filter(r => r.style.display !== 'none');
+      let visibleSelected = 0;
+      let visibleWorking = 0;
+      visibleRows.forEach(r => {
+        const idx = parseInt(r.getAttribute('data-idx'), 10);
+        const m = activeModels[idx];
+        if (m && m._verifiedWorking === true) {
+          visibleWorking++;
+          if (!m.disabled) visibleSelected++;
+        }
+      });
 
       const summary = document.getElementById('selectionSummary');
       if (summary) {
-        summary.innerText = selectedCount + ' of ' + workingCount + ' working models active in Copilot';
+        if (visibleRows.length < activeModels.length) {
+          summary.innerText = visibleSelected + ' of ' + visibleWorking + ' visible selected • ' + selectedCount + ' of ' + workingCount + ' active in Copilot';
+        } else {
+          summary.innerText = selectedCount + ' of ' + workingCount + ' working models active in Copilot';
+        }
       }
+      updateSelectAllBox();
+    }
+
+    function sortBy(col) {
+      if (currentSortCol === col) {
+        currentSortAsc = !currentSortAsc;
+      } else {
+        currentSortCol = col;
+        currentSortAsc = true;
+      }
+      applySort();
+      renderModels();
+    }
+
+    function applySort() {
+      if (!currentSortCol) return;
+      activeModels.sort((a, b) => {
+        let valA, valB;
+        if (currentSortCol === 'id') {
+          valA = a.id.toLowerCase();
+          valB = b.id.toLowerCase();
+        } else if (currentSortCol === 'name') {
+          valA = (a.name || a.id).toLowerCase();
+          valB = (b.name || b.id).toLowerCase();
+        } else if (currentSortCol === 'provider') {
+          valA = (a.provider || '').toLowerCase();
+          valB = (b.provider || '').toLowerCase();
+        } else if (currentSortCol === 'contextWindow') {
+          valA = a.contextWindow || a.maxInputTokens || 0;
+          valB = b.contextWindow || b.maxInputTokens || 0;
+        } else if (currentSortCol === 'latency') {
+          valA = a._verifiedWorking === true ? (a._latency || 0) : 9999999;
+          valB = b._verifiedWorking === true ? (b._latency || 0) : 9999999;
+        }
+        if (valA < valB) return currentSortAsc ? -1 : 1;
+        if (valA > valB) return currentSortAsc ? 1 : -1;
+        return 0;
+      });
+      updateSortIcons();
+    }
+
+    function updateSortIcons() {
+      ['id', 'name', 'provider', 'contextWindow', 'latency'].forEach(col => {
+        const el = document.getElementById('sort-' + col);
+        if (el) {
+          if (currentSortCol === col) {
+            el.innerHTML = currentSortAsc
+              ? '<i class="codicon codicon-arrow-up" style="font-size:10px; margin-left:2px;"></i>'
+              : '<i class="codicon codicon-arrow-down" style="font-size:10px; margin-left:2px;"></i>';
+          } else {
+            el.innerHTML = '';
+          }
+        }
+      });
+    }
+
+    function clearSearch() {
+      const inp = document.getElementById('mSearch');
+      if (inp) inp.value = '';
+      filterModels();
+    }
+
+    function populateProviderFilter() {
+      const sel = document.getElementById('provFilter');
+      if (!sel) return;
+      const cur = sel.value;
+      const provs = Array.from(new Set(activeModels.map(m => m.provider).filter(Boolean))).sort();
+      sel.innerHTML = '<option value="">All Providers (' + provs.length + ')</option>' +
+        provs.map(p => '<option value="' + p + '" ' + (cur === p ? 'selected' : '') + '>' + p + '</option>').join('');
+    }
+
+    function runVisibleBatchTest() {
+      const visible = [];
+      document.querySelectorAll('.m-row').forEach(row => {
+        if (row.style.display !== 'none') {
+          const idx = parseInt(row.getAttribute('data-idx'), 10);
+          const m = activeModels[idx];
+          if (m) {
+            visible.push({ providerName: m.provider, modelId: m.id });
+          }
+        }
+      });
+      if (visible.length === 0) return;
+      vscode.postMessage({ cmd: 'testSpecificModels', models: visible, force: true });
     }
 
     function renderModels() {
       updateCounts();
+      updateSortIcons();
       const b = document.getElementById('modelsBody');
       if (activeModels.length === 0) {
         b.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:16px;">No models discovered yet. Click Refresh Models or add an endpoint.</td></tr>';
@@ -1706,41 +1469,44 @@ export class ConfigWebviewPanel {
         const outK = Math.round((m.maxOutputTokens || 16000) / 1000);
         const isChecked = !m.disabled;
 
-        let verifyBadge = '<span class="tag" style="opacity:0.6;">Untested</span>';
+        let verifyBadge = '<span class="status-badge untested"><i class="codicon codicon-circle-outline"></i> Untested</span>';
         if (m._verifiedWorking === true) {
-          verifyBadge = '<span class="tag green">Verified (' + (m._latency || 0) + 'ms)</span>';
+          verifyBadge = '<span class="status-badge ok"><i class="codicon codicon-check"></i> ' + (m._latency || 0) + 'ms</span>';
         } else if (m._verifiedWorking === false) {
           const errHint = m._error ? ' - ' + m._error.replace(/"/g, '&quot;') : '';
-          verifyBadge = '<span class="tag red" title="Failed' + errHint + '">Offline / Failed</span>';
+          verifyBadge = '<span class="status-badge err" title="Failed' + errHint + '"><i class="codicon codicon-close"></i> Offline</span>';
         }
 
         const caps = [
-          m.isCoding ? '<span class="model-cat code">Coding</span>' : '',
-          m.isReasoning ? '<span class="model-cat reasoning">Reasoning</span>' : '',
-          m.vision ? '<span class="model-cat vision">Vision</span>' : '',
-          m.toolCalling ? '<span class="tag green">Tools</span>' : '',
+          m.isCoding ? '<span class="cap-badge code"><i class="codicon codicon-code"></i>Coding</span>' : '',
+          m.isReasoning ? '<span class="cap-badge reasoning"><i class="codicon codicon-lightbulb"></i>Reasoning</span>' : '',
+          m.vision ? '<span class="cap-badge vision"><i class="codicon codicon-eye"></i>Vision</span>' : '',
+          m.toolCalling ? '<span class="cap-badge tools"><i class="codicon codicon-tools"></i>Tools</span>' : '',
         ].filter(Boolean).join('');
 
         const isFailed = m._verifiedWorking === false;
-        const errDisplay = isFailed && m._error ? '<div style="font-size:10px; color:var(--error); margin-top:2px;">' + m._error.slice(0, 90) + '</div>' : '';
+        const isFast = m._verifiedWorking === true && (m._latency || 9999) < 500;
+        const errDisplay = isFailed && m._error ? '<div class="model-err" title="' + m._error.replace(/"/g, '&quot;') + '">' + m._error.slice(0, 85) + '</div>' : '';
 
         return '<tr class="m-row" data-idx="' + mIdx + '" data-s="' + (m.id + ' ' + (m.name || '')).toLowerCase() + '" ' +
+          'data-prov="' + (m.provider || '').toLowerCase() + '" ' +
           'data-coding="' + (m.isCoding ? 'true' : 'false') + '" ' +
           'data-reasoning="' + (m.isReasoning ? 'true' : 'false') + '" ' +
           'data-vision="' + (m.vision ? 'true' : 'false') + '" ' +
           'data-working="' + (m._verifiedWorking === true ? 'true' : 'false') + '" ' +
           'data-failed="' + (isFailed ? 'true' : 'false') + '" ' +
+          'data-fast="' + (isFast ? 'true' : 'false') + '" ' +
           'data-selected="' + (isChecked && m._verifiedWorking === true ? 'true' : 'false') + '">' +
           '<td style="text-align: center;"><input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleModelSelection(' + mIdx + ', this.checked)" title="' + (isChecked ? 'Active in Copilot' : 'Disabled from Copilot') + '"></td>' +
-          '<td><code>' + m.id + '</code></td>' +
-          '<td><strong>' + (m.name || m.id) + '</strong>' + errDisplay + '</td>' +
-          '<td><span class="tag">' + m.provider + '</span></td>' +
-          '<td>' + caps + '</td>' +
-          '<td>' + inK + 'k / ' + outK + 'k</td>' +
+          '<td><code class="model-id" title="' + m.id + '">' + m.id + '</code></td>' +
+          '<td><div class="model-name" title="' + (m.name || m.id) + '">' + (m.name || m.id) + '</div>' + errDisplay + '</td>' +
+          '<td><span class="provider-badge">' + m.provider + '</span></td>' +
+          '<td><div class="caps-container">' + (caps || '<span style="opacity:0.35;">—</span>') + '</div></td>' +
+          '<td><span class="limits-text" title="Input: ' + inK + 'k / Max Output: ' + outK + 'k">' + inK + 'k <span class="limits-sep">/</span> ' + outK + 'k</span></td>' +
           '<td>' + verifyBadge + '</td>' +
           '<td>' +
             '<div class="action-cell">' +
-              '<button class="sec" style="padding:2px 8px; flex-shrink:0;" onclick="pingModelByIdx(' + mIdx + ')"><i class="codicon codicon-pulse"></i> Ping & Tools</button>' +
+              '<button class="sec ping-btn" onclick="pingModelByIdx(' + mIdx + ')" title="Ping model and test tool calling"><i class="codicon codicon-pulse"></i> Ping</button>' +
               '<span id="ping-' + safe + '" class="ping-status"></span>' +
             '</div>' +
           '</td>' +
@@ -1770,27 +1536,63 @@ export class ConfigWebviewPanel {
     }
 
     function filterModels() {
-      const q = (document.getElementById('mSearch').value || '').toLowerCase().trim();
+      const q = (document.getElementById('mSearch')?.value || '').toLowerCase().trim();
+      const selProv = (document.getElementById('provFilter')?.value || '').toLowerCase();
+      const statusVal = document.getElementById('statusFilter')?.value || 'working';
+      const clearBtn = document.getElementById('clearSearchBtn');
+      if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+
+      // Show reset button if any non-default filters are active
+      const hasCustom = Boolean(
+        q || selProv || statusVal !== 'working' || activeCapability !== 'all' || activeFastOnly || activeCopilotOnly
+      );
+      const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+      if (clearFiltersBtn) clearFiltersBtn.style.display = hasCustom ? 'inline-flex' : 'none';
+
+      let visibleCount = 0;
       document.querySelectorAll('.m-row').forEach(r => {
         const s = r.getAttribute('data-s') || '';
+        const prov = r.getAttribute('data-prov') || '';
         const isCoding = r.getAttribute('data-coding') === 'true';
         const isReasoning = r.getAttribute('data-reasoning') === 'true';
         const isVision = r.getAttribute('data-vision') === 'true';
         const isWorking = r.getAttribute('data-working') === 'true';
         const isFailed = r.getAttribute('data-failed') === 'true';
+        const isFast = r.getAttribute('data-fast') === 'true';
         const isSelected = r.getAttribute('data-selected') === 'true';
 
-        let matchCat = true;
-        if (activeFilterCategory === 'coding') matchCat = isCoding;
-        else if (activeFilterCategory === 'reasoning') matchCat = isReasoning;
-        else if (activeFilterCategory === 'vision') matchCat = isVision;
-        else if (activeFilterCategory === 'working') matchCat = isWorking;
-        else if (activeFilterCategory === 'failed') matchCat = isFailed;
-        else if (activeFilterCategory === 'selected') matchCat = isSelected;
-
+        // 1. Text Search (ID or Name)
         const matchSearch = !q || s.includes(q);
-        r.style.display = (matchCat && matchSearch) ? '' : 'none';
+
+        // 2. Provider dropdown
+        const matchProv = !selProv || prov === selProv;
+
+        // 3. Status filter ('working' | 'all' | 'failed')
+        let matchStatus = true;
+        if (statusVal === 'working') matchStatus = isWorking;
+        else if (statusVal === 'failed') matchStatus = isFailed;
+
+        // 4. Capability ('all' | 'coding' | 'reasoning' | 'vision')
+        let matchCap = true;
+        if (activeCapability === 'coding') matchCap = isCoding;
+        else if (activeCapability === 'reasoning') matchCap = isReasoning;
+        else if (activeCapability === 'vision') matchCap = isVision;
+
+        // 5. Fast modifier
+        const matchFast = !activeFastOnly || isFast;
+
+        // 6. Copilot modifier
+        const matchCopilot = !activeCopilotOnly || isSelected;
+
+        const isVisible = matchSearch && matchProv && matchStatus && matchCap && matchFast && matchCopilot;
+        r.style.display = isVisible ? '' : 'none';
+        if (isVisible) visibleCount++;
       });
+
+      const btnVisibleCount = document.getElementById('btnVisibleCount');
+      if (btnVisibleCount) btnVisibleCount.innerText = visibleCount;
+      updateCounts();
+      updateSelectAllBox();
     }
 
     function applyPreset(name, url) {

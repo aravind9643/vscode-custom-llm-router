@@ -102,6 +102,9 @@ export function activate(context: vscode.ExtensionContext) {
     async (forceArg: boolean = false) => {
       refreshEngineFromSettings();
 
+      const config = vscode.workspace.getConfiguration("customLlmRouter");
+      const concurrency = config.get<number>("testConcurrency") || 8;
+
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -113,7 +116,7 @@ export function activate(context: vscode.ExtensionContext) {
           let failedCount = 0;
 
           const results = await engine.verifyAllModels({
-            concurrency: 5,
+            concurrency,
             forceRecheck: forceArg,
             verifyTools: true,
             onProgress: (tested, total, name, ok) => {
@@ -153,6 +156,62 @@ export function activate(context: vscode.ExtensionContext) {
       );
     }
   );
+
+  const testSpecificModelsCommand = vscode.commands.registerCommand(
+    "vscode-custom-llm-router.testSpecificModels",
+    async (modelsArg: { providerName: string; modelId: string }[], forceArg: boolean = false) => {
+      refreshEngineFromSettings();
+      if (!Array.isArray(modelsArg) || modelsArg.length === 0) return;
+
+      const config = vscode.workspace.getConfiguration("customLlmRouter");
+      const concurrency = config.get<number>("testConcurrency") || 8;
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Verifying ${modelsArg.length} Filtered Models...`,
+          cancellable: true,
+        },
+        async (progress) => {
+          let workingCount = 0;
+          let failedCount = 0;
+
+          await engine.verifySpecificModels(modelsArg, {
+            concurrency,
+            forceRecheck: forceArg,
+            verifyTools: true,
+            onProgress: (tested, total, name, ok) => {
+              if (ok) workingCount++;
+              else failedCount++;
+              progress.report({
+                message: `[${tested}/${total}] ${name} -> ${ok ? "OK" : "FAILED"}`,
+                increment: (1 / total) * 100,
+              });
+              ConfigWebviewPanel.postMessageToActivePanel({
+                cmd: "testProgress",
+                tested,
+                total,
+                name,
+                ok,
+              });
+            },
+          });
+
+          ConfigWebviewPanel.postMessageToActivePanel({
+            cmd: "testComplete",
+            workingCount,
+            failedCount,
+          });
+
+          customChatProvider.notifyModelsChanged();
+          vscode.window.showInformationMessage(
+            `Tested ${modelsArg.length} models: ${workingCount} working, ${failedCount} offline/failed.`
+          );
+        }
+      );
+    }
+  );
+  context.subscriptions.push(testSpecificModelsCommand);
 
   // 5. Command: Check Status
   const statusCommand = vscode.commands.registerCommand("vscode-custom-llm-router.checkStatus", async () => {
@@ -198,7 +257,10 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     if (pick) {
+      engine.setActiveProfile(pick.profile);
       vscode.commands.executeCommand("vscode-custom-llm-router.syncModels", pick.profile);
+      customChatProvider.notifyModelsChanged();
+      vscode.window.showInformationMessage(`Active Copilot profile set to: ${pick.label}`);
     }
   });
 

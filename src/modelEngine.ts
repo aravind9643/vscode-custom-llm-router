@@ -142,6 +142,19 @@ export class ModelEngine {
   public getDisabledModelIds(): string[] {
     return Array.from(this._disabledModelIds);
   }
+
+  private _activeProfile: "all" | "coding" | "top" = "all";
+
+  public getActiveProfile(): "all" | "coding" | "top" {
+    return this._activeProfile;
+  }
+
+  public setActiveProfile(profile: "all" | "coding" | "top"): void {
+    this._activeProfile = profile;
+    if (this._memento) {
+      this._memento.update("customLlmRouter.activeProfile", profile);
+    }
+  }
   private _blacklistPatterns: string[] = [
     "image",
     "inpainting",
@@ -184,6 +197,10 @@ export class ModelEngine {
 
   public loadCache(): void {
     if (this._memento) {
+      const storedProfile = this._memento.get<"all" | "coding" | "top">("customLlmRouter.activeProfile");
+      if (storedProfile) {
+        this._activeProfile = storedProfile;
+      }
       const stored = this._memento.get<VerifiedCacheStore>("customLlmRouter.verifiedCache", {
         updatedAt: 0,
         entries: {},
@@ -460,6 +477,70 @@ export class ModelEngine {
 
       for (const m of prov.models) {
         modelsToTest.push({ provider: origConfig, modelId: m.id });
+      }
+    }
+
+    const total = modelsToTest.length;
+    const results: ModelTestResult[] = [];
+    let nextIndex = 0;
+    let completedCount = 0;
+
+    const worker = async () => {
+      while (true) {
+        const idx = nextIndex++;
+        if (idx >= total) break;
+
+        const item = modelsToTest[idx];
+        const cached = !forceRecheck ? this.getCacheEntry(item.provider.name, item.modelId) : undefined;
+
+        let res: ModelTestResult;
+        if (cached) {
+          res = {
+            modelId: cached.modelId,
+            providerName: cached.providerName,
+            working: cached.working,
+            status: cached.working ? 200 : 0,
+            latency: cached.latency,
+            verifiedTools: cached.verifiedTools,
+            testedAt: cached.testedAt,
+          };
+        } else {
+          res = await this.testSingleModel(item.provider, item.modelId, verifyTools);
+        }
+
+        results.push(res);
+        completedCount++;
+
+        if (onProgress) {
+          onProgress(completedCount, total, `${item.provider.name}: ${item.modelId}`, res.working);
+        }
+      }
+    };
+
+    const workerCount = Math.min(concurrency, total || 1);
+    const workers = Array.from({ length: workerCount }, () => worker());
+    await Promise.all(workers);
+
+    return results;
+  }
+
+  public async verifySpecificModels(
+    targetModels: { providerName: string; modelId: string }[],
+    options: {
+      concurrency?: number;
+      forceRecheck?: boolean;
+      verifyTools?: boolean;
+      onProgress?: (tested: number, total: number, currentModel: string, ok: boolean) => void;
+    } = {}
+  ): Promise<ModelTestResult[]> {
+    const { concurrency = 8, forceRecheck = false, verifyTools = false, onProgress } = options;
+    const configuredList = this.getConfiguredProviders();
+
+    const modelsToTest: { provider: CustomProviderConfig; modelId: string }[] = [];
+    for (const tm of targetModels) {
+      const prov = configuredList.find((p) => p.name === tm.providerName);
+      if (prov) {
+        modelsToTest.push({ provider: prov, modelId: tm.modelId });
       }
     }
 
