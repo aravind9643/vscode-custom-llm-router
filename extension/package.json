@@ -1,21 +1,41 @@
 {
   "name": "vscode-custom-llm-router",
   "displayName": "Custom LLM Router",
-  "description": "Seamlessly connect FreeLLMAPI & OmniRoute local models directly into VS Code Copilot & Chat",
+  "description": "Native Language Model Provider for VS Code Copilot & Chat: Connect Ollama, LM Studio, vLLM, OpenRouter, DeepSeek, OpenAI, FreeLLMAPI, OmniRoute & custom OpenAI-compatible endpoints with real-time streaming.",
   "version": "1.0.0",
   "publisher": "aravind9643",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "copilot",
+    "chat",
+    "language-models",
+    "ollama",
+    "deepseek",
+    "openai",
+    "openrouter",
+    "lm-studio",
+    "vllm",
+    "freellmapi",
+    "omniroute",
+    "llm-router"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/aravind9643/vscode-custom-llm-router.git"
   },
+  "bugs": {
+    "url": "https://github.com/aravind9643/vscode-custom-llm-router/issues"
+  },
+  "homepage": "https://github.com/aravind9643/vscode-custom-llm-router#readme",
   "engines": {
     "vscode": "^1.140.0"
   },
   "categories": [
     "AI",
+    "Chat",
     "Machine Learning",
-    "Programming Languages",
-    "Other"
+    "Programming Languages"
   ],
   "main": "./out/extension.js",
   "activationEvents": [

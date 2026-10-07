@@ -49,10 +49,16 @@ function resolveConfigRoots(context) {
             candidates.push(folder.uri.fsPath);
         }
     }
-    // 2. Default project location if open elsewhere
-    const defaultProject = "d:\\VSCodeCustomEndpointModels";
-    if (!candidates.includes(defaultProject)) {
-        candidates.push(defaultProject);
+    // 2. Extension Global Storage directory (persists per user across workspaces)
+    if (context.globalStorageUri) {
+        const storagePath = context.globalStorageUri.fsPath;
+        try {
+            if (!fs.existsSync(storagePath)) {
+                fs.mkdirSync(storagePath, { recursive: true });
+            }
+            candidates.push(storagePath);
+        }
+        catch { }
     }
     // 3. Extension path fallback
     if (!candidates.includes(context.extensionPath)) {
@@ -104,7 +110,7 @@ function activate(context) {
                 onProgress: (m) => progress.report({ message: m }),
             });
             if (providers.length === 0) {
-                vscode.window.showWarningMessage("No active models retrieved. Please verify that FreeLLMAPI (:31415) or OmniRoute (:20128) is running.");
+                vscode.window.showWarningMessage("No active models found. Please configure an endpoint (e.g. Ollama, OpenRouter, FreeLLMAPI, OmniRoute) via 'Add Custom Model Provider' or 'Configure models.config.json & Providers'.");
                 return;
             }
             const deployed = engine.deployToVSCode(providers);
@@ -112,7 +118,7 @@ function activate(context) {
             updateStatusBar(true, totalModels);
             // Refresh native model provider
             customChatProvider.notifyModelsChanged();
-            vscode.window.showInformationMessage(`✅ Successfully synced ${totalModels} custom models to VS Code Insiders & Custom Model Provider!`, "View Config").then((action) => {
+            vscode.window.showInformationMessage(`✅ Successfully synced ${totalModels} custom models to VS Code Chat & Custom Model Provider!`, "View Config").then((action) => {
                 if (action === "View Config" && deployed[0]) {
                     openTargetDocument(deployed[0]);
                 }

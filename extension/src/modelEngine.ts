@@ -496,13 +496,30 @@ export class ModelEngine {
   }
 
   public getTargetPaths(): { name: string; chatModelsJson: string }[] {
+    const targets: { name: string; chatModelsJson: string }[] = [];
+    const home = process.env.HOME || process.env.USERPROFILE || "";
     const appData = process.env.APPDATA;
-    if (!appData) return [];
-    const targets = [];
-    const candidates = [
-      { name: "VS Code Insiders", dir: path.join(appData, "Code - Insiders", "User") },
-      { name: "VS Code Stable", dir: path.join(appData, "Code", "User") },
-    ];
+
+    const candidates: { name: string; dir: string }[] = [];
+
+    if (process.platform === "win32" && appData) {
+      candidates.push(
+        { name: "VS Code Insiders", dir: path.join(appData, "Code - Insiders", "User") },
+        { name: "VS Code", dir: path.join(appData, "Code", "User") }
+      );
+    } else if (process.platform === "darwin" && home) {
+      candidates.push(
+        { name: "VS Code Insiders", dir: path.join(home, "Library", "Application Support", "Code - Insiders", "User") },
+        { name: "VS Code", dir: path.join(home, "Library", "Application Support", "Code", "User") }
+      );
+    } else if (home) {
+      // Linux / Unix
+      candidates.push(
+        { name: "VS Code Insiders", dir: path.join(home, ".config", "Code - Insiders", "User") },
+        { name: "VS Code", dir: path.join(home, ".config", "Code", "User") }
+      );
+    }
+
     for (const c of candidates) {
       if (fs.existsSync(c.dir)) {
         targets.push({
@@ -519,10 +536,12 @@ export class ModelEngine {
     const deployedPaths: string[] = [];
     const jsonStr = JSON.stringify(providers, null, 4) + "\n";
 
-    // Also write local workspace file
-    const localFile = path.resolve(this.baseDir, "chatLanguageModels.json");
-    fs.writeFileSync(localFile, jsonStr, "utf8");
-    deployedPaths.push(localFile);
+    // Write local workspace file if in a writable directory
+    try {
+      const localFile = path.resolve(this.baseDir, "chatLanguageModels.json");
+      fs.writeFileSync(localFile, jsonStr, "utf8");
+      deployedPaths.push(localFile);
+    } catch {}
 
     for (const t of targets) {
       try {
