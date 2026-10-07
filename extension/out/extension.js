@@ -40,9 +40,38 @@ const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 const modelEngine_1 = require("./modelEngine");
 let statusBarItem;
+function resolveConfigRoots(context) {
+    const candidates = [];
+    // 1. Current workspace folder(s)
+    if (vscode.workspace.workspaceFolders) {
+        for (const folder of vscode.workspace.workspaceFolders) {
+            candidates.push(folder.uri.fsPath);
+        }
+    }
+    // 2. Default project location if open elsewhere
+    const defaultProject = "d:\\VSCodeCustomEndpointModels";
+    if (!candidates.includes(defaultProject)) {
+        candidates.push(defaultProject);
+    }
+    // 3. Extension path fallback
+    if (!candidates.includes(context.extensionPath)) {
+        candidates.push(context.extensionPath);
+    }
+    return candidates;
+}
+function findFileAcrossRoots(fileName, roots) {
+    for (const root of roots) {
+        const candidate = path.resolve(root, fileName);
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+    return undefined;
+}
 function activate(context) {
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || context.extensionPath;
-    const engine = new modelEngine_1.ModelEngine(workspaceRoot);
+    const configRoots = resolveConfigRoots(context);
+    const primaryRoot = configRoots[0] || context.extensionPath;
+    const engine = new modelEngine_1.ModelEngine(primaryRoot);
     // 1. Status Bar Item
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.command = "vscode-custom-llm-router.showMenu";
@@ -65,7 +94,7 @@ function activate(context) {
                 onProgress: (m) => progress.report({ message: m }),
             });
             if (providers.length === 0) {
-                vscode.window.showWarningMessage("No active models retrieved. Is OmniRoute or FreeLLMAPI running?");
+                vscode.window.showWarningMessage("No active models retrieved. Please verify that FreeLLMAPI (:31415) or OmniRoute (:20128) is running.");
                 return;
             }
             const deployed = engine.deployToVSCode(providers);
@@ -73,9 +102,7 @@ function activate(context) {
             updateStatusBar(true, totalModels);
             vscode.window.showInformationMessage(`✅ Successfully synced ${totalModels} custom models to VS Code Insiders!`, "View Config").then((action) => {
                 if (action === "View Config" && deployed[0]) {
-                    vscode.workspace.openTextDocument(deployed[0]).then((doc) => {
-                        vscode.window.showTextDocument(doc);
-                    });
+                    openTargetDocument(deployed[0]);
                 }
             });
         });
@@ -90,12 +117,12 @@ function activate(context) {
             `FreeLLMAPI (${engine.freeLlmUrl}): ${freeIcon} (${status.freeLlm.modelCount} models)`,
             `OmniRoute (${engine.omniUrl}): ${omniIcon} (${status.omniRoute.modelCount} models)`,
         ].join("\n");
-        vscode.window.showInformationMessage(msg, "Sync Models", "Configure Endpoints").then((act) => {
+        vscode.window.showInformationMessage(msg, "Sync Models", "Configure .env").then((act) => {
             if (act === "Sync Models") {
                 vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
             }
-            else if (act === "Configure Endpoints") {
-                openEnvFile(workspaceRoot);
+            else if (act === "Configure .env") {
+                vscode.commands.executeCommand("vscode-custom-llm-router.configureEnv");
             }
         });
     });
@@ -125,17 +152,47 @@ function activate(context) {
             vscode.commands.executeCommand("vscode-custom-llm-router.syncModels", pick.profile);
         }
     });
-    // 5. Command: Show Master Menu
+    // 5. Command: Configure .env
+    const configureEnvCommand = vscode.commands.registerCommand("vscode-custom-llm-router.configureEnv", async () => {
+        const roots = resolveConfigRoots(context);
+        let target = findFileAcrossRoots(".env", roots);
+        if (!target) {
+            // Find template or create one
+            const example = findFileAcrossRoots(".env.example", roots);
+            target = path.resolve(roots[0], ".env");
+            if (example && fs.existsSync(example)) {
+                fs.copyFileSync(example, target);
+            }
+            else {
+                fs.writeFileSync(target, `# FreeLLMAPI (Local proxy / port 31415)\nFREELLMAPI_URL=http://127.0.0.1:31415\nFREELLMAPI_KEY=\nFREELLMAPI_VSCODE_SECRET=\${input:chat.lm.secret.50cd2a8f}\n\n# OmniRoute (Local routing bridge / port 20128)\nOMNIROUTE_URL=http://localhost:20128\nOMNIROUTE_KEY=\nOMNIROUTE_VSCODE_SECRET=\${input:chat.lm.secret.5048ce49}\n`, "utf8");
+            }
+        }
+        openTargetDocument(target);
+    });
+    // 6. Command: Configure rules
+    const configureRulesCommand = vscode.commands.registerCommand("vscode-custom-llm-router.configureRules", async () => {
+        const roots = resolveConfigRoots(context);
+        let target = findFileAcrossRoots("models.config.json", roots);
+        if (!target) {
+            target = path.resolve(roots[0], "models.config.json");
+            fs.writeFileSync(target, JSON.stringify({
+                blacklistPatterns: ["image", "inpainting", "pixel-art", "flux", "diffusion", "tts", "voice", "translat"],
+                whitelistExactIds: ["auto", "auto/best-coding", "auto/best-fast", "auto/best-reasoning"],
+            }, null, 2), "utf8");
+        }
+        openTargetDocument(target);
+    });
+    // 7. Master Menu
     const showMenuCommand = vscode.commands.registerCommand("vscode-custom-llm-router.showMenu", async () => {
         const options = [
-            { label: "$(sync) Sync Models (Fast)", id: "sync" },
-            { label: "$(filter) Switch Profile (All / Coding / Top)", id: "profile" },
-            { label: "$(pulse) Check Endpoints Status", id: "status" },
-            { label: "$(gear) Configure .env Endpoints & Keys", id: "env" },
-            { label: "$(json) Open models.config.json Rules", id: "rules" },
+            { label: "$(sync) Sync Models", detail: "Discover and deploy custom models into Copilot", id: "sync" },
+            { label: "$(filter) Switch Profile", detail: "Filter by All, Coding, or Top-tier models", id: "profile" },
+            { label: "$(pulse) Check Endpoints Status", detail: "Test connection to :31415 and :20128", id: "status" },
+            { label: "$(gear) Configure .env Endpoints & Keys", detail: "Open .env to edit URLs and tokens", id: "env" },
+            { label: "$(json) Open models.config.json Rules", detail: "Edit blacklist and whitelist patterns", id: "rules" },
         ];
         const chosen = await vscode.window.showQuickPick(options, {
-            placeHolder: "VS Code Custom LLM Router Actions",
+            placeHolder: "Custom LLM Router Actions",
         });
         if (!chosen)
             return;
@@ -149,13 +206,13 @@ function activate(context) {
             vscode.commands.executeCommand("vscode-custom-llm-router.checkStatus");
         }
         else if (chosen.id === "env") {
-            openEnvFile(workspaceRoot);
+            vscode.commands.executeCommand("vscode-custom-llm-router.configureEnv");
         }
         else if (chosen.id === "rules") {
-            openConfigFile(workspaceRoot);
+            vscode.commands.executeCommand("vscode-custom-llm-router.configureRules");
         }
     });
-    context.subscriptions.push(syncCommand, statusCommand, selectProfileCommand, showMenuCommand);
+    context.subscriptions.push(syncCommand, statusCommand, selectProfileCommand, configureEnvCommand, configureRulesCommand, showMenuCommand);
     // Background health check on launch
     engine.checkEndpoints().then((status) => {
         const totalOnline = (status.freeLlm.online ? 1 : 0) + (status.omniRoute.online ? 1 : 0);
@@ -175,23 +232,14 @@ function updateStatusBar(online, count) {
         statusBarItem.text = `$(hubot) LLM Router $(alert)`;
     }
 }
-function openEnvFile(root) {
-    const envPath = path.resolve(root, ".env");
-    if (!fs.existsSync(envPath)) {
-        const example = path.resolve(root, ".env.example");
-        if (fs.existsSync(example)) {
-            fs.copyFileSync(example, envPath);
-        }
+async function openTargetDocument(filePath) {
+    try {
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+        await vscode.window.showTextDocument(doc, { preview: false });
     }
-    vscode.workspace.openTextDocument(envPath).then((doc) => {
-        vscode.window.showTextDocument(doc);
-    });
-}
-function openConfigFile(root) {
-    const configPath = path.resolve(root, "models.config.json");
-    vscode.workspace.openTextDocument(configPath).then((doc) => {
-        vscode.window.showTextDocument(doc);
-    });
+    catch (err) {
+        vscode.window.showErrorMessage(`Could not open file: ${filePath} (${err.message})`);
+    }
 }
 function deactivate() {
     if (statusBarItem) {
