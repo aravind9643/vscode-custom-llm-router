@@ -23,7 +23,11 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
   ): Promise<vscode.LanguageModelChatInformation[]> {
     try {
       this.engine.reloadConfig();
-      const providers = await this.engine.generateProviders();
+      // Enforce onlyVerifiedWorking so failed/offline models are strictly excluded from VS Code's model picker
+      const providers = await this.engine.generateProviders({
+        profile: "all",
+        onlyVerifiedWorking: true,
+      });
 
       const result: vscode.LanguageModelChatInformation[] = [];
       this.cachedModels = [];
@@ -32,6 +36,11 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
       for (const prov of providers) {
         const familyName = prov.name.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
         for (const m of prov.models) {
+          // Extra guard: If a model was verified as failed/offline, do not present it to VS Code
+          if (m._verifiedWorking === false) {
+            continue;
+          }
+
           this.cachedModels.push(m);
           this.modelVendorMap.set(m.id, {
             endpointUrl: m.url,
@@ -95,7 +104,6 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
             },
           });
         } else if (part instanceof vscode.LanguageModelToolResultPart) {
-          // Tool results in OpenAI are individual messages with role: "tool"
           let toolResultText = "";
           for (const sub of part.content) {
             if (sub instanceof vscode.LanguageModelTextPart) {
@@ -190,7 +198,6 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
 
-    // Tool call accumulator: index -> { id, name, args }
     const pendingToolCalls: Map<number, { id: string; name: string; args: string }> = new Map();
 
     while (true) {
@@ -229,7 +236,6 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
 
           // 2. Reasoning / Thinking delta (if supported by OmniRoute / DeepSeek R1)
           if (delta.reasoning_content && !delta.content) {
-            // Stream thinking as italic/blockquote or raw text part if available
             progress.report(new vscode.LanguageModelTextPart(delta.reasoning_content));
           }
 
@@ -269,7 +275,6 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
     text: string | vscode.LanguageModelChatMessage,
     token: vscode.CancellationToken
   ): Promise<number> {
-    // Standard fast heuristic: ~4 characters per token
     if (typeof text === "string") {
       return Math.ceil(text.length / 4);
     }
