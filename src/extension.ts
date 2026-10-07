@@ -123,7 +123,20 @@ export function activate(context: vscode.ExtensionContext) {
                 message: `[${tested}/${total}] ${name} -> ${ok ? "OK" : "FAILED"}`,
                 increment: (1 / total) * 100,
               });
+              ConfigWebviewPanel.postMessageToActivePanel({
+                cmd: "testProgress",
+                tested,
+                total,
+                name,
+                ok,
+              });
             },
+          });
+
+          ConfigWebviewPanel.postMessageToActivePanel({
+            cmd: "testComplete",
+            workingCount,
+            failedCount,
           });
 
           customChatProvider.notifyModelsChanged();

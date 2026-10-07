@@ -7,7 +7,7 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
 
   private engine: ModelEngine;
   private cachedModels: VSCodeModel[] = [];
-  private modelVendorMap: Map<string, { endpointUrl: string; apiKey: string; providerName: string }> = new Map();
+  private modelVendorMap: Map<string, { endpointUrl: string; apiKey: string; providerName: string; rawModelId?: string }> = new Map();
 
   constructor(engine: ModelEngine) {
     this.engine = engine;
@@ -50,15 +50,21 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
             continue;
           }
 
+          // Prevent model ID collision if multiple providers share the exact same model id
+          const registrationId = this.modelVendorMap.has(m.id)
+            ? `${familyName}/${m.id}`
+            : m.id;
+
           this.cachedModels.push(m);
-          this.modelVendorMap.set(m.id, {
+          this.modelVendorMap.set(registrationId, {
             endpointUrl: m.url,
             apiKey: prov.apiKey,
             providerName: prov.name,
+            rawModelId: m.id,
           });
 
           result.push({
-            id: m.id,
+            id: registrationId,
             name: `${m.name} (${prov.name})`,
             family: familyName,
             tooltip: `Model ${m.id} on ${prov.name} (${m.url})`,
@@ -91,6 +97,7 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
     const routing = this.modelVendorMap.get(model.id);
     const endpointBase = routing?.endpointUrl || "http://localhost:11434";
     const apiKey = routing?.apiKey || "";
+    const targetModelId = routing?.rawModelId || model.id;
 
     // Convert VS Code messages into OpenAI Chat Completion messages format
     const formattedMessages: any[] = [];
@@ -100,6 +107,7 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
       
       let textContent = "";
       const toolCalls: any[] = [];
+      const imageParts: any[] = [];
 
       for (const part of msg.content) {
         if (part instanceof vscode.LanguageModelTextPart) {
@@ -129,6 +137,24 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
             tool_call_id: part.callId,
             content: toolResultText,
           });
+        } else if (part && typeof part === "object" && ("mimeType" in part || "data" in part || "image" in part)) {
+          // Multimodal image attachment support (for vision-capable models)
+          const pAny = part as any;
+          const mime = pAny.mimeType || "image/png";
+          const rawData = pAny.data || pAny.image;
+          if (rawData) {
+            const b64 = Buffer.isBuffer(rawData)
+              ? rawData.toString("base64")
+              : typeof rawData === "string"
+              ? rawData
+              : "";
+            if (b64) {
+              imageParts.push({
+                type: "image_url",
+                image_url: { url: b64.startsWith("data:") ? b64 : `data:${mime};base64,${b64}` }
+              });
+            }
+          }
         } else if (typeof part === "string") {
           textContent += part;
         }
@@ -139,6 +165,14 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
           role: "assistant",
           content: textContent || null,
           tool_calls: toolCalls,
+        });
+      } else if (imageParts.length > 0) {
+        formattedMessages.push({
+          role,
+          content: [
+            ...(textContent ? [{ type: "text", text: textContent }] : []),
+            ...imageParts,
+          ],
         });
       } else if (textContent.length > 0) {
         formattedMessages.push({
@@ -164,10 +198,23 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
     }
 
     const requestBody: any = {
-      model: model.id,
+      model: targetModelId,
       messages: formattedMessages,
       stream: true,
     };
+
+    // Forward Copilot generation parameters (temperature, maxTokens, topP)
+    if (options.modelOptions) {
+      if (typeof options.modelOptions.temperature === "number") {
+        requestBody.temperature = options.modelOptions.temperature;
+      }
+      if (typeof options.modelOptions.maxTokens === "number") {
+        requestBody.max_tokens = options.modelOptions.maxTokens;
+      }
+      if (typeof options.modelOptions.topP === "number") {
+        requestBody.top_p = options.modelOptions.topP;
+      }
+    }
 
     if (requestTools.length > 0) {
       requestBody.tools = requestTools;

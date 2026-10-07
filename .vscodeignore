@@ -13,3 +13,6 @@ register-task.ps1
 unregister-task.ps1
 install.ps1
 .github/**
+
+__pycache__/**
+*.pyc
