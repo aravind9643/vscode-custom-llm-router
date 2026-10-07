@@ -1,119 +1,135 @@
-# vscode-custom-llm-router
+# Custom LLM Router - VS Code Extension
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![VS Code Insiders](https://img.shields.io/badge/VS%20Code-Insiders-purple.svg)](https://code.visualstudio.com/insiders/)
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
-[![Validate CI](https://github.com/aravind9643/vscode-custom-llm-router/actions/workflows/validate.yml/badge.svg)](https://github.com/aravind9643/vscode-custom-llm-router/actions)
+[![Language Model Provider](https://img.shields.io/badge/API-vscode.lm-blue.svg)](https://code.visualstudio.com/api/extension-guides/ai/language-model-chat-provider)
 
-Unified generator and validator for configuring local custom language model endpoints in Visual Studio Code (Copilot / Chat), adhering to the [VS Code Language Models custom endpoint specification](https://code.visualstudio.com/docs/agent-customization/language-models).
+Native Visual Studio Code **Language Model Chat Provider (`vscode.lm`)** that connects **any OpenAI-compatible endpoint** (Ollama, LM Studio, vLLM, OpenRouter, DeepSeek, OpenAI, FreeLLMAPI, OmniRoute, or self-hosted servers) directly into VS Code Copilot and Chat with real-time SSE streaming and tool calling.
 
----
-
-## 🏛️ Architecture Overview
-
-```mermaid
-graph TD
-    subgraph IDE ["Visual Studio Code / Insiders"]
-        Copilot["GitHub Copilot / Chat"]
-        ChatLM["chatLanguageModels.json"]
-        Copilot -. reads .-> ChatLM
-    end
-
-    subgraph Router ["vscode-custom-llm-router"]
-        GenScript["generate-models.js"]
-        GenScript -->|"deploys (--apply)"| ChatLM
-        Validator["npm run validate"] -. checks .-> ChatLM
-    end
-
-    subgraph LocalBackends ["Local Model Gateways"]
-        OmniRoute["OmniRoute (:20128)<br/>Smart Routing Gateway"]
-        FreeLLM["FreeLLMAPI (:31415)<br/>Free LLM Proxy Pool"]
-    end
-
-    GenScript -->|"health probe & sync"| OmniRoute
-    GenScript -->|"health probe & sync"| FreeLLM
-
-    OmniRoute --> Cloud1["Anthropic / OpenAI / DeepSeek / Qwen"]
-    FreeLLM --> Cloud2["Aggregated Community Endpoints"]
-```
+**Clean & Zero Disk Pollution**: The extension stores all settings and endpoints purely in standard VS Code Settings (`customLlmRouter.*`). It does not litter your workspace with `.env`, `models.config.json`, or `chatLanguageModels.json` files!
 
 ---
 
-## ⚡ Key Features
+## 🚀 Key Features
 
-- **Native Language Model Chat Provider (`vscode.lm`)**: Implements VS Code's official `LanguageModelChatProvider` specification. Any OpenAI-compatible provider (Ollama, LM Studio, vLLM, OpenRouter, OpenAI, DeepSeek, FreeLLMAPI, OmniRoute) appears directly in VS Code's model picker with full SSE streaming and tool calling support!
-- **Universal Provider Configuration**: Add any custom provider with custom base `endpointUrl`, `apiKey`, `modelsEndpoint`, `chatEndpoint`, or predefined `staticModels` via interactive UI (`Custom LLM Router: Add Custom Model Provider`) or in [models.config.json](file:///d:/VSCodeCustomEndpointModels/models.config.json).
-- **Dual Mode Integration**: Works both as a **Native Model Provider extension** (`contributes.languageModelChatProviders`) and as an automated config synchronizer for `chatLanguageModels.json`.
-- **Integrated Extension UI**: Installable `.vsix` extension offering native Status Bar item, Command Palette actions, interactive provider onboarding wizard, and one-click model deployment directly within the IDE.
-- **Automated Validation (`npm run validate`)**: Verifies `chatLanguageModels.json` against VS Code's official schema specifications.
-- **Interactive Profile Menu (`npm run menu`)**: Quick visual selector for all models, coding only, top tier, or custom pick.
-- **Environment Bootstrapper (`npm run init`)**: Auto-generates `.env` with unique cryptographic VS Code secret handles.
-- **Prettified Model Names**: Cleans upstream routing tags (`ddgw/`, `no-think/`, etc.) into clean titles (e.g. `OmniRoute Best Coding`, `Claude 3.7 Sonnet (Fast/Direct)`).
-- **Smart Token & Context Bounds**: Accurately infers `contextWindow` and token limits based on model architectures.
-- **Direct VS Code Insiders Deployment (`--apply`)**: Writes directly to `Code - Insiders\User\chatLanguageModels.json` without modifying `settings.json`.
-- **Background Sync Service**: Windows Task Scheduler script (`npm run service:install`) to sync every hour silently.
-
----
-
-## 💻 VS Code Extension Usage & Tutorial
-
-The repository includes a native VS Code Extension located in [`extension/`](file:///d:/VSCodeCustomEndpointModels/extension).
-
-### 1. Installation
-```powershell
-# Install directly from the root workspace:
-code-insiders --install-extension extension\vscode-custom-llm-router-1.0.0.vsix --force
-```
-
-### 2. Using the Extension Inside VS Code
-1. **Status Bar Widget**: Click the **`$(hubot) LLM Router`** widget in the bottom-right corner of VS Code to view active connections and model counts.
-2. **Master Menu**: Press `Ctrl+Shift+P` (macOS: `Cmd+Shift+P`) and choose **`Custom LLM Router: Show Menu`**.
-3. **Add Custom Providers**: Choose **`Custom LLM Router: Add Custom Model Provider`** to connect Ollama (`http://localhost:11434`), LM Studio (`http://localhost:1234`), vLLM (`http://localhost:8000`), OpenRouter, or DeepSeek in seconds.
-4. **Chat with Models**: Open Copilot Chat (`Ctrl+Alt+I`), select the model picker dropdown, and select your custom models under the **Custom LLM Router** provider! Full streaming and tool-calling are supported out of the box.
+1. **Native VS Code Language Model Provider (`vscode.lm`)**:
+   - Models appear directly in the **VS Code Copilot Model Picker** dropdown.
+   - Streams responses in real time with sub-second latency and handles function calling / tool use.
+2. **Universal Compatibility**:
+   - Works with **any OpenAI-compatible API** (`/v1/chat/completions` & `/v1/models`).
+   - Connect to **Ollama, LM Studio, vLLM, OpenRouter, DeepSeek, OpenAI, FreeLLMAPI, OmniRoute**, or private AI clusters.
+3. **Pure VS Code Native Settings**:
+   - Configured through standard VS Code Settings UI or `settings.json` under `customLlmRouter.providers`.
+   - No filesystem pollution, no temporary JSON files, and zero disk writes in user projects.
+4. **Interactive Wizard & Status Bar**:
+   - Status Bar item showing real-time endpoint status (`$(hubot) LLM Router (2/2)`).
+   - Interactive wizard to add, toggle, or remove custom endpoints on the fly.
+   - Filter models by **All**, **Coding Only**, or **Top Tier Flagships**.
 
 ---
 
-### 0. Quickstart One-Liner (Windows PowerShell)
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install.ps1
-```
+## 📖 Tutorial: How to Use the Extension
 
-### 1. Initialize & Check Status
+### Step 1: Install the Extension
 ```bash
-# Initialize .env with random secret placeholders
-npm run init
-
-# Check connection to FreeLLMAPI, OmniRoute and custom endpoints
-npm run status
+code-insiders --install-extension vscode-custom-llm-router-1.0.0.vsix --force
 ```
 
-### 2. Interactive Menu or Direct Deployment
-```bash
-# Launch interactive profile menu (All, Coding, Top, or Custom):
-npm run menu
+---
 
-# Or deploy presets directly to VS Code Insiders:
-npm run apply           # All active models
-npm run apply:coding    # Curated coding models
-npm run apply:top       # Top-tier models
+### Step 2: Open the Action Menu
+
+Click the **`$(hubot) LLM Router`** item in the bottom-right **Status Bar**, or press `Ctrl+Shift+P` (macOS: `Cmd+Shift+P`) and type:
+```
+Custom LLM Router: Show Menu
 ```
 
-### 3. Validation, Benchmarks & Rules
-```bash
-# Validate chatLanguageModels.json against VS Code schema
-npm run validate
+The menu options:
+- **`$(sync) Refresh / Sync Models`**: Scan configured endpoints and update Copilot models.
+- **`$(plus) Add Custom Provider`**: Onboard a new endpoint interactively.
+- **`$(list-unordered) Manage / Toggle Providers`**: Enable, disable, or delete configured endpoints.
+- **`$(filter) Switch Profile`**: Toggle between All Models, Coding Only, or Top Tier.
+- **`$(pulse) Check Endpoints Status`**: Probe connectivity and model counts across endpoints.
+- **`$(gear) Open Extension Settings`**: Open standard VS Code Settings UI for Custom LLM Router.
 
-# Run live benchmarks and generate BENCHMARKS.md leaderboard
-npm run benchmark
+---
 
-# Configure blacklist/whitelist patterns and providers in models.config.json
+### Step 3: Add a Custom Provider (Interactive Wizard)
+
+You can connect local or remote OpenAI-compatible endpoints in 3 seconds:
+
+1. Press `Ctrl+Shift+P` -> Select **`Custom LLM Router: Add Custom Model Provider`**.
+2. **Prompt 1**: Enter the provider name (e.g. `Ollama Local`, `My DeepSeek`, `LM Studio`).
+3. **Prompt 2**: Enter the endpoint URL:
+   - **Ollama**: `http://localhost:11434`
+   - **LM Studio**: `http://localhost:1234`
+   - **vLLM / Local Server**: `http://localhost:8000`
+   - **OpenRouter**: `https://openrouter.ai/api`
+   - **DeepSeek**: `https://api.deepseek.com`
+4. **Prompt 3**: Enter the API key (leave empty for local servers without auth).
+5. The extension will automatically test the connection, fetch available models, and register them into VS Code Copilot!
+
+---
+
+### Step 4: Configure via Standard VS Code Settings
+
+You can also manage providers directly in your VS Code `settings.json`:
+
+```json
+{
+  "customLlmRouter.providers": [
+    {
+      "name": "Ollama Local",
+      "endpointUrl": "http://localhost:11434",
+      "apiKey": "",
+      "autoDiscover": true,
+      "enabled": true
+    },
+    {
+      "name": "DeepSeek Official",
+      "endpointUrl": "https://api.deepseek.com",
+      "apiKey": "sk-your-deepseek-api-key",
+      "autoDiscover": false,
+      "enabled": true,
+      "staticModels": [
+        {
+          "id": "deepseek-chat",
+          "name": "DeepSeek V3",
+          "contextWindow": 131072,
+          "maxOutputTokens": 8192,
+          "toolCalling": true
+        },
+        {
+          "id": "deepseek-reasoner",
+          "name": "DeepSeek R1",
+          "contextWindow": 131072,
+          "maxOutputTokens": 8192,
+          "toolCalling": false
+        }
+      ]
+    }
+  ]
+}
 ```
 
-### 4. Background Sync Service (Windows Scheduled Task)
-```bash
-# Register automatic 1-hour background sync
-npm run service:install
+---
 
-# Unregister scheduled task
-npm run service:uninstall
-```
+### Step 5: Chatting with Your Custom Models in VS Code Copilot
+
+1. Open VS Code Chat (`Ctrl+Alt+I` or click the Copilot Chat icon in the Activity Bar).
+2. Click the **Model Picker** dropdown in the chat input box (where model names are shown).
+3. Select your custom model under the **Custom LLM Router** provider!
+4. Send your prompt—responses stream in real time with tool-calling capabilities.
+
+---
+
+## 🛠️ Command Palette Reference
+
+| Command | Title | Action |
+|---|---|---|
+| `vscode-custom-llm-router.showMenu` | **Show Menu** | Opens the interactive Master Menu |
+| `vscode-custom-llm-router.syncModels` | **Refresh / Sync Models** | Scans all endpoints and registers models |
+| `vscode-custom-llm-router.addProvider` | **Add Custom Model Provider** | 3-step wizard to add an endpoint |
+| `vscode-custom-llm-router.manageProviders` | **Manage / Toggle Providers** | Enable, disable, or delete configured endpoints |
+| `vscode-custom-llm-router.checkStatus` | **Check Endpoints Status** | Tests latency and status of all configured endpoints |
+| `vscode-custom-llm-router.selectProfile` | **Switch Model Profile** | Choose All, Coding, or Top Tier models |
+| `vscode-custom-llm-router.openSettings` | **Open Extension Settings** | Opens native VS Code Settings UI |

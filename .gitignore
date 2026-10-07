@@ -1,14 +1,4 @@
-# Environment
-.env
-.env.local
-
-# Node
 node_modules/
-npm-debug.log
-
-# Backups and temporary reports
-backups/
-*.log
-model-test-report.json
-*.cache.json
+out/
 *.vsix
+.DS_Store
