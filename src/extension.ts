@@ -47,7 +47,7 @@ export function activate(context: vscode.ExtensionContext) {
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
 
-  // 2. Command: Open Dashboard (Custom dedicated webview page)
+  // 2. Command: Open Dashboard (Dedicated custom UI page)
   const openDashboardCommand = vscode.commands.registerCommand(
     "vscode-custom-llm-router.openDashboard",
     () => {
@@ -153,10 +153,6 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.executeCommand("vscode-custom-llm-router.openDashboard");
   });
 
-  const openSettingsCommand = vscode.commands.registerCommand("vscode-custom-llm-router.openSettings", () => {
-    vscode.commands.executeCommand("workbench.action.openSettings", "customLlmRouter");
-  });
-
   // 7. Master Menu
   const showMenuCommand = vscode.commands.registerCommand("vscode-custom-llm-router.showMenu", async () => {
     const options = [
@@ -164,7 +160,6 @@ export function activate(context: vscode.ExtensionContext) {
       { label: "$(sync) Sync Models", detail: "Scan configured endpoints and update Copilot models", id: "sync" },
       { label: "$(filter) Switch Profile", detail: "Filter by All, Coding, or Top-tier models", id: "profile" },
       { label: "$(pulse) Check Endpoints Status", detail: "Probe connectivity and model counts across endpoints", id: "status" },
-      { label: "$(gear) Extension Settings", detail: "Open raw VS Code settings for Custom LLM Router", id: "settings" },
     ];
 
     const chosen = await vscode.window.showQuickPick(options, {
@@ -181,8 +176,6 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.commands.executeCommand("vscode-custom-llm-router.selectProfile");
     } else if (chosen.id === "status") {
       vscode.commands.executeCommand("vscode-custom-llm-router.checkStatus");
-    } else if (chosen.id === "settings") {
-      vscode.commands.executeCommand("vscode-custom-llm-router.openSettings");
     }
   });
 
@@ -193,7 +186,6 @@ export function activate(context: vscode.ExtensionContext) {
     selectProfileCommand,
     addProviderCommand,
     manageProvidersCommand,
-    openSettingsCommand,
     showMenuCommand
   );
 
