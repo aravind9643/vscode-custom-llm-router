@@ -41,6 +41,7 @@ graph TD
 
 ## ⚡ Key Features
 
+- **Official VS Code Extension Built-in**: Installable `.vsix` extension offering native Status Bar item, Command Palette actions, and one-click model deployment directly within the IDE.
 - **Single Orchestrator**: [generate-models.js](file:///d:/VSCodeCustomEndpointModels/generate-models.js) queries and integrates both FreeLLMAPI and OmniRoute.
 - **Pre-flight Status Check (`npm run status`)**: Real-time probe of whether FreeLLMAPI & OmniRoute are online.
 - **Automated Validation (`npm run validate`)**: Verifies `chatLanguageModels.json` against VS Code's official schema specifications.

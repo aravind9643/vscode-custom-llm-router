@@ -1,0 +1,15 @@
+.vscode/**
+.vscode-test/**
+src/**
+.env
+.env.*
+! .env.example
+backups/**
+*.log
+model-test-report.json
+*.cache.json
+tsconfig.json
+register-task.ps1
+unregister-task.ps1
+install.ps1
+.github/**

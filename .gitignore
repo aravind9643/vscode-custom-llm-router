@@ -11,3 +11,4 @@ backups/
 *.log
 model-test-report.json
 *.cache.json
+*.vsix
