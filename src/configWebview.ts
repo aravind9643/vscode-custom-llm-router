@@ -42,13 +42,7 @@ export class ConfigWebviewPanel {
           vscode.window.showInformationMessage("Providers updated successfully!");
           vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
           await this._sendState();
-        } else if (msg.cmd === "saveFilters") {
-          const config = vscode.workspace.getConfiguration("customLlmRouter");
-          await config.update("blacklistPatterns", msg.blacklist, vscode.ConfigurationTarget.Global);
-          await config.update("whitelistExactIds", msg.whitelist, vscode.ConfigurationTarget.Global);
-          vscode.window.showInformationMessage("Filters saved successfully!");
-          vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
-          await this._sendState();
+        
         } else if (msg.cmd === "testProv") {
           const res = await this._testProvider(msg.prov);
           this._panel.webview.postMessage({ cmd: "testResult", idx: msg.idx, ...res });
@@ -105,8 +99,8 @@ export class ConfigWebviewPanel {
     this._panel.webview.postMessage({
       cmd: "state",
       providers,
-      blacklist,
-      whitelist,
+      
+      
       models,
       cacheEntries,
     });
@@ -212,7 +206,7 @@ export class ConfigWebviewPanel {
     <div class="tab active" onclick="setTab('providers', this)">Providers (<span id="pCount">0</span>)</div>
     <div class="tab" onclick="setTab('models', this)">Models Catalog & Tests (<span id="mCount">0</span>)</div>
     <div class="tab" onclick="setTab('cache', this)">Verified Cache (<span id="cacheCount">0</span>)</div>
-    <div class="tab" onclick="setTab('filters', this)">Rules & Filters</div>
+    
   </div>
 
   <!-- TAB: PROVIDERS -->
@@ -284,16 +278,7 @@ export class ConfigWebviewPanel {
     </div>
   </div>
 
-  <!-- TAB: FILTERS -->
-  <div id="tab-filters" class="panel">
-    <div class="card">
-      <label>Blacklist Patterns (one per line):</label>
-      <textarea id="blackList" rows="5"></textarea>
-      <label style="margin-top: 10px;">Whitelist Exact IDs (one per line):</label>
-      <textarea id="whiteList" rows="5"></textarea>
-      <button style="margin-top: 10px;" onclick="saveFilters()">Save Filters</button>
-    </div>
-  </div>
+  >
 
   <script>
     const vscode = acquireVsCodeApi();
@@ -310,8 +295,6 @@ export class ConfigWebviewPanel {
         renderProviders();
         renderModels();
         renderCache();
-        document.getElementById('blackList').value = (msg.blacklist || []).join('\\n');
-        document.getElementById('whiteList').value = (msg.whitelist || []).join('\\n');
       } else if (msg.cmd === 'testResult') {
         const el = document.getElementById('res-' + msg.idx);
         if (el) {
@@ -504,10 +487,7 @@ export class ConfigWebviewPanel {
       vscode.postMessage({ cmd: 'saveProviders', providers: providers });
     }
 
-    function saveFilters() {
-      const bl = document.getElementById('blackList').value.split('\\n').map(s => s.trim()).filter(Boolean);
-      const wl = document.getElementById('whiteList').value.split('\\n').map(s => s.trim()).filter(Boolean);
-      vscode.postMessage({ cmd: 'saveFilters', blacklist: bl, whitelist: wl });
+    );
     }
 
     function syncNow() {

@@ -1,4 +1,4 @@
-﻿export interface CustomModelConfig {
+export interface CustomModelConfig {
   id: string;
   name?: string;
   contextWindow?: number;
@@ -219,10 +219,8 @@ export class ModelEngine {
     return Object.values(this._verifiedCache.entries);
   }
 
-  public updateConfig(providers: CustomProviderConfig[], blacklist?: string[], whitelist?: string[]) {
+  public updateConfig(providers: CustomProviderConfig[]) {
     this._providers = providers || [];
-    if (blacklist) this._blacklistPatterns = blacklist;
-    if (whitelist) this._whitelistExactIds = whitelist;
   }
 
   public reloadConfig(): void {

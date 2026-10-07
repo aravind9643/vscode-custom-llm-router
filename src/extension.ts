@@ -13,7 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
     const providers = config.get<CustomProviderConfig[]>("providers") || [];
     const blacklist = config.get<string[]>("blacklistPatterns") || [];
     const whitelist = config.get<string[]>("whitelistExactIds") || [];
-    engine.updateConfig(providers, blacklist, whitelist);
+    engine.updateConfig(providers);
   }
 
   refreshEngineFromSettings();
