@@ -1,93 +1,63 @@
 import * as vscode from "vscode";
-import { ModelEngine, CustomProviderConfig } from "./modelEngine";
+import { ModelEngine, CustomProviderConfig, VSCodeModel } from "./modelEngine";
 
 export class ConfigWebviewPanel {
   public static currentPanel: ConfigWebviewPanel | undefined;
   private readonly _panel: vscode.WebviewPanel;
-  private readonly _extensionUri: vscode.Uri;
   private _disposables: vscode.Disposable[] = [];
   private _engine: ModelEngine;
 
-  public static createOrShow(extensionUri: vscode.Uri, engine: ModelEngine) {
-    const column = vscode.window.activeTextEditor
-      ? vscode.window.activeTextEditor.viewColumn
-      : undefined;
-
+  public static createOrShow(engine: ModelEngine) {
     if (ConfigWebviewPanel.currentPanel) {
-      ConfigWebviewPanel.currentPanel._panel.reveal(column);
-      ConfigWebviewPanel.currentPanel._update();
+      ConfigWebviewPanel.currentPanel._panel.reveal(vscode.ViewColumn.One);
+      ConfigWebviewPanel.currentPanel._sendState();
       return;
     }
 
     const panel = vscode.window.createWebviewPanel(
-      "customLlmRouterConfig",
+      "customLlmRouterDashboard",
       "Custom LLM Router Dashboard",
-      column || vscode.ViewColumn.One,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-      }
+      vscode.ViewColumn.One,
+      { enableScripts: true, retainContextWhenHidden: true }
     );
 
-    ConfigWebviewPanel.currentPanel = new ConfigWebviewPanel(panel, extensionUri, engine);
+    ConfigWebviewPanel.currentPanel = new ConfigWebviewPanel(panel, engine);
   }
 
-  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, engine: ModelEngine) {
+  private constructor(panel: vscode.WebviewPanel, engine: ModelEngine) {
     this._panel = panel;
-    this._extensionUri = extensionUri;
     this._engine = engine;
 
-    this._update();
+    this._panel.webview.html = this._getHtml();
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
     this._panel.webview.onDidReceiveMessage(
-      async (message) => {
-        switch (message.command) {
-          case "getInitialData": {
-            this._sendState();
-            break;
-          }
-          case "saveProviders": {
-            const config = vscode.workspace.getConfiguration("customLlmRouter");
-            await config.update("providers", message.providers, vscode.ConfigurationTarget.Global);
-            vscode.window.showInformationMessage("Providers updated successfully!");
-            vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
-            this._sendState();
-            break;
-          }
-          case "testProvider": {
-            const result = await this._testProvider(message.provider);
-            this._panel.webview.postMessage({
-              command: "testResult",
-              providerName: message.provider.name,
-              result,
-            });
-            break;
-          }
-          case "testModel": {
-            const res = await this._testSingleModel(message.provider, message.modelId);
-            this._panel.webview.postMessage({
-              command: "modelTestResult",
-              modelId: message.modelId,
-              res,
-            });
-            break;
-          }
-          case "saveFilters": {
-            const config = vscode.workspace.getConfiguration("customLlmRouter");
-            await config.update("blacklistPatterns", message.blacklist, vscode.ConfigurationTarget.Global);
-            await config.update("whitelistExactIds", message.whitelist, vscode.ConfigurationTarget.Global);
-            vscode.window.showInformationMessage("Filters saved successfully!");
-            vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
-            this._sendState();
-            break;
-          }
-          case "syncNow": {
-            vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
-            this._sendState();
-            break;
-          }
+      async (msg) => {
+        if (msg.cmd === "init") {
+          await this._sendState();
+        } else if (msg.cmd === "saveProviders") {
+          const config = vscode.workspace.getConfiguration("customLlmRouter");
+          await config.update("providers", msg.providers, vscode.ConfigurationTarget.Global);
+          vscode.window.showInformationMessage("Providers updated successfully!");
+          vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
+          await this._sendState();
+        } else if (msg.cmd === "saveFilters") {
+          const config = vscode.workspace.getConfiguration("customLlmRouter");
+          await config.update("blacklistPatterns", msg.blacklist, vscode.ConfigurationTarget.Global);
+          await config.update("whitelistExactIds", msg.whitelist, vscode.ConfigurationTarget.Global);
+          vscode.window.showInformationMessage("Filters saved successfully!");
+          vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
+          await this._sendState();
+        } else if (msg.cmd === "testProv") {
+          const res = await this._testProvider(msg.prov);
+          this._panel.webview.postMessage({ cmd: "testResult", idx: msg.idx, ...res });
+        } else if (msg.cmd === "pingModel") {
+          const res = await this._pingModel(msg.provName, msg.modelId);
+          this._panel.webview.postMessage({ cmd: "pingResult", id: msg.safe, ...res });
+        } else if (msg.cmd === "syncNow") {
+          vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
+          await this._sendState();
         }
       },
       null,
@@ -100,55 +70,62 @@ export class ConfigWebviewPanel {
     const providers = config.get<CustomProviderConfig[]>("providers") || [];
     const blacklist = config.get<string[]>("blacklistPatterns") || [];
     const whitelist = config.get<string[]>("whitelistExactIds") || [];
-    
-    // Discover active models from engine
-    const activeData = await this._engine.generateProviders({ profile: "all" });
+    const provs = await this._engine.generateProviders({ profile: "all" });
+
+    const models: (VSCodeModel & { provider: string })[] = [];
+    for (const p of provs) {
+      for (const m of p.models || []) {
+        models.push({ ...m, provider: p.name });
+      }
+    }
 
     this._panel.webview.postMessage({
-      command: "state",
+      cmd: "state",
       providers,
       blacklist,
       whitelist,
-      activeData,
+      models,
     });
   }
 
-  private async _testProvider(provider: CustomProviderConfig) {
-    const cleanEndpoint = provider.endpointUrl.replace(/\/+$/, "");
-    const modelsUrl = provider.modelsEndpoint || (provider.name === "FreeLLMAPI" ? ${cleanEndpoint}/v1/models?execution_status=ready : ${cleanEndpoint}/v1/models);
+  private async _testProvider(p: CustomProviderConfig) {
+    const clean = (p.endpointUrl || "").replace(/\/+$/, "");
+    const url =
+      p.modelsEndpoint ||
+      (p.name === "FreeLLMAPI"
+        ? clean + "/v1/models?execution_status=ready"
+        : clean + "/v1/models");
     const headers: Record<string, string> = { Accept: "application/json" };
-    if (provider.apiKey) headers["Authorization"] = Bearer ;
-
+    if (p.apiKey) headers["Authorization"] = "Bearer " + p.apiKey;
     const start = Date.now();
     try {
-      const res = await fetch(modelsUrl, { headers, signal: AbortSignal.timeout(6000) });
+      const res = await fetch(url, { headers, signal: AbortSignal.timeout(6000) });
       const latency = Date.now() - start;
       if (res.ok) {
         const d: any = await res.json();
-        const models = Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : [];
-        return {
-          ok: true,
-          status: res.status,
-          latency,
-          modelCount: models.length + (provider.staticModels?.length || 0),
-          models: models.map((m: any) => m.id || m.model || m.name),
-        };
+        const list = Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : [];
+        return { ok: true, latency, count: list.length };
       }
-      return { ok: false, status: res.status, latency, error: HTTP  };
+      return { ok: false, latency, error: "HTTP " + res.status };
     } catch (e: any) {
-      return { ok: false, status: 0, latency: Date.now() - start, error: e.message };
+      return { ok: false, latency: Date.now() - start, error: e.message };
     }
   }
 
-  private async _testSingleModel(provider: CustomProviderConfig, modelId: string) {
-    const cleanEndpoint = provider.endpointUrl.replace(/\/+$/, "");
-    const chatUrl = provider.chatEndpoint || ${cleanEndpoint}/v1/chat/completions;
+  private async _pingModel(provName: string, modelId: string) {
+    const config = vscode.workspace.getConfiguration("customLlmRouter");
+    const providers = config.get<CustomProviderConfig[]>("providers") || [];
+    const p = providers.find((cp) => cp.name === provName) || {
+      endpointUrl: "",
+      apiKey: "",
+    };
+    const clean = (p.endpointUrl || "").replace(/\/+$/, "");
+    const chatUrl = clean + "/v1/chat/completions";
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Accept: "application/json",
     };
-    if (provider.apiKey) headers["Authorization"] = Bearer ;
-
+    if (p.apiKey) headers["Authorization"] = "Bearer " + p.apiKey;
     const start = Date.now();
     try {
       const res = await fetch(chatUrl, {
@@ -156,23 +133,15 @@ export class ConfigWebviewPanel {
         headers,
         body: JSON.stringify({
           model: modelId,
-          messages: [{ role: "user", content: "Reply with 'OK'" }],
-          max_tokens: 5,
+          messages: [{ role: "user", content: "Reply OK" }],
+          max_tokens: 3,
         }),
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(8000),
       });
       const latency = Date.now() - start;
-      if (res.ok) {
-        const d: any = await res.json();
-        return {
-          ok: true,
-          latency,
-          reply: d.choices?.[0]?.message?.content || "OK",
-        };
-      }
-      return { ok: false, latency, error: HTTP  };
-    } catch (e: any) {
-      return { ok: false, latency: Date.now() - start, error: e.message };
+      return { ok: res.ok, latency };
+    } catch {
+      return { ok: false, latency: Date.now() - start };
     }
   }
 
@@ -185,450 +154,269 @@ export class ConfigWebviewPanel {
     }
   }
 
-  private _update() {
-    this._panel.webview.html = this._getHtmlForWebview();
-  }
-
-  private _getHtmlForWebview(): string {
-    return <!DOCTYPE html>
-<html lang="en">
+  private _getHtml(): string {
+    return `<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Custom LLM Router - Providers & Models Manager</title>
+  <meta charset="utf-8">
+  <title>Custom LLM Router Dashboard</title>
   <style>
     :root {
-      --bg: var(--vscode-editor-background);
-      --fg: var(--vscode-editor-foreground);
-      --card-bg: var(--vscode-sideBar-background, #1e1e1e);
-      --border: var(--vscode-widget-border, #333);
-      --input-bg: var(--vscode-input-background, #252526);
-      --input-fg: var(--vscode-input-foreground, #ccc);
-      --btn-bg: var(--vscode-button-background, #007acc);
-      --btn-fg: var(--vscode-button-foreground, #fff);
-      --btn-hover: var(--vscode-button-hoverBackground, #0062a3);
-      --accent: var(--vscode-focusBorder, #007fd4);
-      --danger: #f14c4c;
+      --bg: var(--vscode-editor-background, #1e1e1e);
+      --fg: var(--vscode-editor-foreground, #cccccc);
+      --card: var(--vscode-sideBar-background, #252526);
+      --border: var(--vscode-widget-border, #3c3c3c);
+      --input-bg: var(--vscode-input-background, #3c3c3c);
+      --input-fg: var(--vscode-input-foreground, #cccccc);
+      --btn-bg: var(--vscode-button-background, #0e639c);
+      --btn-fg: var(--vscode-button-foreground, #ffffff);
+      --btn-hover: var(--vscode-button-hoverBackground, #1177bb);
       --success: #73c991;
+      --error: #f14c4c;
     }
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--fg);
-      padding: 24px;
-      margin: 0;
-      line-height: 1.5;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 16px;
-      margin-bottom: 24px;
-    }
-    h1 { margin: 0; font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    .badge {
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 12px;
-      background: var(--btn-bg);
-      color: var(--btn-fg);
-    }
-    .actions { display: flex; gap: 8px; }
-    button {
-      background: var(--btn-bg);
-      color: var(--btn-fg);
-      border: none;
-      padding: 6px 14px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      transition: background 0.15s;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); padding: 20px; margin: 0; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px; }
+    .title { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .badge { font-size: 11px; background: var(--btn-bg); color: var(--btn-fg); padding: 2px 8px; border-radius: 10px; }
+    .tabs { display: flex; gap: 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .tab { padding: 8px 12px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 13px; font-weight: 500; }
+    .tab.active { border-bottom-color: var(--btn-bg); color: #fff; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 14px; margin-bottom: 12px; }
+    .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .row { display: flex; gap: 10px; margin-bottom: 8px; }
+    .col { flex: 1; }
+    label { display: block; font-size: 11px; opacity: 0.8; margin-bottom: 4px; }
+    input[type=text], input[type=password], textarea { width: 100%; box-sizing: border-box; background: var(--input-bg); color: var(--input-fg); border: 1px solid var(--border); padding: 6px 8px; border-radius: 4px; font-size: 13px; }
+    button { background: var(--btn-bg); color: var(--btn-fg); border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; }
     button:hover { background: var(--btn-hover); }
-    button.secondary {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--fg);
-    }
-    button.secondary:hover { background: rgba(255,255,255,0.06); }
-    button.danger { background: var(--danger); }
-    button.danger:hover { background: #d73a3a; }
-
-    .nav-tabs {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 20px;
-      border-bottom: 1px solid var(--border);
-    }
-    .nav-tab {
-      padding: 8px 12px;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      font-weight: 500;
-      font-size: 14px;
-    }
-    .nav-tab.active {
-      border-bottom: 2px solid var(--accent);
-      color: var(--accent);
-    }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    .provider-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 16px;
-      transition: border-color 0.15s;
-    }
-    .provider-card:hover { border-color: var(--accent); }
-    .card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .card-top-left { display: flex; align-items: center; gap: 10px; }
-    .provider-name { font-weight: 600; font-size: 15px; }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .grid-1 { margin-bottom: 12px; }
-
-    label { display: block; font-size: 12px; margin-bottom: 4px; opacity: 0.85; }
-    input[type="text"], input[type="password"] {
-      width: 100%;
-      background: var(--input-bg);
-      color: var(--input-fg);
-      border: 1px solid var(--border);
-      padding: 6px 10px;
-      border-radius: 4px;
-      font-size: 13px;
-    }
-    input:focus { border-color: var(--accent); outline: none; }
-
-    .checkbox-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    .test-status {
-      font-size: 12px;
-      margin-top: 8px;
-      padding: 6px 10px;
-      border-radius: 4px;
-      background: rgba(255,255,255,0.04);
-      display: none;
-    }
-    .test-status.show { display: block; }
-    .test-status.success { color: var(--success); border-left: 3px solid var(--success); }
-    .test-status.error { color: var(--danger); border-left: 3px solid var(--danger); }
-
-    .model-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-      margin-top: 12px;
-    }
-    .model-table th, .model-table td {
-      padding: 8px 12px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-    }
-    .model-table th { background: rgba(255,255,255,0.03); font-weight: 600; }
-    .tag {
-      font-size: 11px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: rgba(255,255,255,0.08);
-      margin-right: 4px;
-    }
-    .tag.green { background: rgba(115, 201, 145, 0.2); color: var(--success); }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px;
-      opacity: 0.7;
-    }
+    button.sec { background: transparent; border: 1px solid var(--border); color: var(--fg); }
+    button.sec:hover { background: rgba(255,255,255,0.06); }
+    button.danger { background: var(--error); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
+    th { background: rgba(255,255,255,0.02); }
+    .tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.08); margin-right: 4px; }
+    .tag.green { background: rgba(115,201,145,0.2); color: var(--success); }
+    .msg { font-size: 11px; margin-top: 6px; padding: 4px 8px; border-radius: 4px; display: none; }
   </style>
 </head>
 <body>
-  <div class="header">
+  <div class="top-bar">
+    <div class="title">Custom LLM Router <span class="badge">Providers & Models Manager</span></div>
     <div>
-      <h1>Custom LLM Router <span class="badge">Configuration Dashboard</span></h1>
-      <p style="margin: 4px 0 0; font-size: 12px; opacity: 0.75;">Configure OpenAI-compatible providers, test endpoints, and view registered Copilot models.</p>
-    </div>
-    <div class="actions">
-      <button class="secondary" onclick="syncNow()">↻ Sync Copilot Models</button>
-      <button onclick="addProviderModal()">+ Add Provider</button>
+      <button class="sec" onclick="syncNow()">Refresh Models</button>
+      <button onclick="addProvider()">+ Add Provider</button>
     </div>
   </div>
 
-  <div class="nav-tabs">
-    <div class="nav-tab active" onclick="switchTab('tab-providers')">Providers (<span id="providerCount">0</span>)</div>
-    <div class="nav-tab" onclick="switchTab('tab-models')">Active Copilot Models (<span id="modelCount">0</span>)</div>
-    <div class="nav-tab" onclick="switchTab('tab-filters')">Rules & Filters</div>
+  <div class="tabs">
+    <div class="tab active" onclick="setTab('providers', this)">Providers (<span id="pCount">0</span>)</div>
+    <div class="tab" onclick="setTab('models', this)">Active Copilot Models (<span id="mCount">0</span>)</div>
+    <div class="tab" onclick="setTab('filters', this)">Rules & Filters</div>
   </div>
 
-  <!-- TAB: PROVIDERS -->
-  <div id="tab-providers" class="tab-content active">
-    <div id="providersList"></div>
-    <button style="margin-top: 12px;" onclick="saveAllProviders()">Save All Provider Changes</button>
+  <div id="tab-providers" class="panel active">
+    <div id="provList"></div>
+    <button style="margin-top: 8px;" onclick="saveProviders()">Save All Providers</button>
   </div>
 
-  <!-- TAB: MODELS -->
-  <div id="tab-models" class="tab-content">
-    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-      <input type="text" id="modelSearch" placeholder="Search models by name or id..." oninput="filterModelsTable()" style="max-width: 350px;">
-      <div id="modelsSummary" style="font-size: 13px; align-self: center; opacity: 0.8;"></div>
+  <div id="tab-models" class="panel">
+    <div style="margin-bottom: 10px;">
+      <input type="text" id="mSearch" placeholder="Search model ID or name..." oninput="filterModels()" style="max-width: 320px;">
     </div>
-    <table class="model-table">
+    <table>
       <thead>
         <tr>
           <th>Model ID</th>
           <th>Display Name</th>
           <th>Provider</th>
           <th>Capabilities</th>
-          <th>Context Bounds</th>
+          <th>Limits</th>
           <th>Action</th>
         </tr>
       </thead>
-      <tbody id="modelsTableBody"></tbody>
+      <tbody id="modelsBody"></tbody>
     </table>
   </div>
 
-  <!-- TAB: FILTERS -->
-  <div id="tab-filters" class="tab-content">
-    <div class="provider-card">
-      <div class="grid-1">
-        <label><strong>Blacklist Patterns</strong> (one per line - exclude audio, image, whisper, etc.)</label>
-        <textarea id="blacklistText" rows="6" style="width: 100%; background: var(--input-bg); color: var(--input-fg); border: 1px solid var(--border); padding: 8px; border-radius: 4px; font-family: monospace;"></textarea>
-      </div>
-      <div class="grid-1">
-        <label><strong>Whitelist Exact IDs</strong> (one per line - always included)</label>
-        <textarea id="whitelistText" rows="6" style="width: 100%; background: var(--input-bg); color: var(--input-fg); border: 1px solid var(--border); padding: 8px; border-radius: 4px; font-family: monospace;"></textarea>
-      </div>
-      <button onclick="saveFilters()">Save Filters & Rules</button>
+  <div id="tab-filters" class="panel">
+    <div class="card">
+      <label>Blacklist Patterns (one per line):</label>
+      <textarea id="blackList" rows="5"></textarea>
+      <label style="margin-top: 10px;">Whitelist Exact IDs (one per line):</label>
+      <textarea id="whiteList" rows="5"></textarea>
+      <button style="margin-top: 10px;" onclick="saveFilters()">Save Filters</button>
     </div>
   </div>
 
   <script>
     const vscode = acquireVsCodeApi();
-    let currentProviders = [];
-    let currentActiveData = [];
+    let providers = [];
+    let activeModels = [];
 
-    window.addEventListener("message", (event) => {
-      const msg = event.data;
-      if (msg.command === "state") {
-        currentProviders = msg.providers || [];
-        currentActiveData = msg.activeData || [];
+    window.addEventListener('message', ev => {
+      const msg = ev.data;
+      if (msg.cmd === 'state') {
+        providers = msg.providers || [];
+        activeModels = msg.models || [];
         renderProviders();
-        renderActiveModels();
-        renderFilters(msg.blacklist, msg.whitelist);
-      } else if (msg.command === "testResult") {
-        handleTestResult(msg.providerName, msg.result);
-      } else if (msg.command === "modelTestResult") {
-        handleModelTestResult(msg.modelId, msg.res);
+        renderModels();
+        document.getElementById('blackList').value = (msg.blacklist || []).join('\\n');
+        document.getElementById('whiteList').value = (msg.whitelist || []).join('\\n');
+      } else if (msg.cmd === 'testResult') {
+        const el = document.getElementById('res-' + msg.idx);
+        if (el) {
+          el.style.display = 'block';
+          el.style.color = msg.ok ? 'var(--success)' : 'var(--error)';
+          el.innerText = msg.ok ? 'Connected in ' + msg.latency + 'ms! Found ' + msg.count + ' models.' : 'Failed: ' + msg.error;
+        }
+      } else if (msg.cmd === 'pingResult') {
+        const span = document.getElementById('ping-' + msg.id);
+        if (span) {
+          span.innerText = msg.ok ? msg.latency + 'ms' : 'Failed';
+          span.style.color = msg.ok ? 'var(--success)' : 'var(--error)';
+        }
       }
     });
 
-    vscode.postMessage({ command: "getInitialData" });
+    vscode.postMessage({ cmd: 'init' });
 
-    function switchTab(tabId) {
-      document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-      event.target.classList.add("active");
-      document.getElementById(tabId).classList.add("active");
+    function setTab(name, el) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
     }
 
     function renderProviders() {
-      document.getElementById("providerCount").innerText = currentProviders.length;
-      const container = document.getElementById("providersList");
-      if (currentProviders.length === 0) {
-        container.innerHTML = '<div class="empty-state">No providers configured yet. Click "+ Add Provider" to start!</div>';
+      document.getElementById('pCount').innerText = providers.length;
+      const c = document.getElementById('provList');
+      if (providers.length === 0) {
+        c.innerHTML = '<div style="padding: 20px; opacity: 0.6;">No providers configured yet. Click "+ Add Provider" above.</div>';
         return;
       }
-
-      container.innerHTML = currentProviders.map((p, idx) => \
-        <div class="provider-card" id="card-\">
-          <div class="card-top">
-            <div class="card-top-left">
-              <input type="checkbox" id="prov-enabled-\" \ onchange="updateProviderField(\, 'enabled', this.checked)">
-              <span class="provider-name">\</span>
-            </div>
-            <div class="actions">
-              <button class="secondary" onclick="testProvider(\)">⚡ Test Connection</button>
-              <button class="danger" onclick="deleteProvider(\)">Remove</button>
-            </div>
-          </div>
-          <div class="grid-2">
-            <div>
-              <label>Provider Name</label>
-              <input type="text" value="\" onchange="updateProviderField(\, 'name', this.value)">
-            </div>
-            <div>
-              <label>OpenAI-Compatible Endpoint URL</label>
-              <input type="text" value="\" onchange="updateProviderField(\, 'endpointUrl', this.value)">
-            </div>
-          </div>
-          <div class="grid-2">
-            <div>
-              <label>API Key / Bearer Token (optional for local Ollama/LM Studio)</label>
-              <input type="password" value="\" placeholder="sk-... or leave empty" onchange="updateProviderField(\, 'apiKey', this.value)">
-            </div>
-            <div style="display: flex; align-items: flex-end; padding-bottom: 6px;">
-              <label class="checkbox-row">
-                <input type="checkbox" \ onchange="updateProviderField(\, 'autoDiscover', this.checked)">
-                Auto-discover models from /v1/models
-              </label>
-            </div>
-          </div>
-          <div class="test-status" id="test-status-\"></div>
-        </div>
-      \).join("");
+      c.innerHTML = providers.map((p, idx) => {
+        return '<div class="card">' +
+          '<div class="card-head">' +
+            '<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;">' +
+              '<input type="checkbox" ' + (p.enabled !== false ? 'checked' : '') + ' onchange="providers[' + idx + '].enabled = this.checked">' +
+              (p.name || 'Provider') +
+            '</label>' +
+            '<div>' +
+              '<button class="sec" onclick="testProv(' + idx + ')">Test</button> ' +
+              '<button class="danger" onclick="delProv(' + idx + ')">Remove</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="row">' +
+            '<div class="col">' +
+              '<label>Name</label>' +
+              '<input type="text" value="' + (p.name || '') + '" oninput="providers[' + idx + '].name = this.value">' +
+            '</div>' +
+            '<div class="col">' +
+              '<label>Endpoint URL (OpenAI-compatible)</label>' +
+              '<input type="text" value="' + (p.endpointUrl || '') + '" oninput="providers[' + idx + '].endpointUrl = this.value">' +
+            '</div>' +
+          '</div>' +
+          '<div class="row">' +
+            '<div class="col">' +
+              '<label>API Key / Token (optional)</label>' +
+              '<input type="password" value="' + (p.apiKey || '') + '" oninput="providers[' + idx + '].apiKey = this.value">' +
+            '</div>' +
+            '<div class="col" style="display:flex;align-items:flex-end;padding-bottom:6px;">' +
+              '<label style="display:flex;align-items:center;gap:6px;">' +
+                '<input type="checkbox" ' + (p.autoDiscover !== false ? 'checked' : '') + ' onchange="providers[' + idx + '].autoDiscover = this.checked">' +
+                'Auto-discover (/v1/models)' +
+              '</label>' +
+            '</div>' +
+          '</div>' +
+          '<div class="msg" id="res-' + idx + '"></div>' +
+        '</div>';
+      }).join('');
     }
 
-    function renderActiveModels() {
-      const allModels = [];
-      currentActiveData.forEach(p => {
-        (p.models || []).forEach(m => {
-          allModels.push({ ...m, provider: p.name });
-        });
-      });
-
-      document.getElementById("modelCount").innerText = allModels.length;
-      document.getElementById("modelsSummary").innerText = \Total \ models ready in Copilot\;
-
-      const tbody = document.getElementById("modelsTableBody");
-      if (allModels.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">No models active. Make sure your endpoints are running and enabled.</td></tr>';
+    function renderModels() {
+      document.getElementById('mCount').innerText = activeModels.length;
+      const b = document.getElementById('modelsBody');
+      if (activeModels.length === 0) {
+        b.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;">No active models found.</td></tr>';
         return;
       }
-
-      tbody.innerHTML = allModels.map(m => \
-        <tr class="model-row" data-id="\" data-name="\">
-          <td><code>\</code></td>
-          <td><strong>\</strong></td>
-          <td><span class="tag">\</span></td>
-          <td>
-            \
-            \
-            \
-          </td>
-          <td>\k in / \k out</td>
-          <td>
-            <button class="secondary" style="padding: 2px 8px; font-size: 11px;" id="btn-test-\" onclick="testModel('\', '\')">Test Ping</button>
-            <span id="res-\" style="font-size: 11px; margin-left: 6px;"></span>
-          </td>
-        </tr>
-      \).join("");
+      b.innerHTML = activeModels.map(m => {
+        const safe = m.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const inK = Math.round((m.maxInputTokens || 128000) / 1000);
+        const outK = Math.round((m.maxOutputTokens || 16000) / 1000);
+        return '<tr class="m-row" data-s="' + (m.id + ' ' + (m.name || '')).toLowerCase() + '">' +
+          '<td><code>' + m.id + '</code></td>' +
+          '<td><strong>' + (m.name || m.id) + '</strong></td>' +
+          '<td><span class="tag">' + m.provider + '</span></td>' +
+          '<td>' +
+            (m.toolCalling ? '<span class="tag green">Tools</span>' : '') +
+            (m.vision ? '<span class="tag green">Vision</span>' : '') +
+            (m.thinking ? '<span class="tag green">Reasoning</span>' : '') +
+          '</td>' +
+          '<td>' + inK + 'k / ' + outK + 'k</td>' +
+          '<td>' +
+            '<button class="sec" style="padding:2px 8px;" onclick="pingModel(\\'' + m.provider + '\\', \\'' + m.id + '\\', \\'' + safe + '\\')">Ping</button>' +
+            '<span id="ping-' + safe + '" style="margin-left:6px;font-size:11px;"></span>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
     }
 
-    function renderFilters(blacklist, whitelist) {
-      document.getElementById("blacklistText").value = (blacklist || []).join("\\n");
-      document.getElementById("whitelistText").value = (whitelist || []).join("\\n");
-    }
-
-    function filterModelsTable() {
-      const q = document.getElementById("modelSearch").value.toLowerCase();
-      document.querySelectorAll(".model-row").forEach(row => {
-        const id = row.getAttribute("data-id");
-        const name = row.getAttribute("data-name");
-        row.style.display = (!q || id.includes(q) || name.includes(q)) ? "" : "none";
+    function filterModels() {
+      const q = document.getElementById('mSearch').value.toLowerCase();
+      document.querySelectorAll('.m-row').forEach(r => {
+        r.style.display = (!q || r.getAttribute('data-s').includes(q)) ? '' : 'none';
       });
     }
 
-    function updateProviderField(idx, field, val) {
-      currentProviders[idx][field] = val;
-    }
-
-    function addProviderModal() {
-      currentProviders.push({
-        name: "New Provider",
-        endpointUrl: "http://localhost:11434",
-        apiKey: "",
+    function addProvider() {
+      providers.push({
+        name: 'Ollama / Local',
+        endpointUrl: 'http://localhost:11434',
+        apiKey: '',
         autoDiscover: true,
-        enabled: true,
+        enabled: true
       });
       renderProviders();
-      document.getElementById(\card-\\).scrollIntoView({ behavior: 'smooth' });
     }
 
-    function deleteProvider(idx) {
-      if (confirm(\Remove provider "\"?\)) {
-        currentProviders.splice(idx, 1);
+    function delProv(idx) {
+      if (confirm('Delete provider ' + providers[idx].name + '?')) {
+        providers.splice(idx, 1);
         renderProviders();
       }
     }
 
-    function testProvider(idx) {
-      const p = currentProviders[idx];
-      const statusEl = document.getElementById(\	est-status-\\);
-      statusEl.className = "test-status show";
-      statusEl.innerText = "Connecting to " + p.endpointUrl + "...";
-      vscode.postMessage({ command: "testProvider", provider: p });
+    function testProv(idx) {
+      const el = document.getElementById('res-' + idx);
+      if (el) { el.style.display = 'block'; el.style.color = 'var(--fg)'; el.innerText = 'Connecting...'; }
+      vscode.postMessage({ cmd: 'testProv', idx: idx, prov: providers[idx] });
     }
 
-    function handleTestResult(name, res) {
-      const idx = currentProviders.findIndex(p => p.name === name);
-      if (idx === -1) return;
-      const statusEl = document.getElementById(\	est-status-\\);
-      if (res.ok) {
-        statusEl.className = "test-status show success";
-        statusEl.innerText = \✅ Connected successfully in \ms! Discovered \ model(s).\;
-      } else {
-        statusEl.className = "test-status show error";
-        statusEl.innerText = \❌ Connection failed: \ (\ms)\;
-      }
+    function pingModel(provName, modelId, safe) {
+      const span = document.getElementById('ping-' + safe);
+      if (span) { span.innerText = '...'; span.style.color = 'var(--fg)'; }
+      vscode.postMessage({ cmd: 'pingModel', provName: provName, modelId: modelId, safe: safe });
     }
 
-    function testModel(providerName, modelId) {
-      const p = currentProviders.find(cp => cp.name === providerName) || { name: providerName, endpointUrl: "" };
-      const span = document.getElementById(\es-\\);
-      if (span) span.innerText = "⏳...";
-      vscode.postMessage({ command: "testModel", provider: p, modelId });
-    }
-
-    function handleModelTestResult(modelId, res) {
-      const span = document.getElementById(\es-\\);
-      if (!span) return;
-      if (res.ok) {
-        span.innerText = \✅ \ms ("\")\;
-        span.style.color = "var(--success)";
-      } else {
-        span.innerText = \❌ \ (\ms)\;
-        span.style.color = "var(--danger)";
-      }
-    }
-
-    function saveAllProviders() {
-      vscode.postMessage({ command: "saveProviders", providers: currentProviders });
+    function saveProviders() {
+      vscode.postMessage({ cmd: 'saveProviders', providers: providers });
     }
 
     function saveFilters() {
-      const bl = document.getElementById("blacklistText").value.split("\\n").map(s => s.trim()).filter(Boolean);
-      const wl = document.getElementById("whitelistText").value.split("\\n").map(s => s.trim()).filter(Boolean);
-      vscode.postMessage({ command: "saveFilters", blacklist: bl, whitelist: wl });
+      const bl = document.getElementById('blackList').value.split('\\n').map(s => s.trim()).filter(Boolean);
+      const wl = document.getElementById('whiteList').value.split('\\n').map(s => s.trim()).filter(Boolean);
+      vscode.postMessage({ cmd: 'saveFilters', blacklist: bl, whitelist: wl });
     }
 
     function syncNow() {
-      vscode.postMessage({ command: "syncNow" });
+      vscode.postMessage({ cmd: 'syncNow' });
     }
   </script>
 </body>
-</html>;
+</html>`;
   }
 }
