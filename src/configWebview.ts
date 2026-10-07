@@ -278,8 +278,6 @@ export class ConfigWebviewPanel {
     </div>
   </div>
 
-  >
-
   <script>
     const vscode = acquireVsCodeApi();
     let providers = [];
@@ -485,9 +483,6 @@ export class ConfigWebviewPanel {
 
     function saveProviders() {
       vscode.postMessage({ cmd: 'saveProviders', providers: providers });
-    }
-
-    );
     }
 
     function syncNow() {
