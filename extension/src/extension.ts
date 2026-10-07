@@ -115,19 +115,17 @@ export function activate(context: vscode.ExtensionContext) {
   const statusCommand = vscode.commands.registerCommand("vscode-custom-llm-router.checkStatus", async () => {
     engine.reloadConfig();
     const status = await engine.checkEndpoints();
-    const freeIcon = status.freeLlm.online ? "✅ ONLINE" : "❌ OFFLINE";
-    const omniIcon = status.omniRoute.online ? "✅ ONLINE" : "❌ OFFLINE";
+    const lines = status.all.map((s) => {
+      const icon = s.online ? "✅ ONLINE" : "❌ OFFLINE";
+      const err = s.error ? ` [${s.error}]` : "";
+      return `${s.name} (${s.url}): ${icon} (${s.modelCount} models)${err}`;
+    });
 
-    const msg = [
-      `FreeLLMAPI (${engine.freeLlmUrl}): ${freeIcon} (${status.freeLlm.modelCount} models)`,
-      `OmniRoute (${engine.omniUrl}): ${omniIcon} (${status.omniRoute.modelCount} models)`,
-    ].join("\n");
-
-    vscode.window.showInformationMessage(msg, "Sync Models", "Configure .env").then((act) => {
+    vscode.window.showInformationMessage(lines.join("\n"), "Sync Models", "Configure Providers").then((act) => {
       if (act === "Sync Models") {
         vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
-      } else if (act === "Configure .env") {
-        vscode.commands.executeCommand("vscode-custom-llm-router.configureEnv");
+      } else if (act === "Configure Providers") {
+        vscode.commands.executeCommand("vscode-custom-llm-router.configureRules");
       }
     });
   });
@@ -137,17 +135,17 @@ export function activate(context: vscode.ExtensionContext) {
     const items: (vscode.QuickPickItem & { profile: "all" | "coding" | "top" })[] = [
       {
         label: "$(sparkle) All Models",
-        description: "Deploy complete catalog (~90+ models)",
+        description: "Deploy complete catalog from all enabled providers",
         profile: "all",
       },
       {
         label: "$(code) Coding Only",
-        description: "Specialized coding/developer models (~24 models)",
+        description: "Specialized coding/developer models (Claude, Qwen-Coder, DeepSeek, etc.)",
         profile: "coding",
       },
       {
         label: "$(rocket) Top Tier",
-        description: "Premier flagship models only (~14 models)",
+        description: "Premier flagship models only (Claude 3.7, GPT-4o, DeepSeek R1/V3, etc.)",
         profile: "top",
       },
     ];
@@ -167,7 +165,6 @@ export function activate(context: vscode.ExtensionContext) {
     let target = findFileAcrossRoots(".env", roots);
 
     if (!target) {
-      // Find template or create one
       const example = findFileAcrossRoots(".env.example", roots);
       target = path.resolve(roots[0], ".env");
       if (example && fs.existsSync(example)) {
@@ -184,7 +181,7 @@ export function activate(context: vscode.ExtensionContext) {
     openTargetDocument(target);
   });
 
-  // 6. Command: Configure rules
+  // 6. Command: Configure rules & Custom Providers
   const configureRulesCommand = vscode.commands.registerCommand("vscode-custom-llm-router.configureRules", async () => {
     const roots = resolveConfigRoots(context);
     let target = findFileAcrossRoots("models.config.json", roots);
@@ -197,6 +194,26 @@ export function activate(context: vscode.ExtensionContext) {
           {
             blacklistPatterns: ["image", "inpainting", "pixel-art", "flux", "diffusion", "tts", "voice", "translat"],
             whitelistExactIds: ["auto", "auto/best-coding", "auto/best-fast", "auto/best-reasoning"],
+            providers: [
+              {
+                name: "Ollama Local",
+                endpointUrl: "http://localhost:11434",
+                apiKey: "",
+                autoDiscover: true,
+                enabled: false,
+              },
+              {
+                name: "OpenAI Official",
+                endpointUrl: "https://api.openai.com",
+                apiKey: "${env:OPENAI_API_KEY}",
+                autoDiscover: false,
+                enabled: false,
+                staticModels: [
+                  { id: "gpt-4o", name: "GPT-4o (Omni)", contextWindow: 128000, maxOutputTokens: 16384 },
+                  { id: "gpt-4o-mini", name: "GPT-4o Mini", contextWindow: 128000, maxOutputTokens: 16384 },
+                ],
+              },
+            ],
           },
           null,
           2
@@ -208,14 +225,69 @@ export function activate(context: vscode.ExtensionContext) {
     openTargetDocument(target);
   });
 
-  // 7. Master Menu
+  // 7. Command: Add New Custom Provider (Interactive Wizard)
+  const addProviderCommand = vscode.commands.registerCommand("vscode-custom-llm-router.addProvider", async () => {
+    const name = await vscode.window.showInputBox({
+      title: "Add Custom Model Provider (1/3)",
+      prompt: "Enter provider name (e.g. Ollama, OpenRouter, DeepSeek, Local Server)",
+      placeHolder: "My Custom Provider",
+    });
+    if (!name) return;
+
+    const endpointUrl = await vscode.window.showInputBox({
+      title: "Add Custom Model Provider (2/3)",
+      prompt: "Enter base URL of OpenAI-compatible endpoint",
+      placeHolder: "http://localhost:11434 or https://api.openai.com",
+    });
+    if (!endpointUrl) return;
+
+    const apiKey = await vscode.window.showInputBox({
+      title: "Add Custom Model Provider (3/3)",
+      prompt: "Enter API Key (optional - leave blank for local servers like Ollama)",
+      placeHolder: "sk-... or leave empty",
+    });
+
+    const roots = resolveConfigRoots(context);
+    let target = findFileAcrossRoots("models.config.json", roots) || path.resolve(roots[0], "models.config.json");
+
+    let currentConfig: any = { blacklistPatterns: [], whitelistExactIds: [], providers: [] };
+    if (fs.existsSync(target)) {
+      try {
+        currentConfig = JSON.parse(fs.readFileSync(target, "utf8"));
+      } catch {}
+    }
+    if (!Array.isArray(currentConfig.providers)) {
+      currentConfig.providers = [];
+    }
+
+    currentConfig.providers.push({
+      name,
+      endpointUrl,
+      apiKey: apiKey || "",
+      autoDiscover: true,
+      enabled: true,
+    });
+
+    fs.writeFileSync(target, JSON.stringify(currentConfig, null, 2), "utf8");
+    vscode.window.showInformationMessage(
+      `✅ Added custom provider "${name}"! Syncing models now...`,
+      "View Config"
+    ).then((act) => {
+      if (act === "View Config") openTargetDocument(target);
+    });
+
+    vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
+  });
+
+  // 8. Master Menu
   const showMenuCommand = vscode.commands.registerCommand("vscode-custom-llm-router.showMenu", async () => {
     const options = [
-      { label: "$(sync) Sync Models", detail: "Discover and deploy custom models into Copilot", id: "sync" },
+      { label: "$(sync) Sync Models", detail: "Discover and stream custom models directly in Copilot", id: "sync" },
+      { label: "$(plus) Add Custom Provider", detail: "Configure new endpoint, API key, and models interactively", id: "add" },
       { label: "$(filter) Switch Profile", detail: "Filter by All, Coding, or Top-tier models", id: "profile" },
-      { label: "$(pulse) Check Endpoints Status", detail: "Test connection to :31415 and :20128", id: "status" },
-      { label: "$(gear) Configure .env Endpoints & Keys", detail: "Open .env to edit URLs and tokens", id: "env" },
-      { label: "$(json) Open models.config.json Rules", detail: "Edit blacklist and whitelist patterns", id: "rules" },
+      { label: "$(pulse) Check Endpoints Status", detail: "Test connection across all configured endpoints", id: "status" },
+      { label: "$(gear) Configure models.config.json & Providers", detail: "Edit providers list, endpoints, API keys, and model rules", id: "rules" },
+      { label: "$(key) Configure .env Endpoints & Keys", detail: "Edit default FreeLLMAPI and OmniRoute keys", id: "env" },
     ];
 
     const chosen = await vscode.window.showQuickPick(options, {
@@ -226,14 +298,16 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (chosen.id === "sync") {
       vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
+    } else if (chosen.id === "add") {
+      vscode.commands.executeCommand("vscode-custom-llm-router.addProvider");
     } else if (chosen.id === "profile") {
       vscode.commands.executeCommand("vscode-custom-llm-router.selectProfile");
     } else if (chosen.id === "status") {
       vscode.commands.executeCommand("vscode-custom-llm-router.checkStatus");
-    } else if (chosen.id === "env") {
-      vscode.commands.executeCommand("vscode-custom-llm-router.configureEnv");
     } else if (chosen.id === "rules") {
       vscode.commands.executeCommand("vscode-custom-llm-router.configureRules");
+    } else if (chosen.id === "env") {
+      vscode.commands.executeCommand("vscode-custom-llm-router.configureEnv");
     }
   });
 
@@ -243,14 +317,16 @@ export function activate(context: vscode.ExtensionContext) {
     selectProfileCommand,
     configureEnvCommand,
     configureRulesCommand,
+    addProviderCommand,
     showMenuCommand
   );
 
   // Background health check on launch
   engine.checkEndpoints().then((status) => {
-    const totalOnline = (status.freeLlm.online ? 1 : 0) + (status.omniRoute.online ? 1 : 0);
-    if (totalOnline > 0) {
-      statusBarItem.text = `$(hubot) LLM Router (${totalOnline}/2)`;
+    const onlineCount = status.all.filter((s) => s.online).length;
+    const totalCount = status.all.length;
+    if (onlineCount > 0) {
+      statusBarItem.text = `$(hubot) LLM Router (${onlineCount}/${totalCount})`;
     } else {
       statusBarItem.text = `$(hubot) LLM Router $(warning)`;
     }

@@ -50,7 +50,12 @@
       },
       {
         "command": "vscode-custom-llm-router.configureRules",
-        "title": "Custom LLM Router: Open models.config.json Rules",
+        "title": "Custom LLM Router: Configure models.config.json & Providers",
+        "category": "Custom LLM"
+      },
+      {
+        "command": "vscode-custom-llm-router.addProvider",
+        "title": "Custom LLM Router: Add Custom Model Provider",
         "category": "Custom LLM"
       }
     ],
@@ -61,6 +66,9 @@
         },
         {
           "command": "vscode-custom-llm-router.syncModels"
+        },
+        {
+          "command": "vscode-custom-llm-router.addProvider"
         },
         {
           "command": "vscode-custom-llm-router.checkStatus"

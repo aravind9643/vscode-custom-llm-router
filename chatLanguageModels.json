@@ -338,8 +338,8 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/Anygen",
-                "name": "Anygen (aihorde)",
+                "id": "aihorde/AniMics Pony XL",
+                "name": "AniMics Pony XL (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -404,6 +404,17 @@
                 "thinking": true
             },
             {
+                "id": "aihorde/AutismMix SDXL",
+                "name": "AutismMix SDXL (aihorde)",
+                "url": "http://localhost:20128/v1/chat/completions",
+                "toolCalling": false,
+                "vision": false,
+                "maxInputTokens": 115072,
+                "maxOutputTokens": 16000,
+                "contextWindow": 131072,
+                "thinking": true
+            },
+            {
                 "id": "aihorde/Babes",
                 "name": "Babes (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -448,39 +459,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/BigASP",
-                "name": "BigASP (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Blank Canvas XL",
-                "name": "Blank Canvas XL (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/BlenderMix Pony",
-                "name": "BlenderMix Pony (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/BweshMix",
                 "name": "BweshMix (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -520,7 +498,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -531,7 +509,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -542,24 +520,13 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
             {
                 "id": "aihorde/Cheese Daddys Landscape Mix",
                 "name": "Cheese Daddys Landscape Mix (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Cheyenne",
-                "name": "Cheyenne (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -630,7 +597,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -652,7 +619,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -1070,7 +1037,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -1290,7 +1257,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -1301,7 +1268,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -1312,7 +1279,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -1323,7 +1290,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -1345,7 +1312,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -1636,6 +1603,17 @@
                 "thinking": true
             },
             {
+                "id": "aihorde/epiCRealism XL",
+                "name": "EpiCRealism XL (aihorde)",
+                "url": "http://localhost:20128/v1/chat/completions",
+                "toolCalling": false,
+                "vision": false,
+                "maxInputTokens": 115072,
+                "maxOutputTokens": 16000,
+                "contextWindow": 131072,
+                "thinking": true
+            },
+            {
                 "id": "aihorde/Ether Real Mix",
                 "name": "Ether Real Mix (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -1697,7 +1675,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -3451,17 +3429,6 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/HASDX",
-                "name": "HASDX (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
                 "id": "aihorde/Hassaku XL",
                 "name": "Hassaku XL (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -3475,28 +3442,6 @@
             {
                 "id": "aihorde/Healy's Anime Blend",
                 "name": "Healy'S Anime Blend (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Hidden Canvas",
-                "name": "Hidden Canvas (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/HolyMix ILXL",
-                "name": "HolyMix ILXL (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -3552,6 +3497,17 @@
             {
                 "id": "aihorde/iCoMix",
                 "name": "ICoMix (aihorde)",
+                "url": "http://localhost:20128/v1/chat/completions",
+                "toolCalling": false,
+                "vision": false,
+                "maxInputTokens": 115072,
+                "maxOutputTokens": 16000,
+                "contextWindow": 131072,
+                "thinking": true
+            },
+            {
+                "id": "aihorde/Illustrious-XL v0.1",
+                "name": "Illustrious XL V0.1 (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -3627,6 +3583,28 @@
                 "thinking": false
             },
             {
+                "id": "aihorde/JANKU",
+                "name": "JANKU (aihorde)",
+                "url": "http://localhost:20128/v1/chat/completions",
+                "toolCalling": false,
+                "vision": false,
+                "maxInputTokens": 115072,
+                "maxOutputTokens": 16000,
+                "contextWindow": 131072,
+                "thinking": true
+            },
+            {
+                "id": "aihorde/Jib Mix Realistic XL",
+                "name": "Jib Mix Realistic XL (aihorde)",
+                "url": "http://localhost:20128/v1/chat/completions",
+                "toolCalling": false,
+                "vision": false,
+                "maxInputTokens": 115072,
+                "maxOutputTokens": 16000,
+                "contextWindow": 131072,
+                "thinking": true
+            },
+            {
                 "id": "aihorde/Jim Eidomode",
                 "name": "Jim Eidomode (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -3640,17 +3618,6 @@
             {
                 "id": "aihorde/Juggernaut XL",
                 "name": "Juggernaut XL (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/KaynegIllustriousXL",
-                "name": "KaynegIllustriousXL (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -3781,6 +3748,17 @@
                 "thinking": true
             },
             {
+                "id": "aihorde/LEOSAM HelloWorld XL",
+                "name": "LEOSAM HelloWorld XL (aihorde)",
+                "url": "http://localhost:20128/v1/chat/completions",
+                "toolCalling": false,
+                "vision": false,
+                "maxInputTokens": 115072,
+                "maxOutputTokens": 16000,
+                "contextWindow": 131072,
+                "thinking": true
+            },
+            {
                 "id": "aihorde/Liberty",
                 "name": "Liberty (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
@@ -3860,17 +3838,6 @@
             {
                 "id": "aihorde/MeinaMix",
                 "name": "MeinaMix (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/MHXL - Aventis Horizon",
-                "name": "MHXL   Aventis Horizon (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -4144,8 +4111,8 @@
                 "thinking": true
             },
             {
-                "id": "aihorde/noobEvo",
-                "name": "NoobEvo (aihorde)",
+                "id": "aihorde/NoobAI-XL",
+                "name": "NoobAI XL (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -4227,7 +4194,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4238,7 +4205,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4249,7 +4216,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4260,7 +4227,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4271,7 +4238,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4282,7 +4249,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4293,7 +4260,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4304,7 +4271,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4326,7 +4293,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4337,7 +4304,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4348,7 +4315,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4359,7 +4326,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4476,28 +4443,6 @@
             {
                 "id": "aihorde/Photon",
                 "name": "Photon (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Pixel Illustrious",
-                "name": "Pixel Illustrious (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Poison",
-                "name": "Poison (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,
@@ -4716,13 +4661,24 @@
                 "thinking": true
             },
             {
+                "id": "aihorde/RealVisXL V5.0",
+                "name": "RealVisXL V5.0 (aihorde)",
+                "url": "http://localhost:20128/v1/chat/completions",
+                "toolCalling": false,
+                "vision": false,
+                "maxInputTokens": 115072,
+                "maxOutputTokens": 16000,
+                "contextWindow": 131072,
+                "thinking": true
+            },
+            {
                 "id": "auto/reasoning",
                 "name": "Reasoning",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4832,7 +4788,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -4997,7 +4953,7 @@
                 "toolCalling": true,
                 "vision": false,
                 "maxInputTokens": 1048576,
-                "maxOutputTokens": 131072,
+                "maxOutputTokens": 384000,
                 "contextWindow": 1048576,
                 "thinking": true
             },
@@ -5026,17 +4982,6 @@
             {
                 "id": "aihorde/Uhmami",
                 "name": "Uhmami (aihorde)",
-                "url": "http://localhost:20128/v1/chat/completions",
-                "toolCalling": false,
-                "vision": false,
-                "maxInputTokens": 115072,
-                "maxOutputTokens": 16000,
-                "contextWindow": 131072,
-                "thinking": true
-            },
-            {
-                "id": "aihorde/Ultraspice",
-                "name": "Ultraspice (aihorde)",
                 "url": "http://localhost:20128/v1/chat/completions",
                 "toolCalling": false,
                 "vision": false,

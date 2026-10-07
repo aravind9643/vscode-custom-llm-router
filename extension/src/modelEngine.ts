@@ -4,6 +4,29 @@ import * as path from "path";
 export interface ModelRuleConfig {
   blacklistPatterns?: string[];
   whitelistExactIds?: string[];
+  providers?: CustomProviderConfig[];
+}
+
+export interface CustomModelConfig {
+  id: string;
+  name?: string;
+  contextWindow?: number;
+  maxInputTokens?: number;
+  maxOutputTokens?: number;
+  toolCalling?: boolean;
+  vision?: boolean;
+}
+
+export interface CustomProviderConfig {
+  name: string;
+  endpointUrl: string; // e.g. "https://api.openai.com/v1" or "http://localhost:11434/v1"
+  apiKey?: string;
+  secretHandle?: string; // e.g. "${input:chat.lm.secret.custom}"
+  modelsEndpoint?: string; // Optional custom endpoint for model discovery, defaults to endpointUrl/models
+  chatEndpoint?: string; // Optional custom endpoint for chat, defaults to endpointUrl/chat/completions
+  staticModels?: CustomModelConfig[]; // Static list of models if /v1/models is not available or user wants specific ones
+  autoDiscover?: boolean; // Whether to fetch from /v1/models (defaults to true)
+  enabled?: boolean; // Whether provider is active (defaults to true)
 }
 
 export interface VSCodeModel {
@@ -16,6 +39,7 @@ export interface VSCodeModel {
   maxInputTokens: number;
   maxOutputTokens: number;
   contextWindow?: number;
+  providerName?: string;
   _latency?: number;
 }
 
@@ -36,6 +60,8 @@ export interface GeneratorOptions {
 }
 
 export interface EndpointStatus {
+  name: string;
+  url: string;
   online: boolean;
   modelCount: number;
   error?: string;
@@ -47,6 +73,9 @@ const TOP_MODEL_KEYWORDS = [
   "claude-3-5",
   "claude-3.5",
   "gpt-4o",
+  "gpt-4",
+  "o1",
+  "o3",
   "deepseek-r1",
   "deepseek-v3",
   "qwen-2.5-coder",
@@ -126,45 +155,129 @@ export class ModelEngine {
     } catch {}
   }
 
-  public async checkEndpoints(): Promise<{ freeLlm: EndpointStatus; omniRoute: EndpointStatus }> {
-    let freeStatus: EndpointStatus = { online: false, modelCount: 0 };
-    try {
-      const res = await fetch(`${this.freeLlmUrl}/v1/models`, {
-        headers: { Authorization: `Bearer ${this.freeLlmKey}`, Accept: "application/json" },
-        signal: AbortSignal.timeout(4000),
-      });
-      if (res.ok) {
-        const data: any = await res.json();
-        freeStatus = { online: true, modelCount: Array.isArray(data?.data) ? data.data.length : 0 };
-      } else {
-        freeStatus = { online: false, modelCount: 0, error: `HTTP ${res.status}` };
+  /**
+   * Loads all configured providers:
+   * 1. Built-in defaults: FreeLLMAPI and OmniRoute (via env or defaults)
+   * 2. Any additional custom providers declared in models.config.json under "providers"
+   * 3. Any additional custom providers declared via env prefix CUSTOM_PROVIDER_*
+   */
+  public getConfiguredProviders(): CustomProviderConfig[] {
+    const providers: CustomProviderConfig[] = [];
+
+    // 1. FreeLLMAPI
+    providers.push({
+      name: "FreeLLMAPI",
+      endpointUrl: this.freeLlmUrl,
+      apiKey: this.freeLlmKey,
+      secretHandle: this.freeLlmSecret,
+      autoDiscover: true,
+      enabled: true,
+    });
+
+    // 2. OmniRoute
+    providers.push({
+      name: "OmniRoute",
+      endpointUrl: this.omniUrl,
+      apiKey: this.omniKey,
+      secretHandle: this.omniSecret,
+      autoDiscover: true,
+      enabled: true,
+    });
+
+    // 3. User configured providers from models.config.json
+    const rules = this.loadRules();
+    if (Array.isArray(rules.providers)) {
+      for (const p of rules.providers) {
+        if (!p.name || !p.endpointUrl) continue;
+        // Avoid duplicate by name
+        const existingIdx = providers.findIndex((ep) => ep.name.toLowerCase() === p.name.toLowerCase());
+        if (existingIdx !== -1) {
+          providers[existingIdx] = { ...providers[existingIdx], ...p };
+        } else {
+          providers.push({
+            autoDiscover: p.autoDiscover !== false,
+            enabled: p.enabled !== false,
+            ...p,
+          });
+        }
       }
-    } catch (e: any) {
-      freeStatus = { online: false, modelCount: 0, error: e.message };
     }
 
-    let omniStatus: EndpointStatus = { online: false, modelCount: 0 };
-    try {
-      const res = await fetch(`${this.omniUrl}/v1/models`, {
-        headers: { Authorization: `Bearer ${this.omniKey}`, Accept: "application/json" },
-        signal: AbortSignal.timeout(4000),
-      });
-      if (res.ok) {
-        const data: any = await res.json();
-        omniStatus = { online: true, modelCount: Array.isArray(data?.data) ? data.data.length : 0 };
-      } else {
-        omniStatus = { online: false, modelCount: 0, error: `HTTP ${res.status}` };
-      }
-    } catch (e: any) {
-      omniStatus = { online: false, modelCount: 0, error: e.message };
-    }
-
-    return { freeLlm: freeStatus, omniRoute: omniStatus };
+    return providers.filter((p) => p.enabled !== false);
   }
 
-  public prettifyModelName(id: string, rawName?: string): string {
-    if (id === "auto") return "FreeLLMAPI Auto";
-    if (id === "fusion") return "FreeLLMAPI Fusion";
+  public async checkEndpoints(): Promise<{ freeLlm: EndpointStatus; omniRoute: EndpointStatus; all: EndpointStatus[] }> {
+    const configured = this.getConfiguredProviders();
+    const results: EndpointStatus[] = [];
+
+    for (const prov of configured) {
+      let status: EndpointStatus = {
+        name: prov.name,
+        url: prov.endpointUrl,
+        online: false,
+        modelCount: 0,
+      };
+
+      const modelsUrl = prov.modelsEndpoint || `${prov.endpointUrl.replace(/\/+$/, "")}/v1/models`;
+      const headers: Record<string, string> = { Accept: "application/json" };
+      if (prov.apiKey) {
+        headers["Authorization"] = `Bearer ${prov.apiKey}`;
+      }
+
+      try {
+        const res = await fetch(modelsUrl, {
+          headers,
+          signal: AbortSignal.timeout(4000),
+        });
+        if (res.ok) {
+          const data: any = await res.json();
+          const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+          status.online = true;
+          status.modelCount = list.length + (prov.staticModels?.length || 0);
+        } else {
+          // If models endpoint failed but static models exist, check if chat endpoint responds
+          if (prov.staticModels && prov.staticModels.length > 0) {
+            status.online = true;
+            status.modelCount = prov.staticModels.length;
+          } else {
+            status.online = false;
+            status.error = `HTTP ${res.status}`;
+          }
+        }
+      } catch (e: any) {
+        if (prov.staticModels && prov.staticModels.length > 0) {
+          status.online = true;
+          status.modelCount = prov.staticModels.length;
+        } else {
+          status.online = false;
+          status.error = e.message;
+        }
+      }
+      results.push(status);
+    }
+
+    const freeLlm = results.find((r) => r.name === "FreeLLMAPI") || {
+      name: "FreeLLMAPI",
+      url: this.freeLlmUrl,
+      online: false,
+      modelCount: 0,
+    };
+    const omniRoute = results.find((r) => r.name === "OmniRoute") || {
+      name: "OmniRoute",
+      url: this.omniUrl,
+      online: false,
+      modelCount: 0,
+    };
+
+    return { freeLlm, omniRoute, all: results };
+  }
+
+  public prettifyModelName(id: string, rawName?: string, providerName?: string): string {
+    if (rawName && rawName.trim().length > 0 && !rawName.startsWith("aihorde/")) {
+      return rawName;
+    }
+    if (id === "auto") return `${providerName || "LLM"} Auto`;
+    if (id === "fusion") return `${providerName || "LLM"} Fusion`;
 
     const parts = id.split("/");
     const prefix = parts.length > 1 ? parts.slice(0, -1).join("/") : "";
@@ -172,11 +285,11 @@ export class ModelEngine {
 
     if (id.startsWith("auto/best-")) {
       const feat = id.replace("auto/best-", "");
-      return `OmniRoute Best ${feat.charAt(0).toUpperCase() + feat.slice(1)}`;
+      return `${providerName || "OmniRoute"} Best ${feat.charAt(0).toUpperCase() + feat.slice(1)}`;
     }
     if (id.startsWith("auto/pro-")) {
       const feat = id.replace("auto/pro-", "");
-      return `OmniRoute Pro ${feat.charAt(0).toUpperCase() + feat.slice(1)}`;
+      return `${providerName || "OmniRoute"} Pro ${feat.charAt(0).toUpperCase() + feat.slice(1)}`;
     }
 
     let name = base
@@ -217,6 +330,9 @@ export class ModelEngine {
       } else if (idLower.includes("gemini")) {
         contextWindow = 1048576;
         maxOutputTokens = maxOutputTokens || 65536;
+      } else if (idLower.includes("gpt-4o") || idLower.includes("o1") || idLower.includes("o3")) {
+        contextWindow = 128000;
+        maxOutputTokens = maxOutputTokens || 16384;
       } else {
         contextWindow = 131072;
         maxOutputTokens = maxOutputTokens || 16000;
@@ -271,106 +387,109 @@ export class ModelEngine {
     return filtered;
   }
 
+  /**
+   * Generates providers and models for all configured endpoints
+   */
   public async generateProviders(options: GeneratorOptions = {}): Promise<VSCodeProvider[]> {
     const { profile = "all", onProgress } = options;
+    const configured = this.getConfiguredProviders();
     const providers: VSCodeProvider[] = [];
 
-    // 1. FreeLLMAPI
-    if (onProgress) onProgress("Fetching models from FreeLLMAPI...");
-    let freeModelsRaw: any[] = [];
-    try {
-      const res = await fetch(`${this.freeLlmUrl}/v1/models?execution_status=ready`, {
-        headers: { Authorization: `Bearer ${this.freeLlmKey}`, Accept: "application/json" },
-        signal: AbortSignal.timeout(6000),
-      });
-      if (res.ok) {
-        const d: any = await res.json();
-        freeModelsRaw = Array.isArray(d?.data) ? d.data : [];
+    for (const prov of configured) {
+      if (onProgress) onProgress(`Fetching models from ${prov.name}...`);
+      
+      const cleanEndpoint = prov.endpointUrl.replace(/\/+$/, "");
+      const chatUrl = prov.chatEndpoint || `${cleanEndpoint}/v1/chat/completions`;
+      const modelsUrl = prov.modelsEndpoint || `${cleanEndpoint}/v1/models`;
+
+      let modelsRaw: any[] = [];
+
+      if (prov.autoDiscover !== false) {
+        try {
+          const headers: Record<string, string> = { Accept: "application/json" };
+          if (prov.apiKey) {
+            headers["Authorization"] = `Bearer ${prov.apiKey}`;
+          }
+
+          const fetchUrl = prov.name === "FreeLLMAPI" ? `${modelsUrl}?execution_status=ready` : modelsUrl;
+          const res = await fetch(fetchUrl, {
+            headers,
+            signal: AbortSignal.timeout(6000),
+          });
+
+          if (res.ok) {
+            const d: any = await res.json();
+            modelsRaw = Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : [];
+          }
+        } catch {
+          // Fall back to static models if discovery fails
+        }
       }
-    } catch {}
 
-    const freeChatUrl = `${this.freeLlmUrl}/v1/chat/completions`;
-    const freeModelsList: VSCodeModel[] = [];
+      const modelsList: VSCodeModel[] = [];
 
-    freeModelsList.push({
-      id: "auto",
-      name: "FreeLLMAPI Auto",
-      url: freeChatUrl,
-      toolCalling: true,
-      vision: true,
-      maxInputTokens: 128000,
-      maxOutputTokens: 16000,
-    });
-
-    for (const raw of freeModelsRaw) {
-      const id = raw?.id || raw?.model;
-      if (!id || id === "auto") continue;
-      const bounds = this.normalizeBounds(id, raw?.contextWindow || raw?.context_window, raw?.maxOutputTokens, raw?.maxInputTokens);
-      freeModelsList.push({
-        id,
-        name: this.prettifyModelName(id, raw?.name),
-        url: freeChatUrl,
-        toolCalling: Boolean(raw?.toolCalling || raw?.tool_calling),
-        vision: Boolean(raw?.vision || raw?.supports_vision),
-        maxInputTokens: bounds.maxInputTokens,
-        maxOutputTokens: bounds.maxOutputTokens,
-        contextWindow: bounds.contextWindow,
-      });
-    }
-
-    const filteredFree = this.filterModels(freeModelsList, profile);
-    if (filteredFree.length > 0) {
-      providers.push({
-        name: "FreeLLMAPI",
-        vendor: "customendpoint",
-        apiKey: this.freeLlmSecret,
-        apiType: "chat-completions",
-        models: filteredFree,
-      });
-    }
-
-    // 2. OmniRoute
-    if (onProgress) onProgress("Fetching models from OmniRoute...");
-    let omniModelsRaw: any[] = [];
-    try {
-      const res = await fetch(`${this.omniUrl}/v1/models`, {
-        headers: { Authorization: `Bearer ${this.omniKey}`, Accept: "application/json" },
-        signal: AbortSignal.timeout(6000),
-      });
-      if (res.ok) {
-        const d: any = await res.json();
-        omniModelsRaw = Array.isArray(d?.data) ? d.data : [];
+      // Add auto model for FreeLLMAPI if active
+      if (prov.name === "FreeLLMAPI") {
+        modelsList.push({
+          id: "auto",
+          name: "FreeLLMAPI Auto",
+          url: chatUrl,
+          toolCalling: true,
+          vision: true,
+          maxInputTokens: 128000,
+          maxOutputTokens: 16000,
+          providerName: prov.name,
+        });
       }
-    } catch {}
 
-    const omniChatUrl = `${this.omniUrl}/v1/chat/completions`;
-    const omniModelsList: VSCodeModel[] = [];
+      // Add static models defined by user
+      if (Array.isArray(prov.staticModels)) {
+        for (const sm of prov.staticModels) {
+          const bounds = this.normalizeBounds(sm.id, sm.contextWindow, sm.maxOutputTokens, sm.maxInputTokens);
+          modelsList.push({
+            id: sm.id,
+            name: sm.name || this.prettifyModelName(sm.id, undefined, prov.name),
+            url: chatUrl,
+            toolCalling: sm.toolCalling !== undefined ? sm.toolCalling : true,
+            vision: sm.vision !== undefined ? sm.vision : false,
+            maxInputTokens: bounds.maxInputTokens,
+            maxOutputTokens: bounds.maxOutputTokens,
+            contextWindow: bounds.contextWindow,
+            providerName: prov.name,
+          });
+        }
+      }
 
-    for (const raw of omniModelsRaw) {
-      const id = raw?.id || raw?.model;
-      if (!id) continue;
-      const bounds = this.normalizeBounds(id, raw?.contextWindow || raw?.context_window, raw?.maxOutputTokens, raw?.maxInputTokens);
-      omniModelsList.push({
-        id,
-        name: this.prettifyModelName(id, raw?.name),
-        url: omniChatUrl,
-        toolCalling: raw?.toolCalling !== undefined ? Boolean(raw.toolCalling) : true,
-        vision: Boolean(raw?.vision || raw?.supports_vision),
-        maxInputTokens: bounds.maxInputTokens,
-        maxOutputTokens: bounds.maxOutputTokens,
-        contextWindow: bounds.contextWindow,
-      });
-    }
+      // Process auto-discovered models
+      for (const raw of modelsRaw) {
+        const id = raw?.id || raw?.model;
+        if (!id) continue;
+        if (modelsList.some((existing) => existing.id === id)) continue; // avoid duplicate with staticModels
 
-    const filteredOmni = this.filterModels(omniModelsList, profile);
-    if (filteredOmni.length > 0) {
-      providers.push({
-        name: "OmniRoute",
-        vendor: "customendpoint",
-        apiKey: this.omniSecret,
-        apiType: "chat-completions",
-        models: filteredOmni,
-      });
+        const bounds = this.normalizeBounds(id, raw?.contextWindow || raw?.context_window, raw?.maxOutputTokens, raw?.maxInputTokens);
+        modelsList.push({
+          id,
+          name: this.prettifyModelName(id, raw?.name, prov.name),
+          url: chatUrl,
+          toolCalling: raw?.toolCalling !== undefined ? Boolean(raw.toolCalling) : true,
+          vision: Boolean(raw?.vision || raw?.supports_vision),
+          maxInputTokens: bounds.maxInputTokens,
+          maxOutputTokens: bounds.maxOutputTokens,
+          contextWindow: bounds.contextWindow,
+          providerName: prov.name,
+        });
+      }
+
+      const filtered = this.filterModels(modelsList, profile);
+      if (filtered.length > 0) {
+        providers.push({
+          name: prov.name,
+          vendor: "customendpoint",
+          apiKey: prov.secretHandle || prov.apiKey || "",
+          apiType: "chat-completions",
+          models: filtered,
+        });
+      }
     }
 
     return providers;

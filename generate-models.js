@@ -952,6 +952,81 @@ async function runGenerator(options = {}) {
   }
 
   // ------------------------------------------------------------
+  // 3. GENERIC CUSTOM PROVIDERS (models.config.json)
+  // ------------------------------------------------------------
+  const rules = loadModelRules();
+  if (Array.isArray(rules.providers)) {
+    for (const customP of rules.providers) {
+      if (customP.enabled === false || !customP.name || !customP.endpointUrl) continue;
+      console.log(`\nProcessing custom provider: ${customP.name} (${customP.endpointUrl})`);
+      
+      const cleanEndpoint = customP.endpointUrl.replace(/\/+$/, "");
+      const chatUrl = customP.chatEndpoint || `${cleanEndpoint}/v1/chat/completions`;
+      const modelsUrl = customP.modelsEndpoint || `${cleanEndpoint}/v1/models`;
+      const customModelsList = [];
+
+      // Static models
+      if (Array.isArray(customP.staticModels)) {
+        for (const sm of customP.staticModels) {
+          const bounds = normalizeTokenBounds(sm.id, sm.contextWindow, sm.maxOutputTokens, sm.maxInputTokens);
+          customModelsList.push({
+            id: sm.id,
+            name: sm.name || prettifyModelName(sm.id),
+            url: chatUrl,
+            toolCalling: sm.toolCalling !== undefined ? sm.toolCalling : true,
+            vision: sm.vision !== undefined ? sm.vision : false,
+            maxInputTokens: bounds.maxInputTokens,
+            maxOutputTokens: bounds.maxOutputTokens,
+            contextWindow: bounds.contextWindow,
+          });
+        }
+      }
+
+      // Auto-discovered models
+      if (customP.autoDiscover !== false) {
+        try {
+          const headers = { Accept: "application/json" };
+          if (customP.apiKey) headers["Authorization"] = `Bearer ${customP.apiKey}`;
+          const res = await fetch(modelsUrl, { headers });
+          if (res.ok) {
+            const d = await res.json();
+            const list = Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : [];
+            for (const item of list) {
+              const id = getModelId(item);
+              if (!id || customModelsList.some((m) => m.id === id)) continue;
+              const bounds = normalizeTokenBounds(id, item.contextWindow || item.context_window, item.maxOutputTokens, item.maxInputTokens);
+              customModelsList.push({
+                id,
+                name: prettifyModelName(id, item.name),
+                url: chatUrl,
+                toolCalling: item.toolCalling !== undefined ? Boolean(item.toolCalling) : true,
+                vision: Boolean(item.vision || item.supports_vision),
+                maxInputTokens: bounds.maxInputTokens,
+                maxOutputTokens: bounds.maxOutputTokens,
+                contextWindow: bounds.contextWindow,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn(`  Could not auto-discover from ${modelsUrl}: ${e.message}`);
+        }
+      }
+
+      const filteredCustom = applyModelFilters(customModelsList, profile);
+      if (filteredCustom.length > 0) {
+        providersConfig.push({
+          name: customP.name,
+          vendor: "customendpoint",
+          apiKey: customP.secretHandle || customP.apiKey || "",
+          apiType: "chat-completions",
+          models: filteredCustom,
+        });
+        console.log(`  Added ${filteredCustom.length} models for ${customP.name}`);
+      }
+    }
+  }
+
+  // ------------------------------------------------------------
   // SAVE OUTPUTS
   // ------------------------------------------------------------
   if (providersConfig.length === 0) {

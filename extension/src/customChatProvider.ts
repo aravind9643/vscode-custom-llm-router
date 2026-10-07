@@ -34,6 +34,7 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
       this.modelVendorMap.clear();
 
       for (const prov of providers) {
+        const familyName = prov.name.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
         for (const m of prov.models) {
           this.cachedModels.push(m);
           this.modelVendorMap.set(m.id, {
@@ -44,9 +45,9 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
           result.push({
             id: m.id,
             name: `${m.name} (${prov.name})`,
-            family: prov.name.toLowerCase().includes("omni") ? "omniroute" : "freellmapi",
-            tooltip: `Custom model hosted on ${m.url}`,
-            detail: prov.name,
+            family: familyName,
+            tooltip: `Model ${m.id} on ${prov.name} (${m.url})`,
+            detail: `${prov.name} • ${m.contextWindow ? Math.round(m.contextWindow / 1000) + 'k ctx' : 'OpenAI compatible'}`,
             version: "1.0.0",
             maxInputTokens: m.maxInputTokens || 128000,
             maxOutputTokens: m.maxOutputTokens || 8192,
