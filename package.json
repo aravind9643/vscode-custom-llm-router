@@ -1,71 +1,9 @@
 {
   "name": "vscode-custom-llm-router",
-  "displayName": "Custom LLM Router",
-  "description": "Seamlessly connect FreeLLMAPI & OmniRoute local models directly into VS Code Copilot & Chat",
   "version": "1.0.0",
-  "publisher": "aravind9643",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/aravind9643/vscode-custom-llm-router.git"
-  },
-  "engines": {
-    "vscode": "^1.90.0"
-  },
-  "categories": [
-    "AI",
-    "Machine Learning",
-    "Programming Languages",
-    "Other"
-  ],
-  "main": "./out/extension.js",
-  "activationEvents": [
-    "onStartupFinished"
-  ],
-  "contributes": {
-    "commands": [
-      {
-        "command": "vscode-custom-llm-router.showMenu",
-        "title": "Custom LLM Router: Show Menu",
-        "category": "Custom LLM"
-      },
-      {
-        "command": "vscode-custom-llm-router.syncModels",
-        "title": "Custom LLM Router: Sync Models",
-        "category": "Custom LLM"
-      },
-      {
-        "command": "vscode-custom-llm-router.checkStatus",
-        "title": "Custom LLM Router: Check Endpoints Status",
-        "category": "Custom LLM"
-      },
-      {
-        "command": "vscode-custom-llm-router.selectProfile",
-        "title": "Custom LLM Router: Switch Model Profile",
-        "category": "Custom LLM"
-      }
-    ],
-    "menus": {
-      "commandPalette": [
-        {
-          "command": "vscode-custom-llm-router.showMenu"
-        },
-        {
-          "command": "vscode-custom-llm-router.syncModels"
-        },
-        {
-          "command": "vscode-custom-llm-router.checkStatus"
-        },
-        {
-          "command": "vscode-custom-llm-router.selectProfile"
-        }
-      ]
-    }
-  },
+  "description": "Unified generator and CLI for VS Code Language Models custom endpoints (FreeLLMAPI & OmniRoute)",
+  "main": "generate-models.js",
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch:ts": "tsc -watch -p ./",
-    "package": "vsce package --no-dependencies",
     "init": "node generate-models.js --init",
     "status": "node generate-models.js --status",
     "validate": "node generate-models.js --validate",
@@ -81,6 +19,8 @@
     "apply:coding": "node generate-models.js --fast --coding --apply",
     "apply:top": "node generate-models.js --fast --top --apply",
     "watch": "node generate-models.js --watch 30 --apply",
+    "extension:compile": "npm run compile --prefix extension",
+    "extension:package": "npm run package --prefix extension",
     "service:install": "powershell -ExecutionPolicy Bypass -File .\\register-task.ps1",
     "service:uninstall": "powershell -ExecutionPolicy Bypass -File .\\unregister-task.ps1"
   },
@@ -93,11 +33,5 @@
     "llm-router"
   ],
   "author": "Aravind Merugu",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/node": "^26.6.4",
-    "@types/vscode": "^1.90.0",
-    "@vscode/vsce": "^4.0.0",
-    "typescript": "^5.4.5"
-  }
+  "license": "MIT"
 }
