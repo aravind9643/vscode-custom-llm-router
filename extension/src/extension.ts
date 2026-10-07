@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 import { ModelEngine } from "./modelEngine";
+import { CustomLLMChatProvider } from "./customChatProvider";
 
 let statusBarItem: vscode.StatusBarItem;
 
@@ -44,6 +45,18 @@ export function activate(context: vscode.ExtensionContext) {
   const primaryRoot = configRoots[0] || context.extensionPath;
   const engine = new ModelEngine(primaryRoot);
 
+  // Register Native Custom Model Provider for VS Code Chat & Copilot
+  const customChatProvider = new CustomLLMChatProvider(engine);
+  try {
+    const providerRegistration = vscode.lm.registerLanguageModelChatProvider(
+      "custom-llm-router",
+      customChatProvider
+    );
+    context.subscriptions.push(providerRegistration);
+  } catch (err) {
+    console.warn("[Custom LLM Router] Native LanguageModelChatProvider registration notice:", err);
+  }
+
   // 1. Status Bar Item
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBarItem.command = "vscode-custom-llm-router.showMenu";
@@ -82,8 +95,11 @@ export function activate(context: vscode.ExtensionContext) {
           const totalModels = providers.reduce((acc, p) => acc + (p.models?.length || 0), 0);
           updateStatusBar(true, totalModels);
 
+          // Refresh native model provider
+          customChatProvider.notifyModelsChanged();
+
           vscode.window.showInformationMessage(
-            `✅ Successfully synced ${totalModels} custom models to VS Code Insiders!`,
+            `✅ Successfully synced ${totalModels} custom models to VS Code Insiders & Custom Model Provider!`,
             "View Config"
           ).then((action) => {
             if (action === "View Config" && deployed[0]) {

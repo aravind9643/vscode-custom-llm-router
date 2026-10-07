@@ -9,7 +9,7 @@
     "url": "https://github.com/aravind9643/vscode-custom-llm-router.git"
   },
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.140.0"
   },
   "categories": [
     "AI",
@@ -75,7 +75,13 @@
           "command": "vscode-custom-llm-router.configureRules"
         }
       ]
-    }
+    },
+    "languageModelChatProviders": [
+      {
+        "vendor": "custom-llm-router",
+        "displayName": "Custom LLM Router"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -85,7 +91,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
-    "@types/vscode": "^1.90.0",
+    "@types/vscode": "^1.140.0",
     "@vscode/vsce": "^4.0.0",
     "typescript": "^5.4.5"
   }

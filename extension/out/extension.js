@@ -39,6 +39,7 @@ const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 const modelEngine_1 = require("./modelEngine");
+const customChatProvider_1 = require("./customChatProvider");
 let statusBarItem;
 function resolveConfigRoots(context) {
     const candidates = [];
@@ -72,6 +73,15 @@ function activate(context) {
     const configRoots = resolveConfigRoots(context);
     const primaryRoot = configRoots[0] || context.extensionPath;
     const engine = new modelEngine_1.ModelEngine(primaryRoot);
+    // Register Native Custom Model Provider for VS Code Chat & Copilot
+    const customChatProvider = new customChatProvider_1.CustomLLMChatProvider(engine);
+    try {
+        const providerRegistration = vscode.lm.registerLanguageModelChatProvider("custom-llm-router", customChatProvider);
+        context.subscriptions.push(providerRegistration);
+    }
+    catch (err) {
+        console.warn("[Custom LLM Router] Native LanguageModelChatProvider registration notice:", err);
+    }
     // 1. Status Bar Item
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.command = "vscode-custom-llm-router.showMenu";
@@ -100,7 +110,9 @@ function activate(context) {
             const deployed = engine.deployToVSCode(providers);
             const totalModels = providers.reduce((acc, p) => acc + (p.models?.length || 0), 0);
             updateStatusBar(true, totalModels);
-            vscode.window.showInformationMessage(`✅ Successfully synced ${totalModels} custom models to VS Code Insiders!`, "View Config").then((action) => {
+            // Refresh native model provider
+            customChatProvider.notifyModelsChanged();
+            vscode.window.showInformationMessage(`✅ Successfully synced ${totalModels} custom models to VS Code Insiders & Custom Model Provider!`, "View Config").then((action) => {
                 if (action === "View Config" && deployed[0]) {
                     openTargetDocument(deployed[0]);
                 }

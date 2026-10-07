@@ -41,9 +41,9 @@ graph TD
 
 ## ⚡ Key Features
 
-- **Official VS Code Extension Built-in**: Installable `.vsix` extension offering native Status Bar item, Command Palette actions, and one-click model deployment directly within the IDE.
-- **Single Orchestrator**: [generate-models.js](file:///d:/VSCodeCustomEndpointModels/generate-models.js) queries and integrates both FreeLLMAPI and OmniRoute.
-- **Pre-flight Status Check (`npm run status`)**: Real-time probe of whether FreeLLMAPI & OmniRoute are online.
+- **Native Language Model Chat Provider (`vscode.lm`)**: Implements VS Code's official `LanguageModelChatProvider` specification. Your local OpenAI-compatible models (FreeLLMAPI & OmniRoute) appear directly in VS Code's model picker with full SSE streaming and tool calling support!
+- **Dual Mode Integration**: Works both as a **Native Model Provider extension** (`contributes.languageModelChatProviders`) and as an automated config synchronizer for `chatLanguageModels.json`.
+- **Integrated Extension UI**: Installable `.vsix` extension offering native Status Bar item, Command Palette actions, and one-click model deployment directly within the IDE.
 - **Automated Validation (`npm run validate`)**: Verifies `chatLanguageModels.json` against VS Code's official schema specifications.
 - **Interactive Profile Menu (`npm run menu`)**: Quick visual selector for all models, coding only, top tier, or custom pick.
 - **Environment Bootstrapper (`npm run init`)**: Auto-generates `.env` with unique cryptographic VS Code secret handles.
