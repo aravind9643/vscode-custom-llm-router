@@ -6,7 +6,7 @@ import { ConfigWebviewPanel } from "./configWebview";
 let statusBarItem: vscode.StatusBarItem;
 
 export function activate(context: vscode.ExtensionContext) {
-  const engine = new ModelEngine();
+  const engine = new ModelEngine(context.globalState);
 
   function refreshEngineFromSettings() {
     const config = vscode.workspace.getConfiguration("customLlmRouter");
@@ -47,7 +47,7 @@ export function activate(context: vscode.ExtensionContext) {
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
 
-  // 2. Command: Open Dashboard (Dedicated custom UI page)
+  // 2. Command: Open Dashboard
   const openDashboardCommand = vscode.commands.registerCommand(
     "vscode-custom-llm-router.openDashboard",
     () => {
@@ -96,7 +96,52 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  // 4. Command: Check Status
+  // 4. Command: Concurrent Model Verification & Benchmarking
+  const testAllModelsCommand = vscode.commands.registerCommand(
+    "vscode-custom-llm-router.testAllModels",
+    async (forceArg: boolean = false) => {
+      refreshEngineFromSettings();
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: "Verifying Models (Health & Tool Calling Check)...",
+          cancellable: true,
+        },
+        async (progress, token) => {
+          let workingCount = 0;
+          let failedCount = 0;
+
+          const results = await engine.verifyAllModels({
+            concurrency: 5,
+            forceRecheck: forceArg,
+            verifyTools: true,
+            onProgress: (tested, total, name, ok) => {
+              if (ok) workingCount++;
+              else failedCount++;
+              progress.report({
+                message: `[${tested}/${total}] ${name} -> ${ok ? "OK" : "FAILED"}`,
+                increment: (1 / total) * 100,
+              });
+            },
+          });
+
+          customChatProvider.notifyModelsChanged();
+
+          vscode.window.showInformationMessage(
+            `Verification Finished! ${workingCount} working, ${failedCount} offline/failed. Cached for 48h.`,
+            "View Dashboard"
+          ).then((action) => {
+            if (action === "View Dashboard") {
+              vscode.commands.executeCommand("vscode-custom-llm-router.openDashboard");
+            }
+          });
+        }
+      );
+    }
+  );
+
+  // 5. Command: Check Status
   const statusCommand = vscode.commands.registerCommand("vscode-custom-llm-router.checkStatus", async () => {
     refreshEngineFromSettings();
     const outputChannel = vscode.window.createOutputChannel("Custom LLM Router Status");
@@ -115,7 +160,7 @@ export function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine(`\nTip: Run 'Custom LLM Router: Open Configuration Dashboard' to manage endpoints.`);
   });
 
-  // 5. Command: Switch Profile
+  // 6. Command: Switch Profile
   const selectProfileCommand = vscode.commands.registerCommand("vscode-custom-llm-router.selectProfile", async () => {
     const items: (vscode.QuickPickItem & { profile: "all" | "coding" | "top" })[] = [
       {
@@ -144,7 +189,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
-  // 6. Direct shortcuts that open the Dashboard
+  // 7. Direct shortcuts that open the Dashboard
   const addProviderCommand = vscode.commands.registerCommand("vscode-custom-llm-router.addProvider", () => {
     vscode.commands.executeCommand("vscode-custom-llm-router.openDashboard");
   });
@@ -153,10 +198,11 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.executeCommand("vscode-custom-llm-router.openDashboard");
   });
 
-  // 7. Master Menu
+  // 8. Master Menu
   const showMenuCommand = vscode.commands.registerCommand("vscode-custom-llm-router.showMenu", async () => {
     const options = [
       { label: "$(dashboard) Open Dashboard", detail: "Dedicated configuration page for providers, live tests & models catalog", id: "dashboard" },
+      { label: "$(beaker) Verify & Benchmark Models", detail: "Run live testing and tool-calling validation on all models", id: "testAll" },
       { label: "$(sync) Sync Models", detail: "Scan configured endpoints and update Copilot models", id: "sync" },
       { label: "$(filter) Switch Profile", detail: "Filter by All, Coding, or Top-tier models", id: "profile" },
       { label: "$(pulse) Check Endpoints Status", detail: "Probe connectivity and model counts across endpoints", id: "status" },
@@ -170,6 +216,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (chosen.id === "dashboard") {
       vscode.commands.executeCommand("vscode-custom-llm-router.openDashboard");
+    } else if (chosen.id === "testAll") {
+      vscode.commands.executeCommand("vscode-custom-llm-router.testAllModels", false);
     } else if (chosen.id === "sync") {
       vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
     } else if (chosen.id === "profile") {
@@ -182,6 +230,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     openDashboardCommand,
     syncCommand,
+    testAllModelsCommand,
     statusCommand,
     selectProfileCommand,
     addProviderCommand,

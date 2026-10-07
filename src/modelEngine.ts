@@ -31,6 +31,7 @@ export interface VSCodeModel {
   contextWindow?: number;
   providerName?: string;
   _latency?: number;
+  _verifiedWorking?: boolean;
 }
 
 export interface VSCodeProvider {
@@ -41,8 +42,35 @@ export interface VSCodeProvider {
   models: VSCodeModel[];
 }
 
+export interface ModelTestResult {
+  modelId: string;
+  providerName: string;
+  working: boolean;
+  status: number;
+  latency: number;
+  verifiedTools?: boolean;
+  error?: string;
+  reply?: string;
+  testedAt: number;
+}
+
+export interface VerifiedCacheEntry {
+  modelId: string;
+  providerName: string;
+  working: boolean;
+  latency: number;
+  verifiedTools?: boolean;
+  testedAt: number;
+}
+
+export interface VerifiedCacheStore {
+  updatedAt: number;
+  entries: Record<string, VerifiedCacheEntry>; // key: `${providerName}::${modelId}`
+}
+
 export interface GeneratorOptions {
   profile?: "all" | "coding" | "top";
+  onlyVerifiedWorking?: boolean;
   onProgress?: (msg: string) => void;
 }
 
@@ -91,13 +119,104 @@ const CODING_MODEL_KEYWORDS = [
   "qwen",
 ];
 
+const CACHE_TTL_MS = 48 * 60 * 60 * 1000; // 48 Hours
+
 export class ModelEngine {
   private _providers: CustomProviderConfig[] = [];
-  private _blacklistPatterns: string[] = ["image", "inpainting", "pixel-art", "flux", "diffusion", "tts", "voice", "translat", "whisper", "safety"];
-  private _whitelistExactIds: string[] = ["auto", "auto/best-coding", "auto/best-fast", "auto/best-reasoning", "auto/best-vision", "auto/best-chat", "auto/best-free"];
+  private _blacklistPatterns: string[] = [
+    "image",
+    "inpainting",
+    "pixel-art",
+    "flux",
+    "diffusion",
+    "tts",
+    "voice",
+    "translat",
+    "whisper",
+    "safety",
+  ];
+  private _whitelistExactIds: string[] = [
+    "auto",
+    "auto/best-coding",
+    "auto/best-fast",
+    "auto/best-reasoning",
+    "auto/best-vision",
+    "auto/best-chat",
+    "auto/best-free",
+  ];
 
-  constructor() {
-    this.reloadConfig();
+  // In-memory / GlobalState Verified Cache
+  private _verifiedCache: VerifiedCacheStore = {
+    updatedAt: 0,
+    entries: {},
+  };
+
+  private _memento?: { get: <T>(k: string, def?: T) => T; update: (k: string, v: any) => Thenable<void> };
+
+  constructor(memento?: { get: <T>(k: string, def?: T) => T; update: (k: string, v: any) => Thenable<void> }) {
+    this._memento = memento;
+    this.loadCache();
+  }
+
+  public setMemento(memento: { get: <T>(k: string, def?: T) => T; update: (k: string, v: any) => Thenable<void> }) {
+    this._memento = memento;
+    this.loadCache();
+  }
+
+  public loadCache(): void {
+    if (this._memento) {
+      const stored = this._memento.get<VerifiedCacheStore>("customLlmRouter.verifiedCache", {
+        updatedAt: 0,
+        entries: {},
+      });
+      // Auto-prune entries older than 48 hours
+      const now = Date.now();
+      const prunedEntries: Record<string, VerifiedCacheEntry> = {};
+      for (const [key, item] of Object.entries(stored.entries || {})) {
+        if (now - item.testedAt < CACHE_TTL_MS) {
+          prunedEntries[key] = item;
+        }
+      }
+      this._verifiedCache = {
+        updatedAt: stored.updatedAt || now,
+        entries: prunedEntries,
+      };
+    }
+  }
+
+  public async saveCache(): Promise<void> {
+    this._verifiedCache.updatedAt = Date.now();
+    if (this._memento) {
+      await this._memento.update("customLlmRouter.verifiedCache", this._verifiedCache);
+    }
+  }
+
+  public async clearCache(): Promise<void> {
+    this._verifiedCache = { updatedAt: Date.now(), entries: {} };
+    if (this._memento) {
+      await this._memento.update("customLlmRouter.verifiedCache", this._verifiedCache);
+    }
+  }
+
+  public getCacheEntry(providerName: string, modelId: string): VerifiedCacheEntry | undefined {
+    const key = `${providerName}::${modelId}`;
+    const entry = this._verifiedCache.entries[key];
+    if (!entry) return undefined;
+    if (Date.now() - entry.testedAt > CACHE_TTL_MS) {
+      delete this._verifiedCache.entries[key];
+      return undefined;
+    }
+    return entry;
+  }
+
+  public async setCacheEntry(entry: VerifiedCacheEntry): Promise<void> {
+    const key = `${entry.providerName}::${entry.modelId}`;
+    this._verifiedCache.entries[key] = entry;
+    await this.saveCache();
+  }
+
+  public getAllCacheEntries(): VerifiedCacheEntry[] {
+    return Object.values(this._verifiedCache.entries);
   }
 
   public updateConfig(providers: CustomProviderConfig[], blacklist?: string[], whitelist?: string[]) {
@@ -107,11 +226,264 @@ export class ModelEngine {
   }
 
   public reloadConfig(): void {
-    // Providers are updated directly via VS Code settings / global state
+    this.loadCache();
   }
 
   public getConfiguredProviders(): CustomProviderConfig[] {
-    return this._providers.filter((p) => p.enabled !== false && p.endpointUrl && p.endpointUrl.trim().length > 0);
+    return this._providers.filter(
+      (p) => p.enabled !== false && p.endpointUrl && p.endpointUrl.trim().length > 0
+    );
+  }
+
+  // Live test for a single model with retry logic
+  public async testSingleModel(
+    provider: CustomProviderConfig,
+    modelId: string,
+    verifyTools: boolean = false
+  ): Promise<ModelTestResult> {
+    const cleanEndpoint = provider.endpointUrl.replace(/\/+$/, "");
+    const chatUrl = provider.chatEndpoint || `${cleanEndpoint}/v1/chat/completions`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    if (provider.apiKey) headers["Authorization"] = `Bearer ${provider.apiKey}`;
+
+    let lastResult: ModelTestResult = {
+      modelId,
+      providerName: provider.name,
+      working: false,
+      status: 0,
+      latency: 0,
+      testedAt: Date.now(),
+    };
+
+    const maxRetries = 1;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const start = Date.now();
+      try {
+        const res = await fetch(chatUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model: modelId,
+            messages: [{ role: "user", content: "Reply with exactly OK." }],
+            max_tokens: 5,
+            temperature: 0,
+          }),
+          signal: AbortSignal.timeout(12000),
+        });
+
+        const latency = Date.now() - start;
+        const text = await res.text();
+
+        if (res.ok) {
+          let data: any;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            lastResult = {
+              modelId,
+              providerName: provider.name,
+              working: false,
+              status: res.status,
+              latency,
+              error: "Invalid JSON response",
+              testedAt: Date.now(),
+            };
+            continue;
+          }
+
+          if (!Array.isArray(data?.choices) || !data.choices[0]) {
+            lastResult = {
+              modelId,
+              providerName: provider.name,
+              working: false,
+              status: res.status,
+              latency,
+              error: "No choices returned in payload",
+              testedAt: Date.now(),
+            };
+            continue;
+          }
+
+          let toolsOk: boolean | undefined = undefined;
+          if (verifyTools) {
+            toolsOk = await this.verifyToolCalling(chatUrl, provider.apiKey, modelId);
+          }
+
+          const workingResult: ModelTestResult = {
+            modelId,
+            providerName: provider.name,
+            working: true,
+            status: res.status,
+            latency,
+            verifiedTools: toolsOk,
+            reply: data.choices[0]?.message?.content || "",
+            testedAt: Date.now(),
+          };
+
+          // Cache verified result
+          await this.setCacheEntry({
+            modelId,
+            providerName: provider.name,
+            working: true,
+            latency,
+            verifiedTools: toolsOk,
+            testedAt: Date.now(),
+          });
+
+          return workingResult;
+        }
+
+        lastResult = {
+          modelId,
+          providerName: provider.name,
+          working: false,
+          status: res.status,
+          latency,
+          error: text.slice(0, 150),
+          testedAt: Date.now(),
+        };
+
+        if (res.status >= 400 && res.status < 500) {
+          break; // Client error, do not retry
+        }
+      } catch (err: any) {
+        lastResult = {
+          modelId,
+          providerName: provider.name,
+          working: false,
+          status: 0,
+          latency: Date.now() - start,
+          error: err.name === "AbortError" ? "Timeout" : err.message,
+          testedAt: Date.now(),
+        };
+      }
+    }
+
+    // Cache negative result
+    await this.setCacheEntry({
+      modelId,
+      providerName: provider.name,
+      working: false,
+      latency: lastResult.latency,
+      testedAt: Date.now(),
+    });
+
+    return lastResult;
+  }
+
+  // Tool-calling verification (prevents VS Code Copilot crashes)
+  public async verifyToolCalling(chatUrl: string, apiKey: string | undefined, modelId: string): Promise<boolean> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
+    try {
+      const res = await fetch(chatUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: modelId,
+          messages: [{ role: "user", content: "What is 2+2?" }],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "calculator",
+                description: "Calculate mathematical expression",
+                parameters: {
+                  type: "object",
+                  properties: { expr: { type: "string" } },
+                  required: ["expr"],
+                },
+              },
+            },
+          ],
+          tool_choice: "auto",
+          max_tokens: 15,
+        }),
+        signal: AbortSignal.timeout(8000),
+      });
+
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  // Concurrent verification pool for discovering and testing all working models
+  public async verifyAllModels(
+    options: {
+      concurrency?: number;
+      forceRecheck?: boolean;
+      verifyTools?: boolean;
+      onProgress?: (tested: number, total: number, currentModel: string, ok: boolean) => void;
+    } = {}
+  ): Promise<ModelTestResult[]> {
+    const { concurrency = 5, forceRecheck = false, verifyTools = false, onProgress } = options;
+    const allProviders = await this.generateProviders({ profile: "all" });
+
+    const modelsToTest: { provider: CustomProviderConfig; modelId: string }[] = [];
+    const configuredList = this.getConfiguredProviders();
+
+    for (const prov of allProviders) {
+      const origConfig = configuredList.find((p) => p.name === prov.name) || {
+        name: prov.name,
+        endpointUrl: "",
+        apiKey: prov.apiKey,
+      };
+
+      for (const m of prov.models) {
+        modelsToTest.push({ provider: origConfig, modelId: m.id });
+      }
+    }
+
+    const total = modelsToTest.length;
+    const results: ModelTestResult[] = [];
+    let nextIndex = 0;
+    let completedCount = 0;
+
+    const worker = async () => {
+      while (true) {
+        const idx = nextIndex++;
+        if (idx >= total) break;
+
+        const item = modelsToTest[idx];
+        const cached = !forceRecheck ? this.getCacheEntry(item.provider.name, item.modelId) : undefined;
+
+        let res: ModelTestResult;
+        if (cached) {
+          res = {
+            modelId: cached.modelId,
+            providerName: cached.providerName,
+            working: cached.working,
+            status: cached.working ? 200 : 0,
+            latency: cached.latency,
+            verifiedTools: cached.verifiedTools,
+            testedAt: cached.testedAt,
+          };
+        } else {
+          res = await this.testSingleModel(item.provider, item.modelId, verifyTools);
+        }
+
+        results.push(res);
+        completedCount++;
+
+        if (onProgress) {
+          onProgress(completedCount, total, `${item.provider.name}: ${item.modelId}`, res.working);
+        }
+      }
+    };
+
+    const workerCount = Math.min(concurrency, total || 1);
+    const workers = Array.from({ length: workerCount }, () => worker());
+    await Promise.all(workers);
+
+    return results;
   }
 
   public async checkEndpoints(): Promise<{ all: EndpointStatus[] }> {
@@ -127,7 +499,11 @@ export class ModelEngine {
       };
 
       const cleanEndpoint = prov.endpointUrl.replace(/\/+$/, "");
-      const modelsUrl = prov.modelsEndpoint || `${cleanEndpoint}/v1/models`;
+      const modelsUrl =
+        prov.modelsEndpoint ||
+        (prov.name === "FreeLLMAPI"
+          ? `${cleanEndpoint}/v1/models?execution_status=ready`
+          : `${cleanEndpoint}/v1/models`);
       const headers: Record<string, string> = { Accept: "application/json" };
       if (prov.apiKey) {
         headers["Authorization"] = `Bearer ${prov.apiKey}`;
@@ -219,7 +595,11 @@ export class ModelEngine {
       if (idLower.includes("claude-3-7") || idLower.includes("claude-3-5")) {
         contextWindow = 200000;
         maxOutputTokens = maxOutputTokens || 64000;
-      } else if (idLower.includes("deepseek-r1") || idLower.includes("deepseek-v3") || idLower.includes("qwen")) {
+      } else if (
+        idLower.includes("deepseek-r1") ||
+        idLower.includes("deepseek-v3") ||
+        idLower.includes("qwen")
+      ) {
         contextWindow = 131072;
         maxOutputTokens = maxOutputTokens || 16384;
       } else if (idLower.includes("gemini")) {
@@ -240,11 +620,18 @@ export class ModelEngine {
     return { contextWindow, maxOutputTokens, maxInputTokens };
   }
 
-  public filterModels(models: VSCodeModel[], profile: string = "all"): VSCodeModel[] {
+  public filterModels(
+    models: VSCodeModel[],
+    profile: string = "all",
+    onlyVerifiedWorking: boolean = false
+  ): VSCodeModel[] {
     const blacklist = this._blacklistPatterns;
     const whitelist = new Set(this._whitelistExactIds);
 
     let filtered = models.filter((m) => {
+      if (onlyVerifiedWorking && m._verifiedWorking === false) {
+        return false;
+      }
       if (whitelist.has(m.id)) return true;
       const idLower = m.id.toLowerCase();
       return !blacklist.some((pat) => idLower.includes(pat.toLowerCase()));
@@ -252,7 +639,8 @@ export class ModelEngine {
 
     if (profile === "top") {
       return filtered.filter((m) => {
-        if (m.id === "auto" || m.id.startsWith("auto/best-") || m.id.startsWith("auto/pro-")) return true;
+        if (m.id === "auto" || m.id.startsWith("auto/best-") || m.id.startsWith("auto/pro-"))
+          return true;
         const idLower = m.id.toLowerCase();
         return TOP_MODEL_KEYWORDS.some((kw) => idLower.includes(kw));
       });
@@ -270,16 +658,20 @@ export class ModelEngine {
   }
 
   public async generateProviders(options: GeneratorOptions = {}): Promise<VSCodeProvider[]> {
-    const { profile = "all", onProgress } = options;
+    const { profile = "all", onlyVerifiedWorking = false, onProgress } = options;
     const configured = this.getConfiguredProviders();
     const providers: VSCodeProvider[] = [];
 
     for (const prov of configured) {
       if (onProgress) onProgress(`Fetching models from ${prov.name}...`);
-      
+
       const cleanEndpoint = prov.endpointUrl.replace(/\/+$/, "");
       const chatUrl = prov.chatEndpoint || `${cleanEndpoint}/v1/chat/completions`;
-      const modelsUrl = prov.modelsEndpoint || `${cleanEndpoint}/v1/models`;
+      const modelsUrl =
+        prov.modelsEndpoint ||
+        (prov.name === "FreeLLMAPI"
+          ? `${cleanEndpoint}/v1/models?execution_status=ready`
+          : `${cleanEndpoint}/v1/models`);
 
       let modelsRaw: any[] = [];
 
@@ -290,8 +682,7 @@ export class ModelEngine {
             headers["Authorization"] = `Bearer ${prov.apiKey}`;
           }
 
-          const fetchUrl = prov.name === "FreeLLMAPI" ? `${modelsUrl}?execution_status=ready` : modelsUrl;
-          const res = await fetch(fetchUrl, {
+          const res = await fetch(modelsUrl, {
             headers,
             signal: AbortSignal.timeout(6000),
           });
@@ -309,6 +700,7 @@ export class ModelEngine {
 
       // Add auto model for FreeLLMAPI if active
       if (prov.name === "FreeLLMAPI") {
+        const cache = this.getCacheEntry(prov.name, "auto");
         modelsList.push({
           id: "auto",
           name: "FreeLLMAPI Auto",
@@ -318,23 +710,38 @@ export class ModelEngine {
           maxInputTokens: 128000,
           maxOutputTokens: 16000,
           providerName: prov.name,
+          _latency: cache?.latency,
+          _verifiedWorking: cache?.working,
         });
       }
 
       // Add static models defined by user
       if (Array.isArray(prov.staticModels)) {
         for (const sm of prov.staticModels) {
-          const bounds = this.normalizeBounds(sm.id, sm.contextWindow, sm.maxOutputTokens, sm.maxInputTokens);
+          const bounds = this.normalizeBounds(
+            sm.id,
+            sm.contextWindow,
+            sm.maxOutputTokens,
+            sm.maxInputTokens
+          );
+          const cache = this.getCacheEntry(prov.name, sm.id);
           modelsList.push({
             id: sm.id,
             name: sm.name || this.prettifyModelName(sm.id, undefined, prov.name),
             url: chatUrl,
-            toolCalling: sm.toolCalling !== undefined ? sm.toolCalling : true,
+            toolCalling:
+              cache?.verifiedTools !== undefined
+                ? cache.verifiedTools
+                : sm.toolCalling !== undefined
+                ? sm.toolCalling
+                : true,
             vision: sm.vision !== undefined ? sm.vision : false,
             maxInputTokens: bounds.maxInputTokens,
             maxOutputTokens: bounds.maxOutputTokens,
             contextWindow: bounds.contextWindow,
             providerName: prov.name,
+            _latency: cache?.latency,
+            _verifiedWorking: cache?.working,
           });
         }
       }
@@ -345,21 +752,34 @@ export class ModelEngine {
         if (!id) continue;
         if (modelsList.some((existing) => existing.id === id)) continue;
 
-        const bounds = this.normalizeBounds(id, raw?.contextWindow || raw?.context_window, raw?.maxOutputTokens, raw?.maxInputTokens);
+        const bounds = this.normalizeBounds(
+          id,
+          raw?.contextWindow || raw?.context_window,
+          raw?.maxOutputTokens,
+          raw?.maxInputTokens
+        );
+        const cache = this.getCacheEntry(prov.name, id);
         modelsList.push({
           id,
           name: this.prettifyModelName(id, raw?.name, prov.name),
           url: chatUrl,
-          toolCalling: raw?.toolCalling !== undefined ? Boolean(raw.toolCalling) : true,
+          toolCalling:
+            cache?.verifiedTools !== undefined
+              ? cache.verifiedTools
+              : raw?.toolCalling !== undefined
+              ? Boolean(raw.toolCalling)
+              : true,
           vision: Boolean(raw?.vision || raw?.supports_vision),
           maxInputTokens: bounds.maxInputTokens,
           maxOutputTokens: bounds.maxOutputTokens,
           contextWindow: bounds.contextWindow,
           providerName: prov.name,
+          _latency: cache?.latency,
+          _verifiedWorking: cache?.working,
         });
       }
 
-      const filtered = this.filterModels(modelsList, profile);
+      const filtered = this.filterModels(modelsList, profile, onlyVerifiedWorking);
       if (filtered.length > 0) {
         providers.push({
           name: prov.name,
