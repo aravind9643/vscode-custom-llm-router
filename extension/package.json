@@ -50,7 +50,17 @@
       },
       {
         "command": "vscode-custom-llm-router.syncModels",
-        "title": "Custom LLM Router: Sync Models",
+        "title": "Custom LLM Router: Refresh / Sync Models",
+        "category": "Custom LLM"
+      },
+      {
+        "command": "vscode-custom-llm-router.addProvider",
+        "title": "Custom LLM Router: Add Custom Model Provider",
+        "category": "Custom LLM"
+      },
+      {
+        "command": "vscode-custom-llm-router.manageProviders",
+        "title": "Custom LLM Router: Manage / Toggle Providers",
         "category": "Custom LLM"
       },
       {
@@ -64,18 +74,8 @@
         "category": "Custom LLM"
       },
       {
-        "command": "vscode-custom-llm-router.configureEnv",
-        "title": "Custom LLM Router: Configure .env Endpoints & Keys",
-        "category": "Custom LLM"
-      },
-      {
-        "command": "vscode-custom-llm-router.configureRules",
-        "title": "Custom LLM Router: Configure models.config.json & Providers",
-        "category": "Custom LLM"
-      },
-      {
-        "command": "vscode-custom-llm-router.addProvider",
-        "title": "Custom LLM Router: Add Custom Model Provider",
+        "command": "vscode-custom-llm-router.openSettings",
+        "title": "Custom LLM Router: Open Extension Settings",
         "category": "Custom LLM"
       }
     ],
@@ -91,18 +91,100 @@
           "command": "vscode-custom-llm-router.addProvider"
         },
         {
+          "command": "vscode-custom-llm-router.manageProviders"
+        },
+        {
           "command": "vscode-custom-llm-router.checkStatus"
         },
         {
           "command": "vscode-custom-llm-router.selectProfile"
         },
         {
-          "command": "vscode-custom-llm-router.configureEnv"
-        },
-        {
-          "command": "vscode-custom-llm-router.configureRules"
+          "command": "vscode-custom-llm-router.openSettings"
         }
       ]
+    },
+    "configuration": {
+      "title": "Custom LLM Router",
+      "properties": {
+        "customLlmRouter.providers": {
+          "type": "array",
+          "default": [
+            {
+              "name": "FreeLLMAPI",
+              "endpointUrl": "http://127.0.0.1:31415",
+              "apiKey": "",
+              "autoDiscover": true,
+              "enabled": true
+            },
+            {
+              "name": "OmniRoute",
+              "endpointUrl": "http://localhost:20128",
+              "apiKey": "",
+              "autoDiscover": true,
+              "enabled": true
+            }
+          ],
+          "description": "List of OpenAI-compatible model providers (Ollama, LM Studio, vLLM, OpenRouter, DeepSeek, OpenAI, FreeLLMAPI, OmniRoute, etc.).",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Provider display name"
+              },
+              "endpointUrl": {
+                "type": "string",
+                "description": "OpenAI-compatible base URL (e.g. http://localhost:11434)"
+              },
+              "apiKey": {
+                "type": "string",
+                "description": "API Key or Bearer Token (optional for local servers)"
+              },
+              "autoDiscover": {
+                "type": "boolean",
+                "default": true,
+                "description": "Automatically query /v1/models to fetch available models"
+              },
+              "enabled": {
+                "type": "boolean",
+                "default": true,
+                "description": "Enable or disable this provider"
+              }
+            },
+            "required": ["name", "endpointUrl"]
+          }
+        },
+        "customLlmRouter.blacklistPatterns": {
+          "type": "array",
+          "default": [
+            "image",
+            "inpainting",
+            "pixel-art",
+            "flux",
+            "diffusion",
+            "tts",
+            "voice",
+            "translat",
+            "whisper",
+            "safety"
+          ],
+          "description": "Substrings in model IDs to automatically exclude (e.g. non-chat / image / TTS models)."
+        },
+        "customLlmRouter.whitelistExactIds": {
+          "type": "array",
+          "default": [
+            "auto",
+            "auto/best-coding",
+            "auto/best-fast",
+            "auto/best-reasoning",
+            "auto/best-vision",
+            "auto/best-chat",
+            "auto/best-free"
+          ],
+          "description": "Exact model IDs that should always be included regardless of blacklist filters."
+        }
+      }
     },
     "languageModelChatProviders": [
       {

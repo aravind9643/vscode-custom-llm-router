@@ -1,12 +1,3 @@
-import * as fs from "fs";
-import * as path from "path";
-
-export interface ModelRuleConfig {
-  blacklistPatterns?: string[];
-  whitelistExactIds?: string[];
-  providers?: CustomProviderConfig[];
-}
-
 export interface CustomModelConfig {
   id: string;
   name?: string;
@@ -19,14 +10,13 @@ export interface CustomModelConfig {
 
 export interface CustomProviderConfig {
   name: string;
-  endpointUrl: string; // e.g. "https://api.openai.com/v1" or "http://localhost:11434/v1"
+  endpointUrl: string; // e.g. "http://localhost:11434" or "https://api.openai.com"
   apiKey?: string;
-  secretHandle?: string; // e.g. "${input:chat.lm.secret.custom}"
-  modelsEndpoint?: string; // Optional custom endpoint for model discovery, defaults to endpointUrl/models
-  chatEndpoint?: string; // Optional custom endpoint for chat, defaults to endpointUrl/chat/completions
-  staticModels?: CustomModelConfig[]; // Static list of models if /v1/models is not available or user wants specific ones
-  autoDiscover?: boolean; // Whether to fetch from /v1/models (defaults to true)
-  enabled?: boolean; // Whether provider is active (defaults to true)
+  modelsEndpoint?: string;
+  chatEndpoint?: string;
+  staticModels?: CustomModelConfig[];
+  autoDiscover?: boolean;
+  enabled?: boolean;
 }
 
 export interface VSCodeModel {
@@ -52,10 +42,7 @@ export interface VSCodeProvider {
 }
 
 export interface GeneratorOptions {
-  skipTest?: boolean;
   profile?: "all" | "coding" | "top";
-  verifyTools?: boolean;
-  forceRefresh?: boolean;
   onProgress?: (msg: string) => void;
 }
 
@@ -105,120 +92,42 @@ const CODING_MODEL_KEYWORDS = [
 ];
 
 export class ModelEngine {
-  public baseDir: string;
-  public freeLlmUrl: string;
-  public freeLlmKey: string;
-  public freeLlmSecret: string;
-  public omniUrl: string;
-  public omniKey: string;
-  public omniSecret: string;
+  private _providers: CustomProviderConfig[] = [];
+  private _blacklistPatterns: string[] = ["image", "inpainting", "pixel-art", "flux", "diffusion", "tts", "voice", "translat", "whisper", "safety"];
+  private _whitelistExactIds: string[] = ["auto", "auto/best-coding", "auto/best-fast", "auto/best-reasoning", "auto/best-vision", "auto/best-chat", "auto/best-free"];
 
-  constructor(baseDir: string) {
-    this.baseDir = baseDir;
-    this.loadEnv();
-    this.freeLlmUrl = process.env.FREELLMAPI_URL || "http://127.0.0.1:31415";
-    this.freeLlmKey = process.env.FREELLMAPI_KEY || "";
-    this.freeLlmSecret = process.env.FREELLMAPI_VSCODE_SECRET || "${input:chat.lm.secret.50cd2a8f}";
+  constructor() {
+    this.reloadConfig();
+  }
 
-    this.omniUrl = process.env.OMNIROUTE_URL || "http://localhost:20128";
-    this.omniKey = process.env.OMNIROUTE_KEY || process.env.OMNIROUTE_API_KEY || "";
-    this.omniSecret = process.env.OMNIROUTE_VSCODE_SECRET || "${input:chat.lm.secret.5048ce49}";
+  public updateConfig(providers: CustomProviderConfig[], blacklist?: string[], whitelist?: string[]) {
+    this._providers = providers || [];
+    if (blacklist) this._blacklistPatterns = blacklist;
+    if (whitelist) this._whitelistExactIds = whitelist;
   }
 
   public reloadConfig(): void {
-    this.loadEnv();
-    this.freeLlmUrl = process.env.FREELLMAPI_URL || "http://127.0.0.1:31415";
-    this.freeLlmKey = process.env.FREELLMAPI_KEY || "";
-    this.freeLlmSecret = process.env.FREELLMAPI_VSCODE_SECRET || "${input:chat.lm.secret.50cd2a8f}";
-
-    this.omniUrl = process.env.OMNIROUTE_URL || "http://localhost:20128";
-    this.omniKey = process.env.OMNIROUTE_KEY || process.env.OMNIROUTE_API_KEY || "";
-    this.omniSecret = process.env.OMNIROUTE_VSCODE_SECRET || "${input:chat.lm.secret.5048ce49}";
+    // Providers are updated directly via VS Code settings / global state
   }
 
-  private loadEnv(): void {
-    const envPath = path.resolve(this.baseDir, ".env");
-    if (!fs.existsSync(envPath)) return;
-    try {
-      const content = fs.readFileSync(envPath, "utf8");
-      for (const line of content.split(/\r?\n/)) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith("#")) continue;
-        const eqIdx = trimmed.indexOf("=");
-        if (eqIdx === -1) continue;
-        const key = trimmed.slice(0, eqIdx).trim();
-        const val = trimmed.slice(eqIdx + 1).trim();
-        if (!process.env[key]) {
-          process.env[key] = val;
-        }
-      }
-    } catch {}
-  }
-
-  /**
-   * Loads all configured providers:
-   * 1. Built-in defaults: FreeLLMAPI and OmniRoute (via env or defaults)
-   * 2. Any additional custom providers declared in models.config.json under "providers"
-   * 3. Any additional custom providers declared via env prefix CUSTOM_PROVIDER_*
-   */
   public getConfiguredProviders(): CustomProviderConfig[] {
-    const providers: CustomProviderConfig[] = [];
-
-    // 1. FreeLLMAPI
-    providers.push({
-      name: "FreeLLMAPI",
-      endpointUrl: this.freeLlmUrl,
-      apiKey: this.freeLlmKey,
-      secretHandle: this.freeLlmSecret,
-      autoDiscover: true,
-      enabled: true,
-    });
-
-    // 2. OmniRoute
-    providers.push({
-      name: "OmniRoute",
-      endpointUrl: this.omniUrl,
-      apiKey: this.omniKey,
-      secretHandle: this.omniSecret,
-      autoDiscover: true,
-      enabled: true,
-    });
-
-    // 3. User configured providers from models.config.json
-    const rules = this.loadRules();
-    if (Array.isArray(rules.providers)) {
-      for (const p of rules.providers) {
-        if (!p.name || !p.endpointUrl) continue;
-        // Avoid duplicate by name
-        const existingIdx = providers.findIndex((ep) => ep.name.toLowerCase() === p.name.toLowerCase());
-        if (existingIdx !== -1) {
-          providers[existingIdx] = { ...providers[existingIdx], ...p };
-        } else {
-          providers.push({
-            autoDiscover: p.autoDiscover !== false,
-            enabled: p.enabled !== false,
-            ...p,
-          });
-        }
-      }
-    }
-
-    return providers.filter((p) => p.enabled !== false);
+    return this._providers.filter((p) => p.enabled !== false && p.endpointUrl && p.endpointUrl.trim().length > 0);
   }
 
-  public async checkEndpoints(): Promise<{ freeLlm: EndpointStatus; omniRoute: EndpointStatus; all: EndpointStatus[] }> {
+  public async checkEndpoints(): Promise<{ all: EndpointStatus[] }> {
     const configured = this.getConfiguredProviders();
     const results: EndpointStatus[] = [];
 
     for (const prov of configured) {
-      let status: EndpointStatus = {
+      const status: EndpointStatus = {
         name: prov.name,
         url: prov.endpointUrl,
         online: false,
         modelCount: 0,
       };
 
-      const modelsUrl = prov.modelsEndpoint || `${prov.endpointUrl.replace(/\/+$/, "")}/v1/models`;
+      const cleanEndpoint = prov.endpointUrl.replace(/\/+$/, "");
+      const modelsUrl = prov.modelsEndpoint || `${cleanEndpoint}/v1/models`;
       const headers: Record<string, string> = { Accept: "application/json" };
       if (prov.apiKey) {
         headers["Authorization"] = `Bearer ${prov.apiKey}`;
@@ -235,7 +144,6 @@ export class ModelEngine {
           status.online = true;
           status.modelCount = list.length + (prov.staticModels?.length || 0);
         } else {
-          // If models endpoint failed but static models exist, check if chat endpoint responds
           if (prov.staticModels && prov.staticModels.length > 0) {
             status.online = true;
             status.modelCount = prov.staticModels.length;
@@ -256,20 +164,7 @@ export class ModelEngine {
       results.push(status);
     }
 
-    const freeLlm = results.find((r) => r.name === "FreeLLMAPI") || {
-      name: "FreeLLMAPI",
-      url: this.freeLlmUrl,
-      online: false,
-      modelCount: 0,
-    };
-    const omniRoute = results.find((r) => r.name === "OmniRoute") || {
-      name: "OmniRoute",
-      url: this.omniUrl,
-      online: false,
-      modelCount: 0,
-    };
-
-    return { freeLlm, omniRoute, all: results };
+    return { all: results };
   }
 
   public prettifyModelName(id: string, rawName?: string, providerName?: string): string {
@@ -345,22 +240,9 @@ export class ModelEngine {
     return { contextWindow, maxOutputTokens, maxInputTokens };
   }
 
-  public loadRules(): ModelRuleConfig {
-    const configPath = path.resolve(this.baseDir, "models.config.json");
-    if (!fs.existsSync(configPath)) {
-      return { blacklistPatterns: [], whitelistExactIds: [] };
-    }
-    try {
-      return JSON.parse(fs.readFileSync(configPath, "utf8"));
-    } catch {
-      return { blacklistPatterns: [], whitelistExactIds: [] };
-    }
-  }
-
   public filterModels(models: VSCodeModel[], profile: string = "all"): VSCodeModel[] {
-    const rules = this.loadRules();
-    const blacklist = rules.blacklistPatterns || [];
-    const whitelist = new Set(rules.whitelistExactIds || []);
+    const blacklist = this._blacklistPatterns;
+    const whitelist = new Set(this._whitelistExactIds);
 
     let filtered = models.filter((m) => {
       if (whitelist.has(m.id)) return true;
@@ -387,9 +269,6 @@ export class ModelEngine {
     return filtered;
   }
 
-  /**
-   * Generates providers and models for all configured endpoints
-   */
   public async generateProviders(options: GeneratorOptions = {}): Promise<VSCodeProvider[]> {
     const { profile = "all", onProgress } = options;
     const configured = this.getConfiguredProviders();
@@ -422,7 +301,7 @@ export class ModelEngine {
             modelsRaw = Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : [];
           }
         } catch {
-          // Fall back to static models if discovery fails
+          // ignore network error
         }
       }
 
@@ -464,7 +343,7 @@ export class ModelEngine {
       for (const raw of modelsRaw) {
         const id = raw?.id || raw?.model;
         if (!id) continue;
-        if (modelsList.some((existing) => existing.id === id)) continue; // avoid duplicate with staticModels
+        if (modelsList.some((existing) => existing.id === id)) continue;
 
         const bounds = this.normalizeBounds(id, raw?.contextWindow || raw?.context_window, raw?.maxOutputTokens, raw?.maxInputTokens);
         modelsList.push({
@@ -485,7 +364,7 @@ export class ModelEngine {
         providers.push({
           name: prov.name,
           vendor: "customendpoint",
-          apiKey: prov.secretHandle || prov.apiKey || "",
+          apiKey: prov.apiKey || "",
           apiType: "chat-completions",
           models: filtered,
         });
@@ -493,62 +372,5 @@ export class ModelEngine {
     }
 
     return providers;
-  }
-
-  public getTargetPaths(): { name: string; chatModelsJson: string }[] {
-    const targets: { name: string; chatModelsJson: string }[] = [];
-    const home = process.env.HOME || process.env.USERPROFILE || "";
-    const appData = process.env.APPDATA;
-
-    const candidates: { name: string; dir: string }[] = [];
-
-    if (process.platform === "win32" && appData) {
-      candidates.push(
-        { name: "VS Code Insiders", dir: path.join(appData, "Code - Insiders", "User") },
-        { name: "VS Code", dir: path.join(appData, "Code", "User") }
-      );
-    } else if (process.platform === "darwin" && home) {
-      candidates.push(
-        { name: "VS Code Insiders", dir: path.join(home, "Library", "Application Support", "Code - Insiders", "User") },
-        { name: "VS Code", dir: path.join(home, "Library", "Application Support", "Code", "User") }
-      );
-    } else if (home) {
-      // Linux / Unix
-      candidates.push(
-        { name: "VS Code Insiders", dir: path.join(home, ".config", "Code - Insiders", "User") },
-        { name: "VS Code", dir: path.join(home, ".config", "Code", "User") }
-      );
-    }
-
-    for (const c of candidates) {
-      if (fs.existsSync(c.dir)) {
-        targets.push({
-          name: c.name,
-          chatModelsJson: path.join(c.dir, "chatLanguageModels.json"),
-        });
-      }
-    }
-    return targets;
-  }
-
-  public deployToVSCode(providers: VSCodeProvider[]): string[] {
-    const targets = this.getTargetPaths();
-    const deployedPaths: string[] = [];
-    const jsonStr = JSON.stringify(providers, null, 4) + "\n";
-
-    // Write local workspace file if in a writable directory
-    try {
-      const localFile = path.resolve(this.baseDir, "chatLanguageModels.json");
-      fs.writeFileSync(localFile, jsonStr, "utf8");
-      deployedPaths.push(localFile);
-    } catch {}
-
-    for (const t of targets) {
-      try {
-        fs.writeFileSync(t.chatModelsJson, jsonStr, "utf8");
-        deployedPaths.push(t.chatModelsJson);
-      } catch {}
-    }
-    return deployedPaths;
   }
 }

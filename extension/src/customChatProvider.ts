@@ -23,11 +23,7 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
   ): Promise<vscode.LanguageModelChatInformation[]> {
     try {
       this.engine.reloadConfig();
-      // Generate providers list (respects models.config.json blacklist/whitelist)
-      const providers = await this.engine.generateProviders({
-        skipTest: true,
-        forceRefresh: true,
-      });
+      const providers = await this.engine.generateProviders();
 
       const result: vscode.LanguageModelChatInformation[] = [];
       this.cachedModels = [];
@@ -74,8 +70,8 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
     token: vscode.CancellationToken
   ): Promise<void> {
     const routing = this.modelVendorMap.get(model.id);
-    const endpointBase = routing?.endpointUrl || this.engine.omniUrl || "http://localhost:20128";
-    const apiKey = routing?.apiKey || this.engine.omniKey || "";
+    const endpointBase = routing?.endpointUrl || "http://localhost:11434";
+    const apiKey = routing?.apiKey || "";
 
     // Convert VS Code messages into OpenAI Chat Completion messages format
     const formattedMessages: any[] = [];
