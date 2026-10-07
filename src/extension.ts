@@ -11,8 +11,6 @@ export function activate(context: vscode.ExtensionContext) {
   function refreshEngineFromSettings() {
     const config = vscode.workspace.getConfiguration("customLlmRouter");
     const providers = config.get<CustomProviderConfig[]>("providers") || [];
-    const blacklist = config.get<string[]>("blacklistPatterns") || [];
-    const whitelist = config.get<string[]>("whitelistExactIds") || [];
     engine.updateConfig(providers);
   }
 

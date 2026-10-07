@@ -372,7 +372,7 @@ export class ConfigWebviewPanel {
         b.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;">No active models found.</td></tr>';
         return;
       }
-      b.innerHTML = activeModels.map(m => {
+      b.innerHTML = activeModels.map((m, mIdx) => {
         const safe = m.id.replace(/[^a-zA-Z0-9_-]/g, '_');
         const inK = Math.round((m.maxInputTokens || 128000) / 1000);
         const outK = Math.round((m.maxOutputTokens || 16000) / 1000);
@@ -396,7 +396,7 @@ export class ConfigWebviewPanel {
           '<td>' + inK + 'k / ' + outK + 'k</td>' +
           '<td>' + verifyBadge + '</td>' +
           '<td>' +
-            '<button class="sec" style="padding:2px 8px;" onclick="pingModel(\\'' + m.provider + '\\', \\'' + m.id + '\\', \\'' + safe + '\\')">Ping & Tools</button>' +
+            '<button class="sec" style="padding:2px 8px;" onclick="pingModelByIdx(' + mIdx + ')">Ping & Tools</button>' +
             '<span id="ping-' + safe + '" style="margin-left:6px;font-size:11px;"></span>' +
           '</td>' +
         '</tr>';
@@ -463,6 +463,13 @@ export class ConfigWebviewPanel {
       const el = document.getElementById('res-' + idx);
       if (el) { el.style.display = 'block'; el.style.color = 'var(--fg)'; el.innerText = 'Connecting...'; }
       vscode.postMessage({ cmd: 'testProv', idx: idx, prov: providers[idx] });
+    }
+
+    function pingModelByIdx(idx) {
+      const m = activeModels[idx];
+      if (!m) return;
+      const safe = m.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+      pingModel(m.provider, m.id, safe);
     }
 
     function pingModel(provName, modelId, safe) {

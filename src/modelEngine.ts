@@ -627,16 +627,20 @@ export class ModelEngine {
     const whitelist = new Set(this._whitelistExactIds);
 
     let filtered = models.filter((m) => {
-      if (onlyVerifiedWorking && m._verifiedWorking === false) {
-        return false;
-      }
-      if (onlyVerifiedWorking && m._verifiedWorking === false) {
-        return false;
-      }
+      // 1. Strictly exclude any model that is verified as offline/failed
       const cache = this.getCacheEntry(m.providerName || '', m.id);
-      if (onlyVerifiedWorking && cache && cache.working === false) {
+      if (cache && cache.working === false) {
         return false;
       }
+      if (m._verifiedWorking === false) {
+        return false;
+      }
+
+      // 2. If onlyVerifiedWorking mode is active, exclude models that haven't been tested yet
+      if (onlyVerifiedWorking && (!cache || cache.working !== true)) {
+        return false;
+      }
+
       if (whitelist.has(m.id)) return true;
       const idLower = m.id.toLowerCase();
       return !blacklist.some((pat) => idLower.includes(pat.toLowerCase()));

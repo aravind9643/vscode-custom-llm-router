@@ -7,7 +7,7 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
 
   private engine: ModelEngine;
   private cachedModels: VSCodeModel[] = [];
-  private modelVendorMap: Map<string, { endpointUrl: string; apiKey: string }> = new Map();
+  private modelVendorMap: Map<string, { endpointUrl: string; apiKey: string; providerName: string }> = new Map();
 
   constructor(engine: ModelEngine) {
     this.engine = engine;
@@ -49,6 +49,7 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
           this.modelVendorMap.set(m.id, {
             endpointUrl: m.url,
             apiKey: prov.apiKey,
+            providerName: prov.name,
           });
 
           result.push({
@@ -168,7 +169,9 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
     }
 
     // Initiate streaming POST request to OpenAI compatible endpoint
-    const url = `${endpointBase.replace(/\/+$/, "")}/v1/chat/completions`;
+    const url = endpointBase.includes("/chat/completions")
+      ? endpointBase
+      : `${endpointBase.replace(/\/+$/, "")}/v1/chat/completions`;
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -189,7 +192,17 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
     if (!response.ok) {
       const errText = await response.text();
       const errorMsg = `Error from ${model.id} (${response.status}): ${errText}`;
-      progress.report(new vscode.LanguageModelTextPart(`\n\nâš ï¸ **${errorMsg}**\n`));
+      if (routing?.providerName) {
+        await this.engine.setCacheEntry({
+          modelId: model.id,
+          providerName: routing.providerName,
+          working: false,
+          latency: 0,
+          testedAt: Date.now(),
+        });
+        this.notifyModelsChanged();
+      }
+      progress.report(new vscode.LanguageModelTextPart(`\n\n⚠️ **${errorMsg}**\n`));
       return;
     }
 
@@ -204,7 +217,8 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
 
     const pendingToolCalls: Map<number, { id: string; name: string; args: string }> = new Map();
 
-    while (true) {
+    try {
+      while (true) {
       if (token.isCancellationRequested) {
         break;
       }
@@ -260,6 +274,11 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
         } catch {
           // ignore chunk parse issues
         }
+      }
+    }
+  } catch (streamErr: any) {
+      if (!token.isCancellationRequested) {
+        progress.report(new vscode.LanguageModelTextPart(`\n\n⚠️ **Stream interrupted:** ${streamErr?.message || streamErr}\n`));
       }
     }
 
