@@ -115,7 +115,8 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package --no-dependencies"
+    "package": "vsce package --no-dependencies",
+    "install:insiders": "npm run compile && vsce package --no-dependencies && code-insiders --install-extension vscode-custom-llm-router-1.0.0.vsix --force"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
