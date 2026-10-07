@@ -45,6 +45,11 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
             continue;
           }
 
+          // Exclude any model deselected by the user in the dashboard
+          if (this.engine.isModelDisabled(prov.name, m.id)) {
+            continue;
+          }
+
           this.cachedModels.push(m);
           this.modelVendorMap.set(m.id, {
             endpointUrl: m.url,

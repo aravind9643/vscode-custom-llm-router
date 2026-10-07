@@ -11,7 +11,8 @@ export function activate(context: vscode.ExtensionContext) {
   function refreshEngineFromSettings() {
     const config = vscode.workspace.getConfiguration("customLlmRouter");
     const providers = config.get<CustomProviderConfig[]>("providers") || [];
-    engine.updateConfig(providers);
+    const disabledModels = config.get<string[]>("disabledModelIds") || [];
+    engine.updateConfig(providers, disabledModels);
   }
 
   refreshEngineFromSettings();
@@ -72,8 +73,9 @@ export function activate(context: vscode.ExtensionContext) {
             onProgress: (m) => progress.report({ message: m }),
           });
 
-          const totalModels = providers.reduce((acc, p) => acc + (p.models?.length || 0), 0);
+          const totalModels = providers.reduce((acc, p) => acc + (p.models?.filter(m => !engine.isModelDisabled(p.name, m.id)).length || 0), 0);
           updateStatusBar(totalModels > 0, totalModels);
+          updateHealthStatus(engine);
           customChatProvider.notifyModelsChanged();
 
           if (providers.length === 0) {
@@ -196,12 +198,19 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.executeCommand("vscode-custom-llm-router.openDashboard");
   });
 
+  const clearCacheCommand = vscode.commands.registerCommand("vscode-custom-llm-router.clearCache", async () => {
+    await engine.clearCache();
+    vscode.window.showInformationMessage("Verified models cache cleared.");
+    vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
+  });
+
   // 8. Master Menu
   const showMenuCommand = vscode.commands.registerCommand("vscode-custom-llm-router.showMenu", async () => {
     const options = [
       { label: "$(dashboard) Open Dashboard", detail: "Dedicated configuration page for providers, live tests & models catalog", id: "dashboard" },
       { label: "$(beaker) Verify & Benchmark Models", detail: "Run live testing and tool-calling validation on all models", id: "testAll" },
       { label: "$(sync) Sync Models", detail: "Scan configured endpoints and update Copilot models", id: "sync" },
+      { label: "$(trash) Clear Verified Cache", detail: "Clear all cached verification and benchmark entries", id: "clearCache" },
       { label: "$(filter) Switch Profile", detail: "Filter by All, Coding, or Top-tier models", id: "profile" },
       { label: "$(pulse) Check Endpoints Status", detail: "Probe connectivity and model counts across endpoints", id: "status" },
     ];
@@ -218,6 +227,8 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.commands.executeCommand("vscode-custom-llm-router.testAllModels", false);
     } else if (chosen.id === "sync") {
       vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
+    } else if (chosen.id === "clearCache") {
+      vscode.commands.executeCommand("vscode-custom-llm-router.clearCache");
     } else if (chosen.id === "profile") {
       vscode.commands.executeCommand("vscode-custom-llm-router.selectProfile");
     } else if (chosen.id === "status") {
@@ -233,6 +244,7 @@ export function activate(context: vscode.ExtensionContext) {
     selectProfileCommand,
     addProviderCommand,
     manageProvidersCommand,
+    clearCacheCommand,
     showMenuCommand
   );
 

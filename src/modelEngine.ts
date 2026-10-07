@@ -32,6 +32,10 @@ export interface VSCodeModel {
   providerName?: string;
   _latency?: number;
   _verifiedWorking?: boolean;
+  _error?: string;
+  isCoding?: boolean;
+  isReasoning?: boolean;
+  disabled?: boolean;
 }
 
 export interface VSCodeProvider {
@@ -60,6 +64,7 @@ export interface VerifiedCacheEntry {
   working: boolean;
   latency: number;
   verifiedTools?: boolean;
+  error?: string;
   testedAt: number;
 }
 
@@ -71,6 +76,7 @@ export interface VerifiedCacheStore {
 export interface GeneratorOptions {
   profile?: "all" | "coding" | "top";
   onlyVerifiedWorking?: boolean;
+  includeFailed?: boolean;
   onProgress?: (msg: string) => void;
 }
 
@@ -123,6 +129,19 @@ const CACHE_TTL_MS = 48 * 60 * 60 * 1000; // 48 Hours
 
 export class ModelEngine {
   private _providers: CustomProviderConfig[] = [];
+  private _disabledModelIds: Set<string> = new Set();
+
+  public setDisabledModelIds(ids: string[]): void {
+    this._disabledModelIds = new Set(ids || []);
+  }
+
+  public isModelDisabled(providerName: string, modelId: string): boolean {
+    return this._disabledModelIds.has(`${providerName}::${modelId}`) || this._disabledModelIds.has(modelId);
+  }
+
+  public getDisabledModelIds(): string[] {
+    return Array.from(this._disabledModelIds);
+  }
   private _blacklistPatterns: string[] = [
     "image",
     "inpainting",
@@ -219,8 +238,11 @@ export class ModelEngine {
     return Object.values(this._verifiedCache.entries);
   }
 
-  public updateConfig(providers: CustomProviderConfig[]) {
+  public updateConfig(providers: CustomProviderConfig[], disabledModels?: string[]) {
     this._providers = providers || [];
+    if (disabledModels) {
+      this.setDisabledModelIds(disabledModels);
+    }
   }
 
   public reloadConfig(): void {
@@ -366,6 +388,7 @@ export class ModelEngine {
       providerName: provider.name,
       working: false,
       latency: lastResult.latency,
+      error: lastResult.error,
       testedAt: Date.now(),
     });
 
@@ -518,22 +541,12 @@ export class ModelEngine {
           status.online = true;
           status.modelCount = list.length + (prov.staticModels?.length || 0);
         } else {
-          if (prov.staticModels && prov.staticModels.length > 0) {
-            status.online = true;
-            status.modelCount = prov.staticModels.length;
-          } else {
-            status.online = false;
-            status.error = `HTTP ${res.status}`;
-          }
+          status.online = false;
+          status.error = `HTTP ${res.status}`;
         }
       } catch (e: any) {
-        if (prov.staticModels && prov.staticModels.length > 0) {
-          status.online = true;
-          status.modelCount = prov.staticModels.length;
-        } else {
-          status.online = false;
-          status.error = e.message;
-        }
+        status.online = false;
+        status.error = e.message;
       }
       results.push(status);
     }
@@ -621,19 +634,22 @@ export class ModelEngine {
   public filterModels(
     models: VSCodeModel[],
     profile: string = "all",
-    onlyVerifiedWorking: boolean = false
+    onlyVerifiedWorking: boolean = false,
+    includeFailed: boolean = false
   ): VSCodeModel[] {
     const blacklist = this._blacklistPatterns;
     const whitelist = new Set(this._whitelistExactIds);
 
     let filtered = models.filter((m) => {
-      // 1. Strictly exclude any model that is verified as offline/failed
+      // 1. Exclude models verified as offline/failed (unless includeFailed is requested, e.g. for the dashboard catalog)
       const cache = this.getCacheEntry(m.providerName || '', m.id);
-      if (cache && cache.working === false) {
-        return false;
-      }
-      if (m._verifiedWorking === false) {
-        return false;
+      if (!includeFailed) {
+        if (cache && cache.working === false) {
+          return false;
+        }
+        if (m._verifiedWorking === false) {
+          return false;
+        }
       }
 
       // 2. If onlyVerifiedWorking mode is active, exclude models that haven't been tested yet
@@ -667,7 +683,7 @@ export class ModelEngine {
   }
 
   public async generateProviders(options: GeneratorOptions = {}): Promise<VSCodeProvider[]> {
-    const { profile = "all", onlyVerifiedWorking = false, onProgress } = options;
+    const { profile = "all", onlyVerifiedWorking = false, includeFailed = false, onProgress } = options;
     const configured = this.getConfiguredProviders();
     const providers: VSCodeProvider[] = [];
 
@@ -683,6 +699,7 @@ export class ModelEngine {
           : `${cleanEndpoint}/v1/models`);
 
       let modelsRaw: any[] = [];
+      let isEndpointOnline = false;
 
       if (prov.autoDiscover !== false) {
         try {
@@ -693,22 +710,26 @@ export class ModelEngine {
 
           const res = await fetch(modelsUrl, {
             headers,
-            signal: AbortSignal.timeout(6000),
+            signal: AbortSignal.timeout(4000),
           });
 
           if (res.ok) {
             const d: any = await res.json();
             modelsRaw = Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : [];
+            isEndpointOnline = true;
           }
         } catch {
-          // ignore network error
+          // endpoint is unreachable/offline
+          isEndpointOnline = false;
         }
+      } else {
+        isEndpointOnline = true;
       }
 
       const modelsList: VSCodeModel[] = [];
 
-      // Add auto model for FreeLLMAPI if active
-      if (prov.name === "FreeLLMAPI") {
+      // Add auto model for FreeLLMAPI ONLY if endpoint is online and reachable
+      if (prov.name === "FreeLLMAPI" && isEndpointOnline) {
         const cache = this.getCacheEntry(prov.name, "auto");
         modelsList.push({
           id: "auto",
@@ -721,6 +742,7 @@ export class ModelEngine {
           providerName: prov.name,
           _latency: cache?.latency,
           _verifiedWorking: cache?.working,
+          _error: cache?.error,
         });
       }
 
@@ -751,6 +773,7 @@ export class ModelEngine {
             providerName: prov.name,
             _latency: cache?.latency,
             _verifiedWorking: cache?.working,
+            _error: cache?.error,
           });
         }
       }
@@ -788,7 +811,7 @@ export class ModelEngine {
         });
       }
 
-      const filtered = this.filterModels(modelsList, profile, onlyVerifiedWorking);
+      const filtered = this.filterModels(modelsList, profile, onlyVerifiedWorking, includeFailed);
       if (filtered.length > 0) {
         providers.push({
           name: prov.name,

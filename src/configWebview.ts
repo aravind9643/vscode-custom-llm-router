@@ -69,6 +69,13 @@ export class ConfigWebviewPanel {
         } else if (msg.cmd === "clearCache") {
           await this._engine.clearCache();
           vscode.window.showInformationMessage("Verified models cache cleared.");
+          vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
+          await this._sendState();
+        } else if (msg.cmd === "saveDisabledModels") {
+          const config = vscode.workspace.getConfiguration("customLlmRouter");
+          await config.update("disabledModelIds", msg.disabledModels, vscode.ConfigurationTarget.Global);
+          this._engine.setDisabledModelIds(msg.disabledModels);
+          vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
           await this._sendState();
         } else if (msg.cmd === "syncNow") {
           vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
@@ -80,17 +87,29 @@ export class ConfigWebviewPanel {
     );
   }
 
-  private async _sendState() {
+    private async _sendState() {
     const config = vscode.workspace.getConfiguration("customLlmRouter");
     const providers = config.get<CustomProviderConfig[]>("providers") || [];
-    const blacklist = config.get<string[]>("blacklistPatterns") || [];
-    const whitelist = config.get<string[]>("whitelistExactIds") || [];
-    const provs = await this._engine.generateProviders({ profile: "all" });
+    const disabledModels = config.get<string[]>("disabledModelIds") || [];
+    
+    // In dashboard catalog: includeFailed: true so failed/offline models are visible for inspection & re-testing
+    const provs = await this._engine.generateProviders({ profile: "all", includeFailed: true });
 
-    const models: (VSCodeModel & { provider: string })[] = [];
+    const models: (VSCodeModel & { provider: string; disabled: boolean; isCoding: boolean; isReasoning: boolean })[] = [];
     for (const p of provs) {
       for (const m of p.models || []) {
-        models.push({ ...m, provider: p.name });
+        const fullKey = `${p.name}::${m.id}`;
+        const isDisabled = disabledModels.includes(fullKey) || disabledModels.includes(m.id);
+        const idLower = m.id.toLowerCase();
+        const isCoding = Boolean(idLower.match(/(coder|coding|code|dev|claude|gpt-4|deepseek|qwen)/) || m.toolCalling);
+        const isReasoning = Boolean(idLower.match(/(reasoning|r1|o1|o3|thinking|thought)/) || m.thinking);
+        models.push({
+          ...m,
+          provider: p.name,
+          disabled: isDisabled,
+          isCoding,
+          isReasoning,
+        });
       }
     }
 
@@ -99,10 +118,9 @@ export class ConfigWebviewPanel {
     this._panel.webview.postMessage({
       cmd: "state",
       providers,
-      
-      
       models,
       cacheEntries,
+      disabledModels,
     });
   }
 
@@ -191,6 +209,14 @@ export class ConfigWebviewPanel {
     .presets-bar { display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
     .preset-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); font-size: 11px; padding: 4px 8px; border-radius: 4px; color: var(--fg); cursor: pointer; }
     .preset-btn:hover { background: rgba(255,255,255,0.12); }
+    .chip { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--fg); padding: 4px 10px; border-radius: 14px; font-size: 11px; cursor: pointer; transition: all 0.2s; user-select: none; }
+    .chip:hover { background: rgba(255,255,255,0.12); }
+    .chip.active { background: var(--btn-bg); color: #fff; border-color: var(--btn-bg); font-weight: 600; }
+    .selection-bar { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; padding: 8px 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; }
+    .model-cat { font-size: 10px; padding: 2px 5px; border-radius: 3px; font-weight: 500; margin-right: 4px; display: inline-block; }
+    .model-cat.code { background: rgba(86,156,214,0.2); color: #569cd6; border: 1px solid rgba(86,156,214,0.4); }
+    .model-cat.reasoning { background: rgba(197,134,192,0.2); color: #c586c0; border: 1px solid rgba(197,134,192,0.4); }
+    .model-cat.vision { background: rgba(206,145,120,0.2); color: #ce9178; border: 1px solid rgba(206,145,120,0.4); }
   </style>
 </head>
 <body>
@@ -228,15 +254,42 @@ export class ConfigWebviewPanel {
   <!-- TAB: MODELS -->
   <div id="tab-models" class="panel">
     <div class="actions-bar">
-      <input type="text" id="mSearch" placeholder="Search model ID or name..." oninput="filterModels()" style="max-width: 300px;">
+      <input type="text" id="mSearch" placeholder="Search model ID or name..." oninput="filterModels()" style="max-width: 280px;">
       <div style="display: flex; gap: 8px;">
         <button onclick="runBatchTest(false)">⚡ Test All Models (Concurrent)</button>
         <button class="sec" onclick="runBatchTest(true)">Force Retest All</button>
       </div>
     </div>
+
+    <!-- Filter Chips -->
+    <div style="display: flex; gap: 6px; margin: 8px 0 10px 0; flex-wrap: wrap; align-items: center;">
+      <span style="font-size: 11px; opacity: 0.7; margin-right: 4px;">Filters:</span>
+      <button class="chip active" id="chip-all" onclick="setFilterCategory('all')">🌟 All (<span id="cAll">0</span>)</button>
+      <button class="chip" id="chip-coding" onclick="setFilterCategory('coding')">💻 Coding (<span id="cCoding">0</span>)</button>
+      <button class="chip" id="chip-reasoning" onclick="setFilterCategory('reasoning')">🧠 Reasoning (<span id="cReasoning">0</span>)</button>
+      <button class="chip" id="chip-vision" onclick="setFilterCategory('vision')">👁️ Vision (<span id="cVision">0</span>)</button>
+      <button class="chip" id="chip-working" onclick="setFilterCategory('working')">✅ Working (<span id="cWorking">0</span>)</button>
+      <button class="chip" id="chip-failed" onclick="setFilterCategory('failed')">❌ Failed (<span id="cFailed">0</span>)</button>
+      <button class="chip" id="chip-selected" onclick="setFilterCategory('selected')">📌 In Copilot (<span id="cSelected">0</span>)</button>
+    </div>
+
+    <!-- Selection Management Bar -->
+    <div class="selection-bar">
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <span style="font-weight: 500;">Copilot Model Selection:</span>
+        <button class="sec" style="padding: 2px 8px; font-size: 11px;" onclick="enableAllWorking()">Enable All Working</button>
+        <button class="sec" style="padding: 2px 8px; font-size: 11px;" onclick="selectVisible(true)">Select Visible</button>
+        <button class="sec" style="padding: 2px 8px; font-size: 11px;" onclick="selectVisible(false)">Deselect Visible</button>
+      </div>
+      <div id="selectionSummary" style="font-size: 11px; opacity: 0.85;">0 models active in Copilot</div>
+    </div>
+
     <table>
       <thead>
         <tr>
+          <th style="width: 34px; text-align: center;">
+            <input type="checkbox" id="selectAllBox" onchange="toggleSelectAllBox(this.checked)" title="Toggle Selection for Visible Models">
+          </th>
           <th>Model ID</th>
           <th>Display Name</th>
           <th>Provider</th>
@@ -283,6 +336,8 @@ export class ConfigWebviewPanel {
     let providers = [];
     let activeModels = [];
     let cacheEntries = [];
+    let disabledSet = new Set();
+    let activeFilterCategory = "all";
 
     window.addEventListener('message', ev => {
       const msg = ev.data;
@@ -365,34 +420,141 @@ export class ConfigWebviewPanel {
       }).join('');
     }
 
+    function setFilterCategory(cat) {
+      activeFilterCategory = cat;
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      const chip = document.getElementById('chip-' + cat);
+      if (chip) chip.classList.add('active');
+      filterModels();
+    }
+
+    function toggleModelSelection(idx, isChecked) {
+      const m = activeModels[idx];
+      if (!m) return;
+      const key = m.provider + '::' + m.id;
+      if (isChecked) {
+        disabledSet.delete(key);
+        disabledSet.delete(m.id);
+        m.disabled = false;
+      } else {
+        disabledSet.add(key);
+        m.disabled = true;
+      }
+      saveDisabled();
+      updateCounts();
+    }
+
+    function enableAllWorking() {
+      activeModels.forEach(m => {
+        if (m._verifiedWorking === true) {
+          const key = m.provider + '::' + m.id;
+          disabledSet.delete(key);
+          disabledSet.delete(m.id);
+          m.disabled = false;
+        }
+      });
+      saveDisabled();
+      renderModels();
+    }
+
+    function selectVisible(check) {
+      document.querySelectorAll('.m-row').forEach(row => {
+        if (row.style.display !== 'none') {
+          const idx = parseInt(row.getAttribute('data-idx'), 10);
+          const m = activeModels[idx];
+          if (m) {
+            const key = m.provider + '::' + m.id;
+            if (check) {
+              disabledSet.delete(key);
+              disabledSet.delete(m.id);
+              m.disabled = false;
+            } else {
+              disabledSet.add(key);
+              m.disabled = true;
+            }
+          }
+        }
+      });
+      saveDisabled();
+      renderModels();
+    }
+
+    function toggleSelectAllBox(checked) {
+      selectVisible(checked);
+    }
+
+    function saveDisabled() {
+      vscode.postMessage({ cmd: 'saveDisabledModels', disabledModels: Array.from(disabledSet) });
+    }
+
+    function updateCounts() {
+      const allCount = activeModels.length;
+      const codingCount = activeModels.filter(m => m.isCoding).length;
+      const reasoningCount = activeModels.filter(m => m.isReasoning).length;
+      const visionCount = activeModels.filter(m => m.vision).length;
+      const workingCount = activeModels.filter(m => m._verifiedWorking === true).length;
+      const failedCount = activeModels.filter(m => m._verifiedWorking === false).length;
+      const selectedCount = activeModels.filter(m => !m.disabled && m._verifiedWorking === true).length;
+
+      const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+      setTxt('mCount', allCount);
+      setTxt('cAll', allCount);
+      setTxt('cCoding', codingCount);
+      setTxt('cReasoning', reasoningCount);
+      setTxt('cVision', visionCount);
+      setTxt('cWorking', workingCount);
+      setTxt('cFailed', failedCount);
+      setTxt('cSelected', selectedCount);
+
+      const summary = document.getElementById('selectionSummary');
+      if (summary) {
+        summary.innerText = selectedCount + ' of ' + workingCount + ' working models active in Copilot';
+      }
+    }
+
     function renderModels() {
-      document.getElementById('mCount').innerText = activeModels.length;
+      updateCounts();
       const b = document.getElementById('modelsBody');
       if (activeModels.length === 0) {
-        b.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;">No active models found.</td></tr>';
+        b.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:16px;">No models discovered yet. Click Refresh Models or add an endpoint.</td></tr>';
         return;
       }
       b.innerHTML = activeModels.map((m, mIdx) => {
         const safe = m.id.replace(/[^a-zA-Z0-9_-]/g, '_');
         const inK = Math.round((m.maxInputTokens || 128000) / 1000);
         const outK = Math.round((m.maxOutputTokens || 16000) / 1000);
-        
+        const isChecked = !m.disabled;
+
         let verifyBadge = '<span class="tag" style="opacity:0.6;">Untested</span>';
         if (m._verifiedWorking === true) {
           verifyBadge = '<span class="tag green">Verified (' + (m._latency || 0) + 'ms)</span>';
         } else if (m._verifiedWorking === false) {
-          verifyBadge = '<span class="tag red">Offline/Failed</span>';
+          const errHint = m._error ? ' - ' + m._error.replace(/"/g, '&quot;') : '';
+          verifyBadge = '<span class="tag red" title="Failed' + errHint + '">Offline / Failed</span>';
         }
 
-        return '<tr class="m-row" data-s="' + (m.id + ' ' + (m.name || '')).toLowerCase() + '">' +
+        const caps = [
+          m.isCoding ? '<span class="model-cat code">Coding</span>' : '',
+          m.isReasoning ? '<span class="model-cat reasoning">Reasoning</span>' : '',
+          m.vision ? '<span class="model-cat vision">Vision</span>' : '',
+          m.toolCalling ? '<span class="tag green">Tools</span>' : '',
+        ].filter(Boolean).join('');
+
+        const isFailed = m._verifiedWorking === false;
+        const errDisplay = isFailed && m._error ? '<div style="font-size:10px; color:var(--error); margin-top:2px;">' + m._error.slice(0, 90) + '</div>' : '';
+
+        return '<tr class="m-row" data-idx="' + mIdx + '" data-s="' + (m.id + ' ' + (m.name || '')).toLowerCase() + '" ' +
+          'data-coding="' + (m.isCoding ? 'true' : 'false') + '" ' +
+          'data-reasoning="' + (m.isReasoning ? 'true' : 'false') + '" ' +
+          'data-vision="' + (m.vision ? 'true' : 'false') + '" ' +
+          'data-working="' + (m._verifiedWorking === true ? 'true' : 'false') + '" ' +
+          'data-failed="' + (isFailed ? 'true' : 'false') + '" ' +
+          'data-selected="' + (isChecked && m._verifiedWorking === true ? 'true' : 'false') + '">' +
+          '<td style="text-align: center;"><input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleModelSelection(' + mIdx + ', this.checked)" title="' + (isChecked ? 'Active in Copilot' : 'Disabled from Copilot') + '"></td>' +
           '<td><code>' + m.id + '</code></td>' +
-          '<td><strong>' + (m.name || m.id) + '</strong></td>' +
+          '<td><strong>' + (m.name || m.id) + '</strong>' + errDisplay + '</td>' +
           '<td><span class="tag">' + m.provider + '</span></td>' +
-          '<td>' +
-            (m.toolCalling ? '<span class="tag green">Tools</span>' : '') +
-            (m.vision ? '<span class="tag green">Vision</span>' : '') +
-            (m.thinking ? '<span class="tag green">Reasoning</span>' : '') +
-          '</td>' +
+          '<td>' + caps + '</td>' +
           '<td>' + inK + 'k / ' + outK + 'k</td>' +
           '<td>' + verifyBadge + '</td>' +
           '<td>' +
@@ -401,6 +563,7 @@ export class ConfigWebviewPanel {
           '</td>' +
         '</tr>';
       }).join('');
+      filterModels();
     }
 
     function renderCache() {
@@ -424,9 +587,26 @@ export class ConfigWebviewPanel {
     }
 
     function filterModels() {
-      const q = document.getElementById('mSearch').value.toLowerCase();
+      const q = (document.getElementById('mSearch').value || '').toLowerCase().trim();
       document.querySelectorAll('.m-row').forEach(r => {
-        r.style.display = (!q || r.getAttribute('data-s').includes(q)) ? '' : 'none';
+        const s = r.getAttribute('data-s') || '';
+        const isCoding = r.getAttribute('data-coding') === 'true';
+        const isReasoning = r.getAttribute('data-reasoning') === 'true';
+        const isVision = r.getAttribute('data-vision') === 'true';
+        const isWorking = r.getAttribute('data-working') === 'true';
+        const isFailed = r.getAttribute('data-failed') === 'true';
+        const isSelected = r.getAttribute('data-selected') === 'true';
+
+        let matchCat = true;
+        if (activeFilterCategory === 'coding') matchCat = isCoding;
+        else if (activeFilterCategory === 'reasoning') matchCat = isReasoning;
+        else if (activeFilterCategory === 'vision') matchCat = isVision;
+        else if (activeFilterCategory === 'working') matchCat = isWorking;
+        else if (activeFilterCategory === 'failed') matchCat = isFailed;
+        else if (activeFilterCategory === 'selected') matchCat = isSelected;
+
+        const matchSearch = !q || s.includes(q);
+        r.style.display = (matchCat && matchSearch) ? '' : 'none';
       });
     }
 
@@ -453,10 +633,8 @@ export class ConfigWebviewPanel {
     }
 
     function delProv(idx) {
-      if (confirm('Delete provider ' + providers[idx].name + '?')) {
-        providers.splice(idx, 1);
-        renderProviders();
-      }
+      providers.splice(idx, 1);
+      renderProviders();
     }
 
     function testProv(idx) {
@@ -483,9 +661,7 @@ export class ConfigWebviewPanel {
     }
 
     function clearCache() {
-      if (confirm('Clear verified model cache?')) {
-        vscode.postMessage({ cmd: 'clearCache' });
-      }
+      vscode.postMessage({ cmd: 'clearCache' });
     }
 
     function saveProviders() {
