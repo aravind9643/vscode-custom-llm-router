@@ -55,6 +55,24 @@ graph TD
 
 ---
 
+## 💻 VS Code Extension Usage & Tutorial
+
+The repository includes a native VS Code Extension located in [`extension/`](file:///d:/VSCodeCustomEndpointModels/extension).
+
+### 1. Installation
+```powershell
+# Install directly from the root workspace:
+code-insiders --install-extension extension\vscode-custom-llm-router-1.0.0.vsix --force
+```
+
+### 2. Using the Extension Inside VS Code
+1. **Status Bar Widget**: Click the **`$(hubot) LLM Router`** widget in the bottom-right corner of VS Code to view active connections and model counts.
+2. **Master Menu**: Press `Ctrl+Shift+P` (macOS: `Cmd+Shift+P`) and choose **`Custom LLM Router: Show Menu`**.
+3. **Add Custom Providers**: Choose **`Custom LLM Router: Add Custom Model Provider`** to connect Ollama (`http://localhost:11434`), LM Studio (`http://localhost:1234`), vLLM (`http://localhost:8000`), OpenRouter, or DeepSeek in seconds.
+4. **Chat with Models**: Open Copilot Chat (`Ctrl+Alt+I`), select the model picker dropdown, and select your custom models under the **Custom LLM Router** provider! Full streaming and tool-calling are supported out of the box.
+
+---
+
 ### 0. Quickstart One-Liner (Windows PowerShell)
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
@@ -65,7 +83,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 # Initialize .env with random secret placeholders
 npm run init
 
-# Check connection to FreeLLMAPI and OmniRoute
+# Check connection to FreeLLMAPI, OmniRoute and custom endpoints
 npm run status
 ```
 
@@ -88,7 +106,7 @@ npm run validate
 # Run live benchmarks and generate BENCHMARKS.md leaderboard
 npm run benchmark
 
-# Configure blacklist/whitelist patterns in models.config.json
+# Configure blacklist/whitelist patterns and providers in models.config.json
 ```
 
 ### 4. Background Sync Service (Windows Scheduled Task)
