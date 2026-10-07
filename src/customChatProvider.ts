@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+﻿import * as vscode from "vscode";
 import { ModelEngine, VSCodeModel } from "./modelEngine";
 
 export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
@@ -37,6 +37,10 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
         const familyName = prov.name.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
         for (const m of prov.models) {
           // Extra guard: If a model was verified as failed/offline, do not present it to VS Code
+          const cache = this.engine.getCacheEntry(prov.name, m.id);
+          if (cache && cache.working === false) {
+            continue;
+          }
           if (m._verifiedWorking === false) {
             continue;
           }
@@ -52,7 +56,7 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
             name: `${m.name} (${prov.name})`,
             family: familyName,
             tooltip: `Model ${m.id} on ${prov.name} (${m.url})`,
-            detail: `${prov.name} • ${m.contextWindow ? Math.round(m.contextWindow / 1000) + 'k ctx' : 'OpenAI compatible'}`,
+            detail: `${prov.name} â€¢ ${m.contextWindow ? Math.round(m.contextWindow / 1000) + 'k ctx' : 'OpenAI compatible'}`,
             version: "1.0.0",
             maxInputTokens: m.maxInputTokens || 128000,
             maxOutputTokens: m.maxOutputTokens || 8192,
@@ -185,7 +189,7 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
     if (!response.ok) {
       const errText = await response.text();
       const errorMsg = `Error from ${model.id} (${response.status}): ${errText}`;
-      progress.report(new vscode.LanguageModelTextPart(`\n\n⚠️ **${errorMsg}**\n`));
+      progress.report(new vscode.LanguageModelTextPart(`\n\nâš ï¸ **${errorMsg}**\n`));
       return;
     }
 
@@ -294,3 +298,4 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider {
     return Math.max(1, Math.ceil(totalLength / 4));
   }
 }
+

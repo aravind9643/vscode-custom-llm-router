@@ -1,4 +1,4 @@
-export interface CustomModelConfig {
+﻿export interface CustomModelConfig {
   id: string;
   name?: string;
   contextWindow?: number;
@@ -632,6 +632,13 @@ export class ModelEngine {
       if (onlyVerifiedWorking && m._verifiedWorking === false) {
         return false;
       }
+      if (onlyVerifiedWorking && m._verifiedWorking === false) {
+        return false;
+      }
+      const cache = this.getCacheEntry(m.providerName || '', m.id);
+      if (onlyVerifiedWorking && cache && cache.working === false) {
+        return false;
+      }
       if (whitelist.has(m.id)) return true;
       const idLower = m.id.toLowerCase();
       return !blacklist.some((pat) => idLower.includes(pat.toLowerCase()));
@@ -794,3 +801,4 @@ export class ModelEngine {
     return providers;
   }
 }
+
