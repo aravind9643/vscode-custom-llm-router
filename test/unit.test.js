@@ -14,6 +14,9 @@ const { pullOllamaModel } = out("ollama.js");
 const { runPool } = out("pool.js");
 const { toAnthropicMessages } = out("transports/anthropic.js");
 const { toOllamaMessages } = out("transports/ollama.js");
+const { buildChatLanguageModelsExport, appendOrSyncChatLanguageModels } = out("chatLanguageModels.js");
+const fs = require("fs");
+const os = require("os");
 
 const { LanguageModelTextPart: TextPart, LanguageModelDataPart: DataPart, LanguageModelToolCallPart: ToolCallPart } = vscode;
 const token = () => new vscode.CancellationTokenSource().token;
@@ -407,6 +410,70 @@ const token = () => new vscode.CancellationTokenSource().token;
       assert.ok(stats.total >= 0);
       const pruned = await engine.pruneCache();
       assert.strictEqual(typeof pruned, "number");
+    }],
+
+    ["chatLanguageModels: build export, append/merge, and registerChatProvider toggle", async () => {
+      await select("Mock2::mock-coder-32b");
+      // 1. Build export
+      const groups = await buildChatLanguageModelsExport(engine, store);
+      assert.ok(Array.isArray(groups));
+      assert.ok(groups.length > 0);
+      const mockGroup = groups.find((g) => g.name === "Mock2");
+      assert.ok(mockGroup, "Mock2 group should be exported");
+      assert.strictEqual(mockGroup.vendor, "customendpoint");
+      assert.strictEqual(mockGroup.apiType, "chat-completions");
+      assert.ok(mockGroup.models.length > 0);
+      const m0 = mockGroup.models[0];
+      assert.ok(m0.id);
+      assert.ok(m0.name);
+      assert.ok(m0.url.includes("/chat/completions"));
+      assert.strictEqual(typeof m0.toolCalling, "boolean");
+      assert.strictEqual(typeof m0.maxInputTokens, "number");
+
+      // 2. Append/sync to temporary file
+      const tmpFile = path.join(os.tmpdir(), `test-chatLanguageModels-${Date.now()}.json`);
+      const seed = [
+        {
+          name: "ExistingCustom",
+          vendor: "customendpoint",
+          apiKey: "${input:chat.lm.secret.custom}",
+          apiType: "chat-completions",
+          models: [{ id: "custom-1", name: "Custom Model 1", url: "http://localhost:9999/v1/chat/completions" }],
+        },
+      ];
+      fs.writeFileSync(tmpFile, JSON.stringify(seed, null, 2), "utf-8");
+
+      const res = await appendOrSyncChatLanguageModels(
+        { globalStorageUri: { fsPath: tmpFile } },
+        engine,
+        store,
+        { targetPath: tmpFile }
+      );
+      assert.ok(res.totalModels > 0);
+      assert.ok(res.addedProviders > 0 || res.updatedProviders > 0);
+
+      const parsed = JSON.parse(fs.readFileSync(tmpFile, "utf-8"));
+      assert.ok(Array.isArray(parsed));
+      assert.ok(parsed.some((g) => g.name === "ExistingCustom"), "Preserves existing custom entry");
+      assert.ok(parsed.some((g) => g.name === "Mock2"), "Contains Mock2 entry");
+
+      try { fs.unlinkSync(tmpFile); } catch {}
+
+      // 3. Test registerChatProvider toggle
+      assert.strictEqual(store.registerChatProvider, true);
+      const infoBefore = await chat.provideLanguageModelChatInformation({}, token());
+      assert.ok(infoBefore.length > 0);
+
+      config.registerChatProvider = false;
+      assert.strictEqual(store.registerChatProvider, false);
+      const infoAfter = await chat.provideLanguageModelChatInformation({}, token());
+      assert.strictEqual(infoAfter.length, 0, "When registerChatProvider is false, provider returns empty list");
+
+      // Restore
+      config.registerChatProvider = true;
+      assert.strictEqual(store.registerChatProvider, true);
+      const infoRestored = await chat.provideLanguageModelChatInformation({}, token());
+      assert.ok(infoRestored.length > 0);
     }],
   ]);
 

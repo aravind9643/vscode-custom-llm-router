@@ -91,6 +91,8 @@ export class DashboardPanel implements vscode.Disposable {
         showReasoning: store.showReasoning,
         toolCheck: store.toolCheck,
         budgetLimitUsd: store.budgetLimitUsd,
+        registerChatProvider: store.registerChatProvider,
+        autoSyncChatLanguageModels: store.autoSyncChatLanguageModels,
       },
     };
     this._post({ type: "state", state });
@@ -166,7 +168,7 @@ export class DashboardPanel implements vscode.Disposable {
         await vscode.commands.executeCommand("vscode-custom-llm-router.deleteProvider", { kind: "provider", name: msg.name });
         break;
       case "updateSetting":
-        if (["testConcurrency", "providerConcurrency", "cacheTtlHours", "showReasoning", "toolCheck"].includes(msg.key)) await store.updateSetting(msg.key, msg.value);
+        if (["testConcurrency", "providerConcurrency", "cacheTtlHours", "showReasoning", "toolCheck", "budgetLimitUsd", "registerChatProvider", "autoSyncChatLanguageModels"].includes(msg.key)) await store.updateSetting(msg.key as any, msg.value);
         break;
       case "setApiKey":
         void vscode.commands.executeCommand("vscode-custom-llm-router.setApiKey", { kind: "provider", name: String(msg.name || "") });
@@ -231,6 +233,12 @@ export class DashboardPanel implements vscode.Disposable {
         this._post({ type: "localScanResult", found });
         break;
       }
+      case "appendToChatLanguageModels":
+        await vscode.commands.executeCommand("vscode-custom-llm-router.appendToChatLanguageModels");
+        break;
+      case "openChatLanguageModels":
+        await vscode.commands.executeCommand("vscode-custom-llm-router.openChatLanguageModels");
+        break;
       case "openSettings":
         await vscode.commands.executeCommand("workbench.action.openSettings", "customLlmRouter");
         break;

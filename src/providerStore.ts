@@ -307,7 +307,26 @@ export class ProviderStore {
     return Math.max(0, lim);
   }
 
-  public async updateSetting(key: "testConcurrency" | "providerConcurrency" | "cacheTtlHours" | "showReasoning" | "toolCheck" | "budgetLimitUsd", value: unknown) {
+  public get registerChatProvider(): boolean {
+    return this._config.get<boolean>("registerChatProvider") !== false;
+  }
+
+  public get autoSyncChatLanguageModels(): boolean {
+    return this._config.get<boolean>("autoSyncChatLanguageModels") === true;
+  }
+
+  public async updateSetting(
+    key:
+      | "testConcurrency"
+      | "providerConcurrency"
+      | "cacheTtlHours"
+      | "showReasoning"
+      | "toolCheck"
+      | "budgetLimitUsd"
+      | "registerChatProvider"
+      | "autoSyncChatLanguageModels",
+    value: unknown
+  ) {
     await this._config.update(key, value, vscode.ConfigurationTarget.Global);
   }
 }

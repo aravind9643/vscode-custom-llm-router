@@ -334,7 +334,8 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
          <button class="btn small" data-action="deselect-all" ${inCopilot > 0 || S.models.some((m) => m.selected) ? "" : "disabled"} title="Deselect all models from Copilot">${icon("clear-all")}Deselect All</button>
          <button class="btn small" data-action="bulk-add" ${shownSelectable ? "" : "disabled"} title="Add every shown model that has not failed">${icon("add")}Add shown to Copilot</button>
          <button class="btn small" data-action="bulk-remove" ${shownSelected ? "" : "disabled"}>${icon("remove")}Remove shown</button>
-         <button class="btn small" data-action="bulk-test" ${rows.length && !S.verifying ? "" : "disabled"} title="Re-test every shown model, ignoring cached results">${icon("beaker")}Re-test shown</button>`
+         <button class="btn small" data-action="bulk-test" ${rows.length && !S.verifying ? "" : "disabled"} title="Re-test every shown model, ignoring cached results">${icon("beaker")}Re-test shown</button>
+         <button class="btn small" data-action="append-chat-lm" title="Append models to VS Code native chatLanguageModels.json">${icon("file-code")}Append to chatLanguageModels.json</button>`
       : "";
 
     // Table
@@ -878,6 +879,14 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
         <div class="setting"><div class="text"><div>Show model reasoning</div><div>Render &lt;think&gt; / reasoning output as a quoted block above the answer.</div></div>
           <label class="switch"><input type="checkbox" data-setting="showReasoning" ${s.showReasoning ? "checked" : ""} aria-label="Show model reasoning"><span></span></label></div>
       </div>
+      <div class="card"><h3>VS Code Native Endpoints (chatLanguageModels.json)</h3><div class="desc">Append providers and models directly to VS Code's native <code>chatLanguageModels.json</code> configuration. This connects them natively as Custom Endpoints in Copilot, showing native thinking accordions and connecting directly.</div>
+        <div class="setting"><div class="text"><div>Append models to chatLanguageModels.json</div><div>Export your configured providers and selected models into VS Code's user configuration.</div></div>
+          <button class="btn" data-action="append-chat-lm">${icon("file-code")}Append models</button><button class="btn" data-action="open-chat-lm">${icon("go-to-file")}Open file</button></div>
+        <div class="setting"><div class="text"><div>Auto-sync to chatLanguageModels.json</div><div>Keep <code>chatLanguageModels.json</code> automatically updated when models or providers change.</div></div>
+          <label class="switch"><input type="checkbox" data-setting="autoSyncChatLanguageModels" ${s.autoSyncChatLanguageModels ? "checked" : ""} aria-label="Auto-sync to chatLanguageModels.json"><span></span></label></div>
+        <div class="setting"><div class="text"><div>Expose via extension Chat Provider</div><div>Uncheck if you use <code>chatLanguageModels.json</code> and want to avoid duplicate models in Copilot's dropdown.</div></div>
+          <label class="switch"><input type="checkbox" data-setting="registerChatProvider" ${s.registerChatProvider ? "checked" : ""} aria-label="Expose via extension Chat Provider"><span></span></label></div>
+      </div>
       <div class="card"><h3>Usage & Budget</h3>
         <div class="setting"><div class="text"><div>Speed and spend statistics</div><div>Measured from your own chats and kept on this machine${S.spend > 0 ? ` — about ${money(S.spend)} so far` : ""}.</div></div>
           <button class="btn" data-action="reset-stats">${icon("discard")}Reset</button><button class="btn" data-action="export-stats">${icon("graph")}Export stats</button></div>
@@ -1080,6 +1089,8 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
     import: () => post({ type: "importConfig" }),
     "open-settings": () => post({ type: "openSettings" }),
     logs: () => post({ type: "showLogs" }),
+    "append-chat-lm": () => post({ type: "appendToChatLanguageModels" }),
+    "open-chat-lm": () => post({ type: "openChatLanguageModels" }),
   };
 
   document.addEventListener("click", (ev) => {

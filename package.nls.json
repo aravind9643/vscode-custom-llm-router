@@ -41,5 +41,9 @@
   "command.deselectAll": "Deselect All Copilot Models",
   "command.autoRoutes": "Auto-generate Recommended Routes",
   "command.toggleTreeFilter": "Filter: Toggle Working Models Only",
-  "command.pruneCache": "Prune Stale Verification Cache"
+  "command.pruneCache": "Prune Stale Verification Cache",
+  "command.appendToChatLanguageModels": "Append Models to chatLanguageModels.json",
+  "command.openChatLanguageModels": "Open chatLanguageModels.json",
+  "config.registerChatProvider": "Expose models to Copilot through this extension's Language Model Chat Provider. Uncheck if you prefer using VS Code's native chatLanguageModels.json to avoid duplicates.",
+  "config.autoSyncChatLanguageModels": "Automatically append and keep models in VS Code's chatLanguageModels.json in sync when providers or model selections change."
 }

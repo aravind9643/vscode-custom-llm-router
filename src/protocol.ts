@@ -11,6 +11,8 @@ export interface DashboardSettings {
   showReasoning: boolean;
   toolCheck: "full" | "basic";
   budgetLimitUsd?: number;
+  registerChatProvider: boolean;
+  autoSyncChatLanguageModels: boolean;
 }
 
 export interface DashboardState {
@@ -36,7 +38,7 @@ export type HostMessage =
 
 /** Webview → host. */
 export type WebviewMessage =
-  | { type: "ready" | "refresh" | "cancelVerify" | "clearCache" | "pruneCache" | "clearFailed" | "exportConfig" | "importConfig" | "exportStats" | "scanLocalServers" | "openSettings" | "showLogs" | "resetStats" | "autoRoutes" }
+  | { type: "ready" | "refresh" | "cancelVerify" | "clearCache" | "pruneCache" | "clearFailed" | "exportConfig" | "importConfig" | "exportStats" | "scanLocalServers" | "openSettings" | "showLogs" | "resetStats" | "autoRoutes" | "appendToChatLanguageModels" | "openChatLanguageModels" }
   | { type: "curateTop"; limit?: number }
   | { type: "verify"; keys?: string[]; force?: boolean }
   | { type: "setSelected"; keys: string[]; selected: boolean }

@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
 import { ModelEngine } from "./modelEngine";
 import { ProviderStore } from "./providerStore";
 import { CustomLLMChatProvider } from "./customChatProvider";
@@ -6,6 +7,7 @@ import { DashboardPanel, DashboardFocus } from "./dashboardPanel";
 import { RouterNode, RouterTreeProvider } from "./sidebarTree";
 import { pullOllamaModel } from "./ollama";
 import { CatalogModel } from "./types";
+import { appendOrSyncChatLanguageModels, getChatLanguageModelsPath } from "./chatLanguageModels";
 
 const CMD = "vscode-custom-llm-router";
 /** Bulk checks touching more remote models than this ask for confirmation first. */
@@ -30,6 +32,18 @@ export async function activate(context: vscode.ExtensionContext) {
   updateStatusBar();
   context.subscriptions.push(engine.onDidChange(updateStatusBar));
 
+  let autoSyncTimer: NodeJS.Timeout | undefined;
+  const triggerAutoSync = () => {
+    if (!store.autoSyncChatLanguageModels) return;
+    if (autoSyncTimer) clearTimeout(autoSyncTimer);
+    autoSyncTimer = setTimeout(() => {
+      void appendOrSyncChatLanguageModels(context, engine, store).catch((err) => {
+        log.error("[chatLanguageModels] auto-sync failed", err);
+      });
+    }, 1500);
+  };
+  context.subscriptions.push(engine.onDidChange(triggerAutoSync));
+
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("customLlmRouter.providers")) {
@@ -39,9 +53,12 @@ export async function activate(context: vscode.ExtensionContext) {
       } else if (
         e.affectsConfiguration("customLlmRouter.copilotModels") ||
         e.affectsConfiguration("customLlmRouter.routes") ||
-        e.affectsConfiguration("customLlmRouter.cacheTtlHours")
+        e.affectsConfiguration("customLlmRouter.cacheTtlHours") ||
+        e.affectsConfiguration("customLlmRouter.registerChatProvider") ||
+        e.affectsConfiguration("customLlmRouter.autoSyncChatLanguageModels")
       ) {
         engine.onSelectionChanged();
+        if (store.autoSyncChatLanguageModels) triggerAutoSync();
       }
     })
   );
@@ -358,9 +375,53 @@ export async function activate(context: vscode.ExtensionContext) {
     void vscode.window.showInformationMessage(vscode.l10n.t("Pruned {0} stale verification cache entry(ies).", count));
   });
 
+  register("appendToChatLanguageModels", async () => {
+    try {
+      await engine.ensureDiscovered();
+      const res = await appendOrSyncChatLanguageModels(context, engine, store);
+      const msg = vscode.l10n.t(
+        "Appended/updated {0} models across {1} provider(s) in chatLanguageModels.json.",
+        res.totalModels,
+        res.addedProviders + res.updatedProviders
+      );
+      const openBtn = vscode.l10n.t("Open File");
+      const disableBtn = vscode.l10n.t("Disable Extension Provider");
+      const actions = store.registerChatProvider ? [openBtn, disableBtn] : [openBtn];
+      void vscode.window.showInformationMessage(msg, ...actions).then(async (pick) => {
+        if (pick === openBtn) {
+          const doc = await vscode.workspace.openTextDocument(res.filePath);
+          await vscode.window.showTextDocument(doc);
+        } else if (pick === disableBtn) {
+          await store.updateSetting("registerChatProvider", false);
+          void vscode.window.showInformationMessage(
+            vscode.l10n.t("Extension provider disabled. Models will only appear via VS Code native Custom Endpoints.")
+          );
+        }
+      });
+    } catch (err: any) {
+      log.error("[chatLanguageModels] export failed", err);
+      void vscode.window.showErrorMessage(vscode.l10n.t("Failed to update chatLanguageModels.json: {0}", err.message || String(err)));
+    }
+  });
+
+  register("openChatLanguageModels", async () => {
+    try {
+      const p = getChatLanguageModelsPath(context);
+      if (!fs.existsSync(p)) {
+        await appendOrSyncChatLanguageModels(context, engine, store);
+      }
+      const doc = await vscode.workspace.openTextDocument(p);
+      await vscode.window.showTextDocument(doc);
+    } catch (err: any) {
+      void vscode.window.showErrorMessage(vscode.l10n.t("Could not open chatLanguageModels.json: {0}", err.message || String(err)));
+    }
+  });
+
   register("showMenu", async () => {
     const items: (vscode.QuickPickItem & { run?: () => unknown })[] = [
       { label: `$(dashboard) ${vscode.l10n.t("Open Dashboard")}`, detail: vscode.l10n.t("Manage providers, verify models and choose what Copilot shows"), run: () => showDashboard() },
+      { label: `$(file-code) ${vscode.l10n.t("Append to chatLanguageModels.json")}`, detail: vscode.l10n.t("Export providers and models to VS Code native Custom Endpoints"), run: () => vscode.commands.executeCommand(`${CMD}.appendToChatLanguageModels`) },
+      { label: `$(go-to-file) ${vscode.l10n.t("Open chatLanguageModels.json")}`, detail: vscode.l10n.t("View or edit the native custom endpoints configuration file"), run: () => vscode.commands.executeCommand(`${CMD}.openChatLanguageModels`) },
       { label: `$(star) ${vscode.l10n.t("Curate Top 10 Models for Copilot")}`, detail: vscode.l10n.t("Keep Copilot's dropdown clean: pick top 10 fastest coding/reasoning models"), run: () => vscode.commands.executeCommand(`${CMD}.curateTop`) },
       { label: `$(clear-all) ${vscode.l10n.t("Deselect All Copilot Models")}`, detail: vscode.l10n.t("Clear all models from GitHub Copilot Chat dropdown"), run: () => vscode.commands.executeCommand(`${CMD}.deselectAll`) },
       { label: `$(split-horizontal) ${vscode.l10n.t("Auto-generate Recommended Routes")}`, detail: vscode.l10n.t("Create Fast Coding, Deep Reasoning, and Balanced routes"), run: () => vscode.commands.executeCommand(`${CMD}.autoRoutes`) },

@@ -38,6 +38,7 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider, 
   }
 
   private _signature() {
+    if (!this._engine.store.registerChatProvider) return "disabled";
     const models = this._engine.getCopilotModels().map((m) => m.key + m.maxInputTokens + m.caps.tools + m.caps.vision + m.name);
     const routes = this._engine.getRoutes().map((r) => r.slug + r.available + r.models.join(","));
     return [...models, ...routes].join("|");
@@ -47,6 +48,10 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider, 
     _options: vscode.PrepareLanguageModelChatModelOptions,
     _token: vscode.CancellationToken
   ): Promise<vscode.LanguageModelChatInformation[]> {
+    if (!this._engine.store.registerChatProvider) {
+      this._routes.clear();
+      return [];
+    }
     try {
       await this._engine.ensureDiscovered();
     } catch (err) {

@@ -136,6 +136,18 @@
         "icon": "$(discard)"
       },
       {
+        "command": "vscode-custom-llm-router.appendToChatLanguageModels",
+        "title": "%command.appendToChatLanguageModels%",
+        "category": "%category%",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "vscode-custom-llm-router.openChatLanguageModels",
+        "title": "%command.openChatLanguageModels%",
+        "category": "%category%",
+        "icon": "$(go-to-file)"
+      },
+      {
         "command": "vscode-custom-llm-router.showLogs",
         "title": "%command.showLogs%",
         "category": "%category%",
@@ -647,6 +659,18 @@
           "default": 0,
           "minimum": 0,
           "description": "%config.budgetLimitUsd%"
+        },
+        "customLlmRouter.registerChatProvider": {
+          "type": "boolean",
+          "order": 9,
+          "default": true,
+          "description": "%config.registerChatProvider%"
+        },
+        "customLlmRouter.autoSyncChatLanguageModels": {
+          "type": "boolean",
+          "order": 10,
+          "default": false,
+          "description": "%config.autoSyncChatLanguageModels%"
         }
       }
     }

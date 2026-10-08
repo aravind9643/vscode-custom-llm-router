@@ -28,7 +28,7 @@ function boot() {
   };
 }
 
-const settings = { testConcurrency: 8, providerConcurrency: 3, cacheTtlHours: 48, showReasoning: true, toolCheck: "full" };
+const settings = { testConcurrency: 8, providerConcurrency: 3, cacheTtlHours: 48, showReasoning: true, toolCheck: "full", registerChatProvider: true, autoSyncChatLanguageModels: false };
 const evil = '<img src=x onerror="window.pwned=1">';
 const mk = (id, status, extra = {}) => ({
   key: "Groq::" + id, providerName: "Groq", id, name: id === "evil" ? evil : id.toUpperCase(), contextWindow: 131072, maxInputTokens: 120000,
