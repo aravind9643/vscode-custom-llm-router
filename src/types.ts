@@ -45,10 +45,13 @@ export interface ModelOverride {
   outputPerM?: number;
 }
 
+export type RoutePolicy = "priority" | "round-robin" | "least-latency";
+
 /** A virtual Copilot model that tries its member models in order (`customLlmRouter.routes`). */
 export interface RouteConfig {
   name: string;
   models: string[];
+  policy?: RoutePolicy;
 }
 
 export type ModelStatus = "untested" | "testing" | "working" | "failed";
@@ -115,6 +118,7 @@ export interface RouteView {
   /** Registration id suffix, also used as the route's identity in the UI. */
   slug: string;
   models: string[];
+  policy?: RoutePolicy;
   /** Members that are currently working. */
   available: number;
 }

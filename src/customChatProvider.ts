@@ -89,8 +89,8 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider, 
   }
 
   /** Returns the models to try for a registration id: one for a model, the ordered members for a route. */
-  private _targets(info: vscode.LanguageModelChatInformation): CatalogModel[] {
-    if (info.id.startsWith(ROUTE_PREFIX)) return this._engine.routeCandidates(info.id.slice(ROUTE_PREFIX.length));
+  private _targets(info: vscode.LanguageModelChatInformation, requiredTokens?: number): CatalogModel[] {
+    if (info.id.startsWith(ROUTE_PREFIX)) return this._engine.routeCandidates(info.id.slice(ROUTE_PREFIX.length), requiredTokens);
     const key = this._routes.get(info.id);
     const m = key ? this._engine.getModel(key) : this._engine.getModels().find((x) => registrationId(x) === info.id);
     return m ? [m] : [];
@@ -103,11 +103,12 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider, 
     progress: Progress,
     token: vscode.CancellationToken
   ): Promise<void> {
-    let targets = this._targets(info);
+    const isRoute = info.id.startsWith(ROUTE_PREFIX);
+    const estTokens = isRoute ? Math.ceil(countRequestChars(messages) / 4) : undefined;
+    let targets = this._targets(info, estTokens);
     if (!targets.length) {
       throw new RouterError(`"${info.name}" has no available models. Refresh models in the LLM Router dashboard.`);
     }
-    const isRoute = info.id.startsWith(ROUTE_PREFIX);
     if (isRoute && options.tools?.length) {
       // Agent mode needs tools: prefer members that can call them.
       const withTools = targets.filter((m) => m.caps.tools);
@@ -215,6 +216,9 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider, 
       const Retry = tracked.firstAt ? RouterError : RetryableError;
       if (err instanceof HttpError) {
         this._log.warn(`[chat] ${model.key}: ${err.message}`);
+        if (err.status === 429 || err.status >= 500) {
+          this._engine.backoffModel(model.key, Math.min(err.retryAfterMs ?? 30000, 60000));
+        }
         // Only definitive "this model does not exist here" errors evict a model from Copilot.
         if (err.status === 404 || /model.*(not found|does not exist|not available)/i.test(err.message)) {
           this._engine.markFailed(model.providerName, model.id, err.message);
@@ -295,6 +299,7 @@ function toOpenAIMessages(messages: readonly vscode.LanguageModelChatRequestMess
     const images: any[] = [];
     const toolCalls: any[] = [];
 
+    let hasCacheControl = false;
     for (const part of msg.content) {
       if (part instanceof vscode.LanguageModelTextPart) {
         text += part.value;
@@ -304,24 +309,34 @@ function toOpenAIMessages(messages: readonly vscode.LanguageModelChatRequestMess
         // OpenAI requires tool results immediately after the assistant turn that requested them.
         out.push({ role: "tool", tool_call_id: part.callId, content: toolResultText(part) });
       } else if (part instanceof vscode.LanguageModelDataPart) {
-        // Copilot also sends non-image data parts (e.g. cache_control hints) — only forward images.
-        if (allowImages && part.mimeType.startsWith("image/")) {
+        if (part.mimeType === "cache_control" || part.mimeType.includes("cache")) {
+          hasCacheControl = true;
+        } else if (allowImages && part.mimeType.startsWith("image/")) {
           images.push({ type: "image_url", image_url: { url: `data:${part.mimeType};base64,${Buffer.from(part.data).toString("base64")}` } });
         }
       }
     }
 
     if (role === "assistant") text = stripReasoning(text);
+    let entry: any;
     if (toolCalls.length) {
-      out.push({ role: "assistant", content: text || null, tool_calls: toolCalls });
+      entry = { role: "assistant", content: text || null, tool_calls: toolCalls };
+      out.push(entry);
     } else if (images.length) {
-      out.push({ role, content: [...(text ? [{ type: "text", text }] : []), ...images] });
+      entry = { role, content: [...(text ? [{ type: "text", text }] : []), ...images] };
+      out.push(entry);
     } else if (text) {
       // Merge consecutive system messages; some servers only accept one.
       const prev = out[out.length - 1];
-      if (role === "system" && prev?.role === "system") prev.content += `\n\n${text}`;
-      else out.push({ role, content: text });
+      if (role === "system" && prev?.role === "system") {
+        prev.content += `\n\n${text}`;
+        entry = prev;
+      } else {
+        entry = { role, content: text };
+        out.push(entry);
+      }
     }
+    if (entry && hasCacheControl) entry.cache_control = true;
   }
   return out;
 }

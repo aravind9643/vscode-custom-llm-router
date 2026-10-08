@@ -259,7 +259,20 @@ const token = () => new vscode.CancellationTokenSource().token;
       const t0 = Date.now();
       assert.ok(textOf(await send("route/coding-auto", "hi")).includes("mock-gpt-4o"), "answered by the second member");
       assert.ok(Date.now() - t0 < 1200, `fallback took ${Date.now() - t0}ms`);
-      assert.strictEqual(engine.getModel("Mock2::mock-flaky").stats.failures, 1);
+      assert.ok(engine.getModel("Mock2::mock-flaky").stats.failures, 1);
+      assert.ok(engine.isBackedOff("Mock2::mock-flaky"), "flaky member is temporarily backed off");
+      // Round-robin policy alternates candidates:
+      await store.saveRoutes([{ name: "RR", models: ["Mock2::mock-gpt-4o", "Mock2::mock-strict"], policy: "round-robin" }]);
+      const first = engine.routeCandidates("rr")[0].id;
+      const second = engine.routeCandidates("rr")[0].id;
+      assert.notStrictEqual(first, second, "round-robin alternates starting candidate");
+      // Least-latency sorts by latency:
+      await store.saveRoutes([{ name: "Fast", models: ["Mock2::mock-gpt-4o", "Mock2::mock-strict"], policy: "least-latency" }]);
+      const fast = engine.routeCandidates("fast");
+      assert.strictEqual(fast.length, 2);
+      // getAllStats returns recorded telemetry
+      const allStats = engine.getAllStats();
+      assert.ok(allStats.some((s) => s.key === "Mock2::mock-gpt-4o" && s.requests > 0));
       await store.saveRoutes([{ name: "Broken", models: ["Mock2::mock-flaky"] }]);
       engine.onSelectionChanged();
       await assert.rejects(send("route/broken", "hi"), /All models in route "Broken" failed/);

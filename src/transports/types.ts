@@ -12,6 +12,7 @@ export interface WireMessage {
   content: string | null | WirePart[];
   tool_calls?: { id: string; type: "function"; function: { name: string; arguments: string } }[];
   tool_call_id?: string;
+  cache_control?: boolean;
 }
 export type WirePart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
 

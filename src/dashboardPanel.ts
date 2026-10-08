@@ -90,6 +90,7 @@ export class DashboardPanel implements vscode.Disposable {
         cacheTtlHours: Math.round(store.cacheTtlMs / 3600000),
         showReasoning: store.showReasoning,
         toolCheck: store.toolCheck,
+        budgetLimitUsd: store.budgetLimitUsd,
       },
     };
     this._post({ type: "state", state });
@@ -194,6 +195,30 @@ export class DashboardPanel implements vscode.Disposable {
       case "importConfig":
         await vscode.commands.executeCommand("vscode-custom-llm-router.importConfig");
         break;
+      case "exportStats":
+        await vscode.commands.executeCommand("vscode-custom-llm-router.exportStats");
+        break;
+      case "scanLocalServers": {
+        const candidates = [
+          { name: "Ollama", url: "http://localhost:11434", probe: "http://localhost:11434/api/tags", api: "ollama" },
+          { name: "LM Studio", url: "http://localhost:1234", probe: "http://localhost:1234/v1/models", api: "openai" },
+          { name: "vLLM", url: "http://localhost:8000", probe: "http://localhost:8000/v1/models", api: "openai" },
+          { name: "LocalAI", url: "http://localhost:8080", probe: "http://localhost:8080/v1/models", api: "openai" },
+        ];
+        const found: { name: string; url: string; api: string }[] = [];
+        await Promise.all(
+          candidates.map(async (c) => {
+            try {
+              const res = await fetch(c.probe, { signal: AbortSignal.timeout(1500) });
+              if (res.ok) found.push({ name: c.name, url: c.url, api: c.api });
+            } catch {
+              // offline
+            }
+          })
+        );
+        this._post({ type: "localScanResult", found });
+        break;
+      }
       case "openSettings":
         await vscode.commands.executeCommand("workbench.action.openSettings", "customLlmRouter");
         break;

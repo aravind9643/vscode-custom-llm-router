@@ -133,6 +133,8 @@ export class ModelEngine implements vscode.Disposable {
   private readonly _stats: PersistedRecord<ModelStats>;
   private readonly _ratios: PersistedRecord<number>;
   private _testing = new Set<string>();
+  private _backedOff = new Map<string, number>();
+  private _roundRobinIndex = new Map<string, number>();
   private _discovery?: Promise<void>;
   private _discovered = false;
   private _saveTimer?: NodeJS.Timeout;
@@ -283,17 +285,63 @@ export class ModelEngine implements vscode.Disposable {
       name: r.name,
       slug: slug(r.name),
       models: r.models,
+      policy: r.policy,
       available: r.models.filter((k) => this.getModel(k)?.status === "working").length,
     }));
   }
 
-  /** Members to try for a route, in the user's order; failed and missing models are skipped. */
-  public routeCandidates(routeSlug: string): CatalogModel[] {
+  /** Members to try for a route, respecting route policy and circuit-breaker backoffs. */
+  public routeCandidates(routeSlug: string, requiredTokens?: number): CatalogModel[] {
     const route = this.store.getRoutes().find((r) => slug(r.name) === routeSlug);
     if (!route) return [];
-    return route.models
+    let list = route.models
       .map((k) => this.getModel(k))
       .filter((m): m is CatalogModel => !!m && m.status !== "failed");
+    if (!list.length) return [];
+
+    // Context guard: if requiredTokens is given, prefer members that can fit it
+    if (requiredTokens && requiredTokens > 0) {
+      const fitting = list.filter((m) => m.maxInputTokens >= requiredTokens);
+      if (fitting.length) list = fitting;
+    }
+
+    const policy = route.policy || "priority";
+    if (policy === "least-latency") {
+      list = [...list].sort((a, b) => {
+        const latA = a.stats?.ttftMs ?? a.latencyMs ?? 1e6;
+        const latB = b.stats?.ttftMs ?? b.latencyMs ?? 1e6;
+        return latA - latB;
+      });
+    } else if (policy === "round-robin" && list.length > 1) {
+      const idx = (this._roundRobinIndex.get(routeSlug) || 0) % list.length;
+      this._roundRobinIndex.set(routeSlug, idx + 1);
+      list = [...list.slice(idx), ...list.slice(0, idx)];
+    }
+
+    // Circuit breaker: models currently backed off are deprioritized
+    const now = Date.now();
+    const ready = list.filter((m) => (this._backedOff.get(m.key) || 0) <= now);
+    const backed = list.filter((m) => (this._backedOff.get(m.key) || 0) > now);
+    return [...ready, ...backed];
+  }
+
+  public backoffModel(key: string, durationMs = 30000) {
+    this._backedOff.set(key, Date.now() + durationMs);
+  }
+
+  public isBackedOff(key: string): boolean {
+    return (this._backedOff.get(key) || 0) > Date.now();
+  }
+
+  public getAllStats(): (ModelStats & { key: string; providerName: string; modelId: string })[] {
+    const result: (ModelStats & { key: string; providerName: string; modelId: string })[] = [];
+    for (const m of this.getModels()) {
+      const st = m.stats || this._stats.get(m.key);
+      if (st && st.requests > 0) {
+        result.push({ key: m.key, providerName: m.providerName, modelId: m.id, ...st });
+      }
+    }
+    return result;
   }
 
   // --------------------------------------------------------------- discovery

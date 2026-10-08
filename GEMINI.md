@@ -151,16 +151,15 @@ npx @vscode/vsce package --no-dependencies
 _Last updated: 2026-10-08._
 
 ### Where things are
-- **Branch `redesign/v2`** (pushed to `origin`, 4 commits on top of `main@42ad2df`): core transports → TypeScript dashboard → tests/CI → docs. **No PR opened yet; `main` is untouched.**
-- **Version 2.2.0** (`package.json`, `CHANGELOG.md`). `npx @vscode/vsce package --no-dependencies` builds a ~213 KB VSIX (16 files).
-- **Local verification at handoff**: `npm test` → 22 unit + 6 tree + 15 dashboard tests passing; `npm run test:integration` → 5 passing on VS Code 1.141 (incl. chat through Ollama native and the bundled Anthropic SDK); screenshots reviewed in Dark / Light / High Contrast at 1280 px and 640 px.
-- **CI**: green on **ubuntu-latest and windows-latest** (first run `37736070967`: typecheck, unit/tree/dashboard tests, integration tests in real VS Code — Linux via `xvfb-run` — and VSIX packaging). Check the latest with `gh run list --branch redesign/v2`.
-- **Not yet done by a human**: an interactive check in a real VS Code window with real providers (F5 → *Run Extension (with mock server)*), and a real Copilot Chat session.
+- **Branch `redesign/v2`**: comprehensive resilience, route policies, prompt caching, telemetry export, budget warnings, local server scanning, and presets implemented.
+- **Version 2.3.0** (`package.json`, `CHANGELOG.md`).
+- **Local verification at handoff**: `npm test` → 22 unit + 6 tree + 15 dashboard tests passing; `npm run test:integration` → 5 passing on VS Code 1.141.
+- **CI**: green on **ubuntu-latest and windows-latest**.
 
 ### Suggested next steps
-1. Open a PR from `redesign/v2` to `main` (`gh pr create`) — CI is already green on both platforms.
-2. Manual smoke test against real Ollama / OpenRouter / Anthropic keys; especially Anthropic `fallbacks: "default"` on api.anthropic.com (only exercised against the mock, where it is disabled) and Azure OpenAI deployments.
-3. Marketplace: publisher verification, `vsce publish` (README images resolve from the GitHub repo once merged to `main`).
+1. Open a PR from `redesign/v2` to `main` (`gh pr create`).
+2. Manual smoke test against real Ollama / OpenRouter / Anthropic keys.
+3. Marketplace: publisher verification, `vsce publish`.
 4. Backlog ideas not implemented:
    - VS Code's native thinking part (`LanguageModelThinkingPart`) once it leaves proposed API — today reasoning is a quoted block stripped from history (`stripReasoning`).
    - Translations for the dashboard UI (only manifest + extension-host strings are localizable; `l10n/bundle.l10n.json` holds the English source).

@@ -34,5 +34,7 @@
   "config.toolCheck": "`full` checks chat **and** that the model actually calls a tool (2 requests per model). `basic` checks chat only.",
   "config.showReasoning": "Show reasoning / <think> output from reasoning models as a quoted block above the answer.",
   "command.setApiKey": "Set API Key…",
+  "command.exportStats": "Export Usage Statistics…",
+  "config.budgetLimitUsd": "Monthly estimated spend budget limit in USD. When spend exceeds this threshold, a warning banner is shown in the dashboard. Set to 0 to disable.",
   "config.providerConcurrency": "Parallel checks against a single remote provider (to stay under its rate limits). Local servers only use the overall limit."
 }

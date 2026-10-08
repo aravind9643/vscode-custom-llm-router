@@ -2,7 +2,7 @@
   "name": "vscode-custom-llm-router",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "publisher": "aravind9643",
   "license": "MIT",
   "keywords": [
@@ -92,6 +92,12 @@
         "title": "%command.exportConfig%",
         "category": "%category%",
         "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "vscode-custom-llm-router.exportStats",
+        "title": "%command.exportStats%",
+        "category": "%category%",
+        "icon": "$(graph)"
       },
       {
         "command": "vscode-custom-llm-router.importConfig",
@@ -567,6 +573,16 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "policy": {
+                "type": "string",
+                "enum": [
+                  "priority",
+                  "round-robin",
+                  "least-latency"
+                ],
+                "default": "priority",
+                "description": "How member models are tried: priority (in order), round-robin (evenly distributed), or least-latency (lowest response time first)."
               }
             }
           },
@@ -589,6 +605,13 @@
           "minimum": 1,
           "maximum": 25,
           "description": "%config.providerConcurrency%"
+        },
+        "customLlmRouter.budgetLimitUsd": {
+          "type": "number",
+          "order": 8,
+          "default": 0,
+          "minimum": 0,
+          "description": "%config.budgetLimitUsd%"
         }
       }
     }

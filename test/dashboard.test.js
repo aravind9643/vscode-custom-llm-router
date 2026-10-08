@@ -170,6 +170,10 @@ const failed = (async () => run([
     t.click(t.$('[data-action="route-move"][data-index="1"][data-dir="-1"]'));
     assert.deepStrictEqual(t.sent.at(-1).routes[0].models, ["Groq::llama-70b", "Groq::mixtral"]);
     assert.ok(t.$("#panel-routes").textContent.includes("2/2 working"));
+    const pol = t.$('[data-action="route-policy"]');
+    pol.value = "round-robin";
+    t.change(pol);
+    assert.strictEqual(t.sent.at(-1).routes[0].policy, "round-robin");
     t.click(t.$('[data-action="route-delete"]'));
     assert.deepStrictEqual(t.sent.at(-1), { type: "saveRoutes", routes: [] });
   }],
@@ -252,6 +256,8 @@ const failed = (async () => run([
     assert.deepStrictEqual(t.sent.at(-1), { type: "updateSetting", key: "providerConcurrency", value: 1 });
     t.click(t.$('[data-action="reset-stats"]'));
     assert.deepStrictEqual(t.sent.at(-1), { type: "resetStats" });
+    t.click(t.$('[data-action="export-stats"]'));
+    assert.deepStrictEqual(t.sent.at(-1), { type: "exportStats" });
   }],
 ]))();
 

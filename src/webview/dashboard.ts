@@ -44,8 +44,12 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
     { id: "gemini", name: "Google Gemini", url: "https://generativelanguage.googleapis.com/v1beta/openai", note: "API key", key: true },
     { id: "deepseek", name: "DeepSeek", url: "https://api.deepseek.com", note: "API key", key: true },
     { id: "groq", name: "Groq", url: "https://api.groq.com/openai/v1", note: "API key", key: true },
+    { id: "cerebras", name: "Cerebras", url: "https://api.cerebras.ai/v1", note: "Ultra-fast · API key", key: true },
     { id: "together", name: "Together AI", url: "https://api.together.xyz/v1", note: "API key", key: true },
     { id: "mistral", name: "Mistral AI", url: "https://api.mistral.ai/v1", note: "API key", key: true },
+    { id: "perplexity", name: "Perplexity", url: "https://api.perplexity.ai", note: "Sonar search · API key", key: true },
+    { id: "xai", name: "xAI (Grok)", url: "https://api.x.ai/v1", note: "API key", key: true },
+    { id: "sambanova", name: "SambaNova", url: "https://api.sambanova.ai/v1", note: "Fast · API key", key: true },
     {
       id: "github", name: "GitHub Models", url: "https://models.github.ai/inference", note: "GitHub token", key: true,
       chatEndpoint: "https://models.github.ai/inference/chat/completions", modelsEndpoint: "https://models.github.ai/catalog/models",
@@ -359,6 +363,10 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
       out.push(`<div class="banner">${icon("copilot")}<span class="grow">No models are in Copilot yet. Tick the ones you want in the model picker, or add every working model.</span>
         <button class="btn small primary" data-action="add-all-working">Add ${plural(working.length, "working model")}</button></div>`);
     }
+    if (S.settings.budgetLimitUsd && S.spend >= S.settings.budgetLimitUsd) {
+      out.push(`<div class="banner warn">${icon("warning")}<span class="grow">Estimated spend of <strong>${money(S.spend)}</strong> has reached or exceeded your budget limit of <strong>$${S.settings.budgetLimitUsd}</strong>.</span>
+        <button class="btn small" data-action="tab" data-tab="settings">Adjust budget</button></div>`);
+    }
     $("#banners").innerHTML = out.join("");
     $("#banners").classList.toggle("hidden", !out.length);
   }
@@ -463,10 +471,12 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
       el.innerHTML = `<div class="hero">${icon("plug")}
         <h2>Connect a model provider</h2>
         <p>Pick a preset or point at any OpenAI-compatible endpoint. Verified models can then be added to the Copilot model picker.</p>
+        <div style="margin-bottom:14px"><button class="btn" data-action="scan-local">${icon("search")}Scan local servers</button></div>
         ${presetGrid(null)}</div>`;
       return;
     }
     el.innerHTML = `<div class="section-head"><h2>Providers</h2>
+        <button class="btn" data-action="scan-local" title="Scan local ports (11434, 1234, 8000, 8080) for running LLMs">${icon("search")}Scan local</button>
         <button class="btn" data-action="import">${icon("cloud-download")}Import</button>
         <button class="btn primary" data-action="add-provider">${icon("add")}Add provider</button></div>
       <div class="cards">${S.providers.map(providerCard).join("")}</div>`;
@@ -713,7 +723,7 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
 
   /** Locally edited copy of the routes, posted back as a whole on every change. */
   function routesDraft() {
-    return S.routes.map((r) => ({ name: r.name, models: [...r.models] }));
+    return S.routes.map((r) => ({ name: r.name, models: [...r.models], ...(r.policy ? { policy: r.policy } : {}) }));
   }
   function saveRoutes(routes) {
     S.routes = routes.map((r) => ({ ...r, slug: r.name, available: r.models.filter((k) => S.models.find((m) => m.key === k)?.status === "working").length }));
@@ -746,6 +756,11 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
     };
     const cards = S.routes.map((r) => `<div class="card route">
         <div class="p-head"><span class="p-dot ${r.available ? "ok" : "err"}"></span><span class="p-name">${esc(r.name)}</span>
+          <select class="policy-select" data-action="route-policy" data-route="${esc(r.name)}" aria-label="Route policy" title="How members are tried">
+            <option value="priority" ${r.policy !== "round-robin" && r.policy !== "least-latency" ? "selected" : ""}>Priority</option>
+            <option value="round-robin" ${r.policy === "round-robin" ? "selected" : ""}>Round-robin</option>
+            <option value="least-latency" ${r.policy === "least-latency" ? "selected" : ""}>Least latency</option>
+          </select>
           <span class="muted">${r.available}/${r.models.length} working · ${r.available ? "in Copilot" : "hidden until a member works"}</span>
           <button class="icon-btn" data-action="route-delete" data-route="${esc(r.name)}" title="Delete route">${icon("trash")}</button></div>
         <ol class="members">${r.models.map((k, i) => memberLine(r, k, i)).join("") || `<li class="muted">No models yet — add one below.</li>`}</ol>
@@ -788,9 +803,11 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
         <div class="setting"><div class="text"><div>Show model reasoning</div><div>Render &lt;think&gt; / reasoning output as a quoted block above the answer.</div></div>
           <label class="switch"><input type="checkbox" data-setting="showReasoning" ${s.showReasoning ? "checked" : ""} aria-label="Show model reasoning"><span></span></label></div>
       </div>
-      <div class="card"><h3>Usage</h3>
+      <div class="card"><h3>Usage & Budget</h3>
         <div class="setting"><div class="text"><div>Speed and spend statistics</div><div>Measured from your own chats and kept on this machine${S.spend > 0 ? ` — about ${money(S.spend)} so far` : ""}.</div></div>
-          <button class="btn" data-action="reset-stats">${icon("discard")}Reset</button></div>
+          <button class="btn" data-action="reset-stats">${icon("discard")}Reset</button><button class="btn" data-action="export-stats">${icon("graph")}Export stats</button></div>
+        <div class="setting"><div class="text"><div>Monthly budget warning ($)</div><div>Show a warning banner when estimated spend reaches this threshold (0 to disable).</div></div>
+          <input type="number" min="0" step="1" data-setting="budgetLimitUsd" value="${esc(s.budgetLimitUsd || "")}" placeholder="0 (disabled)" aria-label="Budget limit in USD"></div>
       </div>
       <div class="card"><h3>Configuration</h3>
         <div class="setting"><div class="text"><div>Export / import</div><div>Providers, Copilot selection, routes and model overrides as JSON. API keys and secret headers are never exported.</div></div>
@@ -970,6 +987,16 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
 
     "clear-cache": () => post({ type: "clearCache" }),
     export: () => post({ type: "exportConfig" }),
+    "export-stats": () => post({ type: "exportStats" }),
+    "scan-local": () => {
+      const btn = document.querySelector('[data-action="scan-local"]');
+      if (btn) btn.innerHTML = `${icon("sync", "spin")} Scanning…`;
+      post({ type: "scanLocalServers" });
+    },
+    "route-policy": (el) => {
+      const policy = (el as HTMLSelectElement).value as any;
+      saveRoutes(routesDraft().map((r) => (r.name === el.dataset.route ? { ...r, policy } : r)));
+    },
     import: () => post({ type: "importConfig" }),
     "open-settings": () => post({ type: "openSettings" }),
     logs: () => post({ type: "showLogs" }),
@@ -977,13 +1004,13 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
 
   document.addEventListener("click", (ev) => {
     const el = (ev.target as HTMLElement)?.closest?.("[data-action]") as HTMLElement | null;
-    if (!el || (el as HTMLButtonElement).disabled || el.tagName === "INPUT") return;
+    if (!el || (el as HTMLButtonElement).disabled || el.tagName === "INPUT" || el.tagName === "SELECT") return;
     actions[el.dataset.action]?.(el, ev);
   });
 
   document.addEventListener("change", (ev) => {
     const el = (ev.target as HTMLInputElement);
-    if (el.dataset.action && el.tagName === "INPUT") actions[el.dataset.action]?.(el, ev);
+    if (el.dataset.action && (el.tagName === "INPUT" || el.tagName === "SELECT")) actions[el.dataset.action]?.(el, ev);
     else if (el.id === "provSel") {
       ui.provider = el.value;
       persist();
@@ -994,8 +1021,9 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
     } else if (el.dataset.setting) {
       let value: any = el.tagName === "SELECT" ? el.value : el.type === "checkbox" ? el.checked : Number(el.value);
       if (el.type === "number") {
-        const min = Number(el.min), max = Number(el.max);
-        if (!Number.isFinite(value) || value < min) value = min;
+        const min = el.min !== "" ? Number(el.min) : -Infinity;
+        const max = el.max !== "" ? Number(el.max) : Infinity;
+        if (!Number.isFinite(value) || value < min) value = Number.isFinite(min) && min !== -Infinity ? min : 0;
         if (value > max) value = max;
         el.value = String(value);
       }
@@ -1091,6 +1119,18 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
         toast(msg.error || "Could not save provider", "err");
         const btn = document.querySelector('[data-action="save-draft"]');
         if (btn) (btn as HTMLButtonElement).disabled = false;
+      }
+    } else if (msg.type === "localScanResult") {
+      const btn = document.querySelector('[data-action="scan-local"]');
+      if (btn) btn.innerHTML = `${icon("search")}Scan local`;
+      if (!msg.found.length) {
+        toast("No local LLM servers detected on standard ports (11434, 1234, 8000, 8080)");
+      } else {
+        toast(`Found ${msg.found.length} local server(s): ${msg.found.map((f) => f.name).join(", ")}`);
+        const unconfigured = msg.found.find((f) => !S.providers.some((p) => p.name.toLowerCase() === f.name.toLowerCase() || p.endpointUrl.includes(f.url)));
+        if (unconfigured) {
+          applyPreset(unconfigured.name.toLowerCase().replace(/[^a-z]/g, ""));
+        }
       }
     }
   });

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.3.0
+
+### Added
+- **Flexible Route Policies**: Routes can now be configured with `priority` (sequential fallback), `round-robin` (evenly distributed load), or `least-latency` (fastest response time first).
+- **Route Circuit Breaker & Health Backoff**: Automatically de-prioritizes models returning 429 (Rate Limit) or 5xx server errors for 30–60s so fallbacks are instantaneous without repeatedly stalling.
+- **Dynamic Context-Length Route Filtering**: Routes automatically prefer and select member models capable of handling the incoming request's message length.
+- **Prompt Caching Hint Forwarding**: Translates Copilot cache breakpoints to Anthropic ephemeral cache control blocks and passes cache markers to optimize token costs and TTFT.
+- **Expanded Provider Presets**: One-click configuration for **Cerebras** (ultra-fast inference), **Perplexity** (Sonar search), **xAI (Grok)**, and **SambaNova**.
+- **Local Server Scanner**: One-click scanning for running local LLMs across standard ports (Ollama `11434`, LM Studio `1234`, vLLM `8000`, LocalAI `8080`) with auto-preset filling.
+- **Telemetry & Spend Export**: Export model requests, failure counts, TTFT, tok/s, prompt tokens, completion tokens, and USD costs as CSV or JSON (`Export Usage Statistics…`).
+- **Spend Budget Warnings**: Configurable monthly budget threshold (`customLlmRouter.budgetLimitUsd`) with active dashboard warning banners when spend exceeds budget.
+- **Enhanced Keyboard Ergonomics**: Quick model search focus with `/` and modal/limits dismissal with `Escape`.
+
 ## 2.2.0
 
 ### Added

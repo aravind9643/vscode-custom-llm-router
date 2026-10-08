@@ -181,7 +181,11 @@ export function toAnthropicMessages(input: WireMessage[]): { system?: string; me
       }
       push("assistant", blocks);
     } else {
-      push("user", blocksOf(m.content));
+      const blocks = blocksOf(m.content);
+      if (m.cache_control && blocks.length) {
+        (blocks[blocks.length - 1] as any).cache_control = { type: "ephemeral" };
+      }
+      push("user", blocks);
     }
   }
   // The API requires the conversation to start with a user turn.

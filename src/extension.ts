@@ -261,6 +261,45 @@ export async function activate(context: vscode.ExtensionContext) {
     void vscode.window.showInformationMessage(vscode.l10n.t("Exported {0} provider(s). API keys were not included.", payload.providers.length));
   });
 
+  register("exportStats", async () => {
+    const stats = engine.getAllStats();
+    if (!stats.length) {
+      void vscode.window.showInformationMessage(vscode.l10n.t("No chat telemetry has been recorded yet."));
+      return;
+    }
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file("llm-router-stats.csv"),
+      filters: { "CSV (Comma delimited)": ["csv"], JSON: ["json"] },
+      title: vscode.l10n.t("Export LLM Router usage and spend statistics"),
+    });
+    if (!uri) return;
+    const isJson = uri.path.endsWith(".json");
+    let content: string;
+    if (isJson) {
+      content = JSON.stringify(stats, null, 2);
+    } else {
+      const headers = "Key,Provider,Model,Requests,Failures,TTFT_ms,Tokens_Per_Sec,Prompt_Tokens,Output_Tokens,Spend_USD,Last_Used";
+      const rows = stats.map((s) =>
+        [
+          `"${s.key}"`,
+          `"${s.providerName}"`,
+          `"${s.modelId}"`,
+          s.requests,
+          s.failures,
+          s.ttftMs ? Math.round(s.ttftMs) : "",
+          s.tokensPerSec ? s.tokensPerSec.toFixed(1) : "",
+          s.promptTokens ?? "",
+          s.completionTokens ?? "",
+          s.costUsd !== undefined ? s.costUsd.toFixed(4) : "",
+          s.lastUsedAt ? new Date(s.lastUsedAt).toISOString() : "",
+        ].join(",")
+      );
+      content = [headers, ...rows].join("\n");
+    }
+    await vscode.workspace.fs.writeFile(uri, Buffer.from(content, "utf8"));
+    void vscode.window.showInformationMessage(vscode.l10n.t("Exported usage statistics for {0} model(s).", stats.length));
+  });
+
   register("importConfig", async () => {
     const [uri] = (await vscode.window.showOpenDialog({ canSelectMany: false, filters: { JSON: ["json"] }, title: vscode.l10n.t("Import LLM Router configuration") })) || [];
     if (!uri) return;

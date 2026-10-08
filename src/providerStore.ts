@@ -253,7 +253,11 @@ export class ProviderStore {
   public async saveRoutes(routes: RouteConfig[]): Promise<void> {
     const seen = new Set<string>();
     const clean = routes
-      .map((r) => ({ name: String(r.name || "").trim(), models: [...new Set((r.models || []).filter((k) => typeof k === "string"))] }))
+      .map((r) => ({
+        name: String(r.name || "").trim(),
+        models: [...new Set((r.models || []).filter((k) => typeof k === "string"))],
+        ...(r.policy ? { policy: r.policy } : {}),
+      }))
       .filter((r) => r.name && !seen.has(r.name) && seen.add(r.name));
     await this._config.update("routes", clean, vscode.ConfigurationTarget.Global);
   }
@@ -298,7 +302,12 @@ export class ProviderStore {
     return this._config.get<boolean>("showReasoning") !== false;
   }
 
-  public async updateSetting(key: "testConcurrency" | "providerConcurrency" | "cacheTtlHours" | "showReasoning" | "toolCheck", value: unknown) {
+  public get budgetLimitUsd(): number {
+    const lim = this._config.get<number>("budgetLimitUsd") || 0;
+    return Math.max(0, lim);
+  }
+
+  public async updateSetting(key: "testConcurrency" | "providerConcurrency" | "cacheTtlHours" | "showReasoning" | "toolCheck" | "budgetLimitUsd", value: unknown) {
     await this._config.update(key, value, vscode.ConfigurationTarget.Global);
   }
 }

@@ -10,6 +10,7 @@ export interface DashboardSettings {
   cacheTtlHours: number;
   showReasoning: boolean;
   toolCheck: "full" | "basic";
+  budgetLimitUsd?: number;
 }
 
 export interface DashboardState {
@@ -30,11 +31,12 @@ export type HostMessage =
   | { type: "state"; state: DashboardState }
   | { type: "focus"; tab?: DashboardTab; editProvider?: string; addProvider?: boolean; editModel?: string }
   | { type: "connectionResult"; reqId: string; ok: boolean; latencyMs: number; modelCount?: number; error?: string }
-  | { type: "saveResult"; ok: boolean; name?: string; error?: string };
+  | { type: "saveResult"; ok: boolean; name?: string; error?: string }
+  | { type: "localScanResult"; found: { name: string; url: string; api: string }[] };
 
 /** Webview → host. */
 export type WebviewMessage =
-  | { type: "ready" | "refresh" | "cancelVerify" | "clearCache" | "exportConfig" | "importConfig" | "openSettings" | "showLogs" | "resetStats" }
+  | { type: "ready" | "refresh" | "cancelVerify" | "clearCache" | "exportConfig" | "importConfig" | "exportStats" | "scanLocalServers" | "openSettings" | "showLogs" | "resetStats" }
   | { type: "verify"; keys?: string[]; force?: boolean }
   | { type: "setSelected"; keys: string[]; selected: boolean }
   | { type: "setSelectionExactly"; keys: string[] }

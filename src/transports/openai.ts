@@ -67,11 +67,16 @@ export async function httpError(res: Response): Promise<HttpError> {
 function toListedModel(r: any): ListedModel | undefined {
   const id = r?.id || r?.model;
   if (typeof id !== "string") return undefined;
-  // OpenRouter-style prices are USD per token, as strings.
+  // OpenRouter & compatible providers: pricing in USD per token or per million tokens
   const perM = (v: unknown) => {
     const n = typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : NaN;
     return Number.isFinite(n) && n >= 0 ? Math.round(n * 1e6 * 1e6) / 1e6 : undefined;
   };
+  const promptRaw = r.pricing?.prompt ?? r.pricing?.input ?? r.pricing?.input_cost_per_token;
+  const completionRaw = r.pricing?.completion ?? r.pricing?.output ?? r.pricing?.output_cost_per_token;
+  const promptPerM = num(r.pricing?.prompt_per_million ?? r.pricing?.input_per_million) ?? perM(promptRaw);
+  const completionPerM = num(r.pricing?.completion_per_million ?? r.pricing?.output_per_million) ?? perM(completionRaw);
+
   return {
     id,
     name: typeof r.name === "string" ? r.name : undefined,
@@ -80,8 +85,8 @@ function toListedModel(r: any): ListedModel | undefined {
     maxInputTokens: num(r.maxInputTokens),
     toolCalling: typeof r.toolCalling === "boolean" ? r.toolCalling : Array.isArray(r.supported_parameters) ? r.supported_parameters.includes("tools") : undefined,
     vision: Boolean(r.vision || r.supports_vision || r.architecture?.input_modalities?.includes?.("image")) || undefined,
-    inputPerM: perM(r.pricing?.prompt),
-    outputPerM: perM(r.pricing?.completion),
+    inputPerM: promptPerM,
+    outputPerM: completionPerM,
     ownedBy: typeof r.owned_by === "string" ? r.owned_by : undefined,
   };
 }
