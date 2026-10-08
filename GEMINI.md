@@ -1,24 +1,35 @@
 # AGENTS.md - Agent Context & Guidelines for vscode-custom-llm-router
 
+> Single source of truth for coding agents. `CLAUDE.md` imports this file; `GEMINI.md` is a verbatim copy (re-copy after editing: `cp AGENTS.md GEMINI.md`). Start with **§7 Current State & Handoff**.
+
 ## 1. Project Overview
 **vscode-custom-llm-router** is a VS Code extension that lets developers use custom, local, and third-party LLMs inside **GitHub Copilot Chat** through VS Code's native Language Model API (`vscode.lm.registerLanguageModelChatProvider`).
 
 Supported backends include:
 - Local engines: **Ollama**, **LM Studio**, **vLLM**, **LocalAI**
-- Cloud/Aggregator providers: **OpenRouter**, **OpenAI**, **Gemini**, **DeepSeek**, **Groq**, **Together AI**, **Mistral**, **GitHub Models**, **FreeLLMAPI**, **OmniRoute**
+- Cloud/Aggregator providers: **Anthropic** (native Messages API), **Azure OpenAI**, **OpenRouter**, **OpenAI**, **Gemini**, **DeepSeek**, **Groq**, **Together AI**, **Mistral**, **GitHub Models**, **FreeLLMAPI**, **OmniRoute**
 - Any OpenAI-compatible `/v1/chat/completions` HTTP endpoint.
+- Three wire protocols (`src/transports/`): OpenAI-compatible, Ollama native (`/api/chat`), Anthropic Messages API.
 
 ---
 
 ## 2. Technology Stack & Key Dependencies
 - **Runtime**: VS Code Extension API (`@types/vscode: ^1.140.0`)
 - **Language**: TypeScript 5.4+ (Target: ES2022, CommonJS module)
-- **UI**: native TreeView (sidebar) + a webview dashboard written as plain static files in `media/` (no bundler, no framework), styled only with `var(--vscode-*)` tokens and `@vscode/codicons`.
+- **UI**: native TreeView (sidebar) + a webview dashboard written in TypeScript (`src/webview/dashboard.ts`, no framework), styled only with `var(--vscode-*)` tokens and vendored codicons (`media/codicon.*`).
 - **Packaging**: `@vscode/vsce`
 - **Build**: `tsc` → `out/` (type-check + tests), `esbuild` → `dist/extension.js` (what ships; `main` points here) and `src/webview/dashboard.ts` → `media/dashboard.js` (generated, git-ignored). The webview is type-checked with `tsconfig.webview.json`.
 - **Anthropic**: `@anthropic-ai/sdk` (bundled). Use the SDK for anything Anthropic-specific; no raw fetch.
-- **Tests**: `npm test` (unit tests against the mock + jsdom dashboard tests), `npm run test:integration` (real VS Code via `@vscode/test-cli`). CI: `.github/workflows/ci.yml`.
-- **Test Server**: `mock_llm_server.py [port]` (default 31415). Hooks: `mock-qwq-think` (split `<think>` tags, rejects tools), `mock-coder-32b` (accepts tools, never calls), `mock-flaky` (streaming 503 → route fallback), `mock-strict` (rejects `stream_options`), "weather" + tools (streamed tool call), `/api/show|pull|generate` (Ollama), `GET /_mock/state` (keep-alive calls).
+- **Tests**: `npm test` (typecheck + unit tests against the mock + sidebar tree tests + jsdom dashboard tests), `npm run test:integration` (real VS Code via `@vscode/test-cli`), `npm run screenshots` (Playwright, visual check). CI: `.github/workflows/ci.yml` (every push and PR, Ubuntu + Windows).
+- **Test Server**: `mock_llm_server.py [port]` (default 31415, threaded, stdlib only). Hooks:
+  - `mock-qwq-think`: split `<think>` tags; rejects tools (400) → toolSupport `unsupported`
+  - `mock-coder-32b`: accepts tools but answers in text → `accepted`; `mock-gpt-4o`: calls tools → `called`, has OpenRouter-style pricing
+  - `mock-flaky`: real streaming chats return 503 (health checks pass) → route fallback
+  - `mock-strict`: 400 on `stream_options`; `mock-slow`: first request sleeps 2.5 s (cold start)
+  - prompt containing "weather" + tools → streamed tool call
+  - `/api/show|chat|pull|generate`: Ollama native; requests with an `anthropic-version` header hit the Anthropic mock (`/v1/models`, `/v1/messages` SSE; key `sk-ant-test`; prompt "refuse-me" → refusal)
+  - paths under `/secure` need `Authorization: Bearer sk-good` or `X-Secret-Token: tok`
+  - `GET /_mock/state`: keep-alive calls, last Anthropic request (body + headers), last Ollama chat body
 - **Localization**: manifest strings in `package.nls.json`; runtime strings via literal `vscode.l10n.t(...)` (run `npm run l10n:export`).
 
 ---
@@ -103,11 +114,12 @@ API keys are stored in `context.secrets` under `customLlmRouter.apiKey.<provider
 
 ## 5. Development Workflows & Commands
 ```bash
-npm test                               # compile + unit + dashboard tests
+npm test                               # typecheck + unit + sidebar + dashboard tests (needs Python 3 on PATH or $PYTHON)
 npm run test:integration               # real VS Code
 npm run bundle                         # dist/extension.js + media/dashboard.js
 npm run screenshots                    # dashboard in Dark/Light/HC → test/visual/out (look at them after UI changes)
-python mock_llm_server.py              # offline mock on 31415 (F5 "with mock server" starts it)
+python mock_llm_server.py              # offline mock on 31415 (F5 "Run Extension (with mock server)" starts it)
+npm run l10n:export                    # after adding/changing vscode.l10n.t strings
 npx @vscode/vsce package --no-dependencies
 ```
 
@@ -115,7 +127,7 @@ npx @vscode/vsce package --no-dependencies
 
 ## 6. Critical Rules for Future Agents
 
-1. **Verify**: run `npm test` after any change (it type-checks); run `npm run test:integration` when touching activation, commands, package.json or the chat provider.
+1. **Verify**: run `npm test` after any change (it type-checks); run `npm run test:integration` when touching activation, commands, package.json, transports or the chat provider; run `npm run screenshots` and look at the PNGs after UI changes.
 2. **Webview Safety**:
    - All UI code lives in `src/webview/dashboard.ts` (type-checked by `npm run typecheck`); never edit the generated `media/dashboard.js`.
    - Render every dynamic value through `esc()` — model names/IDs come from remote servers.
@@ -129,3 +141,35 @@ npx @vscode/vsce package --no-dependencies
 8. **Proposed APIs**: do not use them (e.g. `LanguageModelThinkingPart`); they block Marketplace publishing.
 9. **Scripted edits**: when editing code with `String.prototype.replace`, remember `$$`, `$&` and `$1` are special in the replacement string (a `$${…}` template becomes `${…}` and silently drops a dollar sign). Prefer `split(a).join(b)` or the Edit tool.
 10. **High contrast**: selection colours must not rely on `--vscode-button-background` alone (it is black in HC); see the `body.vscode-high-contrast` rules in `dashboard.css`.
+11. **Commands must not await notifications**: a command that `await`s `showInformationMessage(..., actions)` never resolves until the user clicks, which hangs `executeCommand` callers (and the integration tests). Use `void …then(...)`.
+12. **Git**: never commit to `main` directly; work on a branch. Generated files (`dist/`, `out/`, `media/dashboard.js`, `*.vsix`, `.vscode-test/`, `test/visual/out/`) are git-ignored — don't force-add them.
+
+---
+
+## 7. Current State & Handoff
+
+_Last updated: 2026-10-08._
+
+### Where things are
+- **Branch `redesign/v2`** (pushed to `origin`, 4 commits on top of `main@42ad2df`): core transports → TypeScript dashboard → tests/CI → docs. **No PR opened yet; `main` is untouched.**
+- **Version 2.2.0** (`package.json`, `CHANGELOG.md`). `npx @vscode/vsce package --no-dependencies` builds a ~213 KB VSIX (16 files).
+- **Local verification at handoff**: `npm test` → 22 unit + 6 tree + 15 dashboard tests passing; `npm run test:integration` → 5 passing on VS Code 1.141 (incl. chat through Ollama native and the bundled Anthropic SDK); screenshots reviewed in Dark / Light / High Contrast at 1280 px and 640 px.
+- **CI** (first run, `37736070967`): **ubuntu-latest passed** (typecheck, unit/tree/dashboard tests, integration tests under `xvfb-run`, VSIX packaging); windows-latest was still running at handoff — check with `gh run list --branch redesign/v2`.
+- **Not yet done by a human**: an interactive check in a real VS Code window with real providers (F5 → *Run Extension (with mock server)*), and a real Copilot Chat session.
+
+### Suggested next steps
+1. Confirm CI is green (fix any Linux/Windows-only failures), then open a PR from `redesign/v2` to `main` (`gh pr create`).
+2. Manual smoke test against real Ollama / OpenRouter / Anthropic keys; especially Anthropic `fallbacks: "default"` on api.anthropic.com (only exercised against the mock, where it is disabled) and Azure OpenAI deployments.
+3. Marketplace: publisher verification, `vsce publish` (README images resolve from the GitHub repo once merged to `main`).
+4. Backlog ideas not implemented:
+   - VS Code's native thinking part (`LanguageModelThinkingPart`) once it leaves proposed API — today reasoning is a quoted block stripped from history (`stripReasoning`).
+   - Translations for the dashboard UI (only manifest + extension-host strings are localizable; `l10n/bundle.l10n.json` holds the English source).
+   - Anthropic list prices in `src/transports/anthropic.ts` (`LIST_PRICES`) are a static table — keep it current or source prices elsewhere.
+   - Models API capability data is only used for Anthropic; other providers rely on `/models` fields, native Ollama/LM Studio APIs and name heuristics (`VISION_RE`, `REASONING_RE`, `CODING_RE` in `modelEngine.ts`).
+
+### Environment gotchas
+- **Python**: tests spawn `python -I mock_llm_server.py <port>` (`python3` on non-Windows; override with `$PYTHON`). `-I` ignores `PYTHONIOENCODING`, so the server reconfigures stdout to UTF-8 itself.
+- **Integration tests** download VS Code into `.vscode-test/` on first run (`VSCODE_TEST_VERSION` overrides "stable").
+- **Screenshots** need `npx playwright install chromium` once; output goes to `test/visual/out/`; `--readme` refreshes `media/screenshots/`.
+- **Pushing from this machine**: git has no stored HTTPS credentials; `gh` is logged in. Push with `git -c credential.helper= -c "credential.helper=!gh auth git-credential" push` (does not change global git config).
+- **VS Code API facts learned the hard way**: `LanguageModelChat` exposes `maxInputTokens` but not `maxOutputTokens`; `LanguageModelChatMessageRole.System` (3) exists at runtime but not in stable typings; Copilot sends non-image `LanguageModelDataPart`s (e.g. `cache_control`) that must not be forwarded as images; the Anthropic SDK refuses to send without credentials (no HTTP status), which `anthropicTransport.listModels` maps to a 401-like `needsKey`.

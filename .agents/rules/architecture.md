@@ -14,3 +14,6 @@
    - Support streaming SSE responses.
    - Implement abort signals and timeouts on all outbound fetch requests.
    - Never block extension activation on remote endpoint discovery.
+
+## More context
+See `AGENTS.md` for architecture, rules and the current handoff state (§7).
