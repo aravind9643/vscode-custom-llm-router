@@ -1,910 +1,864 @@
-export interface CustomModelConfig {
-  id: string;
-  name?: string;
-  contextWindow?: number;
-  maxInputTokens?: number;
-  maxOutputTokens?: number;
-  toolCalling?: boolean;
-  vision?: boolean;
-}
+import * as vscode from "vscode";
+import {
+  CatalogModel,
+  ConnectionTestResult,
+  ModelCapabilities,
+  ModelOverride,
+  ModelStats,
+  ModelStatus,
+  ModelPricing,
+  ProviderConfig,
+  ProviderKind,
+  ProviderStatus,
+  RouteView,
+  ToolSupport,
+  VerifiedCacheEntry,
+  VerifiedCacheStore,
+  modelKey,
+  splitKey,
+} from "./types";
+import { buildHeaders, describeFetchError, isLocalUrl, nativeRoot, resolveApi, timeoutFor } from "./endpoints";
+import { ProviderStore } from "./providerStore";
+import { Auth, ChatRequest, ChatSink, HttpError, ListedModel, transportFor } from "./transports";
+import { runPool } from "./pool";
+import { num } from "./transports/openai";
 
-export interface CustomProviderConfig {
-  name: string;
-  endpointUrl: string; // e.g. "http://localhost:11434" or "https://api.openai.com"
-  apiKey?: string;
-  modelsEndpoint?: string;
-  chatEndpoint?: string;
-  staticModels?: CustomModelConfig[];
-  autoDiscover?: boolean;
-  enabled?: boolean;
-}
+const CACHE_KEY = "customLlmRouter.verifiedCache";
+const META_KEY = "customLlmRouter.nativeMeta";
+const STATS_KEY = "customLlmRouter.modelStats";
+const RATIO_KEY = "customLlmRouter.tokenRatio";
+const DISCOVERY_TIMEOUT_MS = 8000;
+const TEST_TIMEOUT_MS = 20000;
+/** Local servers may need this long to load a large model on first use. */
+const COLD_START_TIMEOUT_MS = 120000;
+/** Default Ollama context (num_ctx) when the provider does not set one; more uses more memory. */
+const DEFAULT_OLLAMA_CONTEXT = 32768;
+const META_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_CHARS_PER_TOKEN = 4;
 
-export interface VSCodeModel {
-  id: string;
-  name: string;
-  url: string;
-  toolCalling?: boolean;
-  vision?: boolean;
-  thinking?: boolean;
-  maxInputTokens: number;
-  maxOutputTokens: number;
-  contextWindow?: number;
-  providerName?: string;
-  _latency?: number;
-  _verifiedWorking?: boolean;
-  _error?: string;
-  isCoding?: boolean;
-  isReasoning?: boolean;
-  disabled?: boolean;
-}
-
-export interface VSCodeProvider {
-  name: string;
-  vendor: "customendpoint";
-  apiKey: string;
-  apiType: "chat-completions";
-  models: VSCodeModel[];
-}
-
-export interface ModelTestResult {
-  modelId: string;
-  providerName: string;
-  working: boolean;
-  status: number;
-  latency: number;
-  verifiedTools?: boolean;
-  error?: string;
-  reply?: string;
-  testedAt: number;
-}
-
-export interface VerifiedCacheEntry {
-  modelId: string;
-  providerName: string;
-  working: boolean;
-  latency: number;
-  verifiedTools?: boolean;
-  error?: string;
-  testedAt: number;
-}
-
-export interface VerifiedCacheStore {
-  updatedAt: number;
-  entries: Record<string, VerifiedCacheEntry>; // key: `${providerName}::${modelId}`
-}
-
-export interface GeneratorOptions {
-  profile?: "all" | "coding" | "top";
-  onlyVerifiedWorking?: boolean;
-  includeFailed?: boolean;
-  onProgress?: (msg: string) => void;
-}
-
-export interface EndpointStatus {
-  name: string;
-  url: string;
-  online: boolean;
-  modelCount: number;
-  error?: string;
-}
-
-const TOP_MODEL_KEYWORDS = [
-  "claude-3-7",
-  "claude-3.7",
-  "claude-3-5",
-  "claude-3.5",
-  "gpt-4o",
-  "gpt-4",
-  "o1",
-  "o3",
-  "deepseek-r1",
-  "deepseek-v3",
-  "qwen-2.5-coder",
-  "qwen2.5-coder",
-  "gemini-2.5",
-  "gemini-2.0",
-  "auto/best-coding",
-  "auto/pro-coding",
-  "auto/best-fast",
-  "auto/best-reasoning",
-  "auto/pro-reasoning",
-  "auto/best-vision",
-  "auto/pro-vision",
-  "auto/best-chat",
-  "auto/best-free",
+/** Non-chat models that should never be offered to Copilot. */
+const EXCLUDE_PATTERNS = [
+  /image/, /inpaint/, /pixel-art/, /flux/, /diffusion/, /dall-?e/, /tts/, /voice/, /whisper/,
+  /transcri/, /translat/, /embed/, /rerank/, /moderation/, /safety/, /guard/,
 ];
+const ALWAYS_INCLUDE = new Set(["auto"]);
 
-const CODING_MODEL_KEYWORDS = [
-  "coder",
-  "coding",
-  "code",
-  "dev",
-  "claude",
-  "gpt-4",
-  "deepseek",
-  "qwen",
-];
+const CODING_RE = /(coder|coding|code|codestral|devstral|starcoder|codellama|claude|gpt-4|gpt-5|deepseek|qwen|kimi|glm)/;
+const REASONING_RE = /(reason|thinking|think|deepseek-r1|(^|[\/\-_:])r1([\-_:.]|$)|(^|[\/\-_:])o[134](-|$)|qwq|magistral)/;
+const VISION_RE = /(vision|(^|[\-_:])vl([\-_:]|$)|gpt-4o|gpt-4\.1|gpt-5|gemini|claude-3|claude-(sonnet|opus)|llava|pixtral|gemma-?3)/;
 
-const CACHE_TTL_MS = 48 * 60 * 60 * 1000; // 48 Hours
+/** Limits and capabilities reported by a server's native API (Ollama / LM Studio). */
+interface NativeMeta {
+  contextWindow?: number;
+  tools?: boolean;
+  vision?: boolean;
+  reasoning?: boolean;
+  fetchedAt: number;
+}
 
-export class ModelEngine {
-  private _providers: CustomProviderConfig[] = [];
-  private _disabledModelIds: Set<string> = new Set();
+interface ProviderCatalog {
+  status: ProviderStatus;
+  models: CatalogModel[];
+}
 
-  public setDisabledModelIds(ids: string[]): void {
-    this._disabledModelIds = new Set(ids || []);
+export interface VerifyOptions {
+  force?: boolean;
+  token?: vscode.CancellationToken;
+  onProgress?: (done: number, total: number, model: CatalogModel) => void;
+}
+
+export interface VerifyProgress {
+  done: number;
+  total: number;
+  working: number;
+  failed: number;
+}
+
+export interface VerificationEstimate {
+  models: number;
+  requests: number;
+  /** Remote (possibly billed) providers involved, with how many models each. */
+  remote: { name: string; models: number }[];
+}
+
+/** A globalState-backed record with debounced writes. */
+class PersistedRecord<T> {
+  private _data: Record<string, T>;
+  private _timer?: NodeJS.Timeout;
+
+  constructor(private readonly _memento: vscode.Memento, private readonly _key: string) {
+    this._data = { ...(_memento.get<Record<string, T>>(_key) || {}) };
   }
-
-  public isModelDisabled(providerName: string, modelId: string): boolean {
-    return this._disabledModelIds.has(`${providerName}::${modelId}`) || this._disabledModelIds.has(modelId);
+  get(k: string): T | undefined {
+    return this._data[k];
   }
-
-  public getDisabledModelIds(): string[] {
-    return Array.from(this._disabledModelIds);
+  set(k: string, v: T) {
+    this._data[k] = v;
+    this._schedule();
   }
-
-  private _activeProfile: "all" | "coding" | "top" = "all";
-
-  public getActiveProfile(): "all" | "coding" | "top" {
-    return this._activeProfile;
+  clear() {
+    this._data = {};
+    this._schedule();
   }
-
-  public setActiveProfile(profile: "all" | "coding" | "top"): void {
-    this._activeProfile = profile;
-    if (this._memento) {
-      this._memento.update("customLlmRouter.activeProfile", profile);
-    }
-  }
-  private _blacklistPatterns: string[] = [
-    "image",
-    "inpainting",
-    "pixel-art",
-    "flux",
-    "diffusion",
-    "tts",
-    "voice",
-    "translat",
-    "whisper",
-    "safety",
-  ];
-  private _whitelistExactIds: string[] = [
-    "auto",
-    "auto/best-coding",
-    "auto/best-fast",
-    "auto/best-reasoning",
-    "auto/best-vision",
-    "auto/best-chat",
-    "auto/best-free",
-  ];
-
-  // In-memory / GlobalState Verified Cache
-  private _verifiedCache: VerifiedCacheStore = {
-    updatedAt: 0,
-    entries: {},
-  };
-
-  private _memento?: { get: <T>(k: string, def?: T) => T; update: (k: string, v: any) => Thenable<void> };
-
-  constructor(memento?: { get: <T>(k: string, def?: T) => T; update: (k: string, v: any) => Thenable<void> }) {
-    this._memento = memento;
-    this.loadCache();
-  }
-
-  public setMemento(memento: { get: <T>(k: string, def?: T) => T; update: (k: string, v: any) => Thenable<void> }) {
-    this._memento = memento;
-    this.loadCache();
-  }
-
-  public loadCache(): void {
-    if (this._memento) {
-      const storedProfile = this._memento.get<"all" | "coding" | "top">("customLlmRouter.activeProfile");
-      if (storedProfile) {
-        this._activeProfile = storedProfile;
+  /** Moves every `${from}::*` entry to `${to}::*`. */
+  rekeyProvider(from: string, to: string) {
+    const prefix = `${from}::`;
+    for (const k of Object.keys(this._data)) {
+      if (k.startsWith(prefix)) {
+        this._data[`${to}::${k.slice(prefix.length)}`] = this._data[k];
+        delete this._data[k];
       }
-      const stored = this._memento.get<VerifiedCacheStore>("customLlmRouter.verifiedCache", {
-        updatedAt: 0,
-        entries: {},
-      });
-      // Auto-prune entries older than 48 hours
-      const now = Date.now();
-      const prunedEntries: Record<string, VerifiedCacheEntry> = {};
-      for (const [key, item] of Object.entries(stored.entries || {})) {
-        if (now - item.testedAt < CACHE_TTL_MS) {
-          prunedEntries[key] = item;
-        }
-      }
-      this._verifiedCache = {
-        updatedAt: stored.updatedAt || now,
-        entries: prunedEntries,
-      };
+    }
+    this._schedule();
+  }
+  private _schedule() {
+    if (this._timer) clearTimeout(this._timer);
+    this._timer = setTimeout(() => this.flush(), 1000);
+  }
+  flush() {
+    if (this._timer) clearTimeout(this._timer);
+    this._timer = undefined;
+    void this._memento.update(this._key, this._data);
+  }
+}
+
+export class ModelEngine implements vscode.Disposable {
+  private readonly _onDidChange = new vscode.EventEmitter<void>();
+  /** Fires whenever providers, models, statuses, routes or selection change. */
+  public readonly onDidChange = this._onDidChange.event;
+
+  private _catalog = new Map<string, ProviderCatalog>();
+  private _cache: VerifiedCacheStore = { updatedAt: 0, entries: {} };
+  private readonly _meta: PersistedRecord<NativeMeta>;
+  private readonly _stats: PersistedRecord<ModelStats>;
+  private readonly _ratios: PersistedRecord<number>;
+  private _testing = new Set<string>();
+  private _discovery?: Promise<void>;
+  private _discovered = false;
+  private _saveTimer?: NodeJS.Timeout;
+  private _fireTimer?: NodeJS.Timeout;
+  private _verifyProgress?: VerifyProgress;
+  private _verifyCts?: vscode.CancellationTokenSource;
+
+  constructor(
+    private readonly _memento: vscode.Memento,
+    public readonly store: ProviderStore,
+    private readonly _log: vscode.LogOutputChannel
+  ) {
+    this._meta = new PersistedRecord(_memento, META_KEY);
+    this._stats = new PersistedRecord(_memento, STATS_KEY);
+    this._ratios = new PersistedRecord(_memento, RATIO_KEY);
+    this._loadCache();
+  }
+
+  // ------------------------------------------------------------------ events
+
+  /** Coalesces bursts of changes (e.g. 8 concurrent test results) into one UI update. */
+  private _fire(immediate = false) {
+    if (immediate) {
+      if (this._fireTimer) clearTimeout(this._fireTimer);
+      this._fireTimer = undefined;
+      this._onDidChange.fire();
+      return;
+    }
+    if (this._fireTimer) return;
+    this._fireTimer = setTimeout(() => {
+      this._fireTimer = undefined;
+      this._onDidChange.fire();
+    }, 120);
+  }
+
+  // ------------------------------------------------------------------- cache
+
+  private _loadCache() {
+    const stored = this._memento.get<VerifiedCacheStore>(CACHE_KEY, { updatedAt: 0, entries: {} });
+    this._cache = { updatedAt: stored.updatedAt || 0, entries: { ...(stored.entries || {}) } };
+    const ttl = this.store.cacheTtlMs;
+    const now = Date.now();
+    for (const [k, e] of Object.entries(this._cache.entries)) {
+      if (!e || now - e.testedAt > ttl) delete this._cache.entries[k];
     }
   }
 
-  public async saveCache(): Promise<void> {
-    this._verifiedCache.updatedAt = Date.now();
-    if (this._memento) {
-      await this._memento.update("customLlmRouter.verifiedCache", this._verifiedCache);
-    }
+  /** Debounced so a concurrent verification run does not write globalState hundreds of times. */
+  private _scheduleSave() {
+    if (this._saveTimer) clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(() => this._flushCache(), 500);
   }
 
-  public async clearCache(): Promise<void> {
-    this._verifiedCache = { updatedAt: Date.now(), entries: {} };
-    if (this._memento) {
-      await this._memento.update("customLlmRouter.verifiedCache", this._verifiedCache);
-    }
+  private _flushCache() {
+    if (this._saveTimer) clearTimeout(this._saveTimer);
+    this._saveTimer = undefined;
+    this._cache.updatedAt = Date.now();
+    void this._memento.update(CACHE_KEY, this._cache);
   }
 
   public getCacheEntry(providerName: string, modelId: string): VerifiedCacheEntry | undefined {
-    const key = `${providerName}::${modelId}`;
-    const entry = this._verifiedCache.entries[key];
-    if (!entry) return undefined;
-    if (Date.now() - entry.testedAt > CACHE_TTL_MS) {
-      delete this._verifiedCache.entries[key];
-      return undefined;
-    }
-    return entry;
+    const e = this._cache.entries[modelKey(providerName, modelId)];
+    if (!e) return undefined;
+    if (Date.now() - e.testedAt > this.store.cacheTtlMs) return undefined;
+    return e;
   }
 
-  public async setCacheEntry(entry: VerifiedCacheEntry): Promise<void> {
-    const key = `${entry.providerName}::${entry.modelId}`;
-    this._verifiedCache.entries[key] = entry;
-    await this.saveCache();
+  private _setCacheEntry(entry: VerifiedCacheEntry) {
+    this._cache.entries[modelKey(entry.providerName, entry.modelId)] = entry;
+    this._scheduleSave();
   }
 
   public getAllCacheEntries(): VerifiedCacheEntry[] {
-    return Object.values(this._verifiedCache.entries);
+    return Object.values(this._cache.entries);
   }
 
-  public updateConfig(providers: CustomProviderConfig[], disabledModels?: string[]) {
-    this._providers = providers || [];
-    if (disabledModels) {
-      this.setDisabledModelIds(disabledModels);
+  public async clearCache(): Promise<void> {
+    this._cache = { updatedAt: Date.now(), entries: {} };
+    await this._memento.update(CACHE_KEY, this._cache);
+    this._rebuildStatuses();
+    this._fire(true);
+  }
+
+  /** Marks a model as failed after a definitive runtime error (e.g. 404 model not found). */
+  public markFailed(providerName: string, modelId: string, error: string) {
+    this._setCacheEntry({ providerName, modelId, working: false, latency: 0, error, testedAt: Date.now() });
+    this._rebuildStatuses();
+    this._fire();
+  }
+
+  /** Carries test results, server metadata and stats over to a renamed provider. */
+  public renameProvider(from: string, to: string) {
+    if (from === to) return;
+    const prefix = `${from}::`;
+    for (const k of Object.keys(this._cache.entries)) {
+      if (!k.startsWith(prefix)) continue;
+      const e = this._cache.entries[k];
+      delete this._cache.entries[k];
+      this._cache.entries[modelKey(to, e.modelId)] = { ...e, providerName: to };
     }
+    this._scheduleSave();
+    this._meta.rekeyProvider(from, to);
+    this._stats.rekeyProvider(from, to);
+    this._ratios.rekeyProvider(from, to);
   }
 
-  public reloadConfig(): void {
-    this.loadCache();
+  // ----------------------------------------------------------------- queries
+
+  public get isDiscovered(): boolean {
+    return this._discovered;
   }
 
-  public getConfiguredProviders(): CustomProviderConfig[] {
-    return this._providers.filter(
-      (p) => p.enabled !== false && p.endpointUrl && p.endpointUrl.trim().length > 0
-    );
+  public get verifyProgress(): VerifyProgress | undefined {
+    return this._verifyProgress;
   }
 
-  // Live test for a single model with retry logic
-  public async testSingleModel(
-    provider: CustomProviderConfig,
-    modelId: string,
-    verifyTools: boolean = false
-  ): Promise<ModelTestResult> {
-    const cleanEndpoint = provider.endpointUrl.replace(/\/+$/, "");
-    const chatUrl = provider.chatEndpoint || `${cleanEndpoint}/v1/chat/completions`;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    };
-    if (provider.apiKey) headers["Authorization"] = `Bearer ${provider.apiKey}`;
-
-    let lastResult: ModelTestResult = {
-      modelId,
-      providerName: provider.name,
-      working: false,
-      status: 0,
-      latency: 0,
-      testedAt: Date.now(),
-    };
-
-    const maxRetries = 1;
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const start = Date.now();
-      try {
-        const res = await fetch(chatUrl, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            model: modelId,
-            messages: [{ role: "user", content: "Reply with exactly OK." }],
-            max_tokens: 5,
-            temperature: 0,
-          }),
-          signal: AbortSignal.timeout(12000),
-        });
-
-        const latency = Date.now() - start;
-        const text = await res.text();
-
-        if (res.ok) {
-          let data: any;
-          try {
-            data = JSON.parse(text);
-          } catch {
-            lastResult = {
-              modelId,
-              providerName: provider.name,
-              working: false,
-              status: res.status,
-              latency,
-              error: "Invalid JSON response",
-              testedAt: Date.now(),
-            };
-            continue;
-          }
-
-          if (!Array.isArray(data?.choices) || !data.choices[0]) {
-            lastResult = {
-              modelId,
-              providerName: provider.name,
-              working: false,
-              status: res.status,
-              latency,
-              error: "No choices returned in payload",
-              testedAt: Date.now(),
-            };
-            continue;
-          }
-
-          let toolsOk: boolean | undefined = undefined;
-          if (verifyTools) {
-            toolsOk = await this.verifyToolCalling(chatUrl, provider.apiKey, modelId);
-          }
-
-          const workingResult: ModelTestResult = {
-            modelId,
-            providerName: provider.name,
-            working: true,
-            status: res.status,
-            latency,
-            verifiedTools: toolsOk,
-            reply: data.choices[0]?.message?.content || "",
-            testedAt: Date.now(),
-          };
-
-          // Cache verified result
-          await this.setCacheEntry({
-            modelId,
-            providerName: provider.name,
-            working: true,
-            latency,
-            verifiedTools: toolsOk,
-            testedAt: Date.now(),
-          });
-
-          return workingResult;
-        }
-
-        lastResult = {
-          modelId,
-          providerName: provider.name,
-          working: false,
-          status: res.status,
-          latency,
-          error: text.slice(0, 150),
-          testedAt: Date.now(),
-        };
-
-        if (res.status >= 400 && res.status < 500) {
-          break; // Client error, do not retry
-        }
-      } catch (err: any) {
-        lastResult = {
-          modelId,
-          providerName: provider.name,
-          working: false,
-          status: 0,
-          latency: Date.now() - start,
-          error: err.name === "AbortError" ? "Timeout" : err.message,
-          testedAt: Date.now(),
-        };
-      }
-    }
-
-    // Cache negative result
-    await this.setCacheEntry({
-      modelId,
-      providerName: provider.name,
-      working: false,
-      latency: lastResult.latency,
-      error: lastResult.error,
-      testedAt: Date.now(),
+  public getProviderStatuses(): ProviderStatus[] {
+    return this.store.getProviders().map((p) => {
+      const cat = this._catalog.get(p.name);
+      const secrets = {
+        keySource: this.store.keySource(p),
+        secretHeaderNames: this.store.secretHeaderNames(p),
+        plaintextSecretHeaders: this.store.plaintextSecretHeaders(p),
+      };
+      if (cat && p.enabled !== false) return { ...cat.status, ...secrets };
+      const kind = detectKind(p, []);
+      return { name: p.name, endpointUrl: p.endpointUrl, enabled: p.enabled !== false, kind, api: resolveApi(p, kind), modelCount: 0, remote: !isLocalUrl(p.endpointUrl), ...secrets };
     });
-
-    return lastResult;
   }
 
-  // Tool-calling verification (prevents VS Code Copilot crashes)
-  public async verifyToolCalling(chatUrl: string, apiKey: string | undefined, modelId: string): Promise<boolean> {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      Accept: "application/json",
+  public getModels(providerName?: string): CatalogModel[] {
+    if (providerName) return this._catalog.get(providerName)?.models || [];
+    return [...this._catalog.values()].flatMap((c) => c.models);
+  }
+
+  public getModel(key: string): CatalogModel | undefined {
+    const parts = splitKey(key);
+    return parts ? this.getModels(parts.providerName).find((m) => m.key === key) : undefined;
+  }
+
+  /** Models exposed to Copilot: selected by the user AND verified working. */
+  public getCopilotModels(): CatalogModel[] {
+    return this.getModels().filter((m) => m.selected && m.status === "working");
+  }
+
+  public getRoutes(): RouteView[] {
+    return this.store.getRoutes().map((r) => ({
+      name: r.name,
+      slug: slug(r.name),
+      models: r.models,
+      available: r.models.filter((k) => this.getModel(k)?.status === "working").length,
+    }));
+  }
+
+  /** Members to try for a route, in the user's order; failed and missing models are skipped. */
+  public routeCandidates(routeSlug: string): CatalogModel[] {
+    const route = this.store.getRoutes().find((r) => slug(r.name) === routeSlug);
+    if (!route) return [];
+    return route.models
+      .map((k) => this.getModel(k))
+      .filter((m): m is CatalogModel => !!m && m.status !== "failed");
+  }
+
+  // --------------------------------------------------------------- discovery
+
+  /** Runs discovery once; later callers share the result. */
+  public ensureDiscovered(): Promise<void> {
+    if (this._discovered) return Promise.resolve();
+    return this.refresh();
+  }
+
+  /** Re-fetches `/models` from every enabled provider in parallel. */
+  public refresh(): Promise<void> {
+    if (this._discovery) return this._discovery;
+    this._discovery = (async () => {
+      try {
+        const enabled = this.store.getEnabledProviders();
+        const results = await Promise.all(enabled.map((p) => this._discoverProvider(p)));
+        const next = new Map<string, ProviderCatalog>();
+        enabled.forEach((p, i) => next.set(p.name, results[i]));
+        this._catalog = next;
+        this._discovered = true;
+      } finally {
+        this._discovery = undefined;
+        this._fire(true);
+      }
+    })();
+    return this._discovery;
+  }
+
+  private async _discoverProvider(p: ProviderConfig): Promise<ProviderCatalog> {
+    const auth = await this.store.getAuth(p);
+    const status: ProviderStatus = {
+      name: p.name,
+      endpointUrl: p.endpointUrl,
+      enabled: true,
+      kind: detectKind(p, []),
+      api: resolveApi(p, detectKind(p, [])),
+      modelCount: 0,
+      checkedAt: Date.now(),
+      keySource: this.store.keySource(p),
+      remote: !isLocalUrl(p.endpointUrl),
+      secretHeaderNames: this.store.secretHeaderNames(p),
+      plaintextSecretHeaders: this.store.plaintextSecretHeaders(p),
     };
-    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+    let listed: ListedModel[] = [];
+
+    if (p.autoDiscover !== false) {
+      const res = await transportFor(status.api).listModels(p, auth, DISCOVERY_TIMEOUT_MS);
+      status.online = res.ok;
+      status.latencyMs = res.latencyMs;
+      status.error = res.error;
+      // Rejected credentials usually mean the key did not sync to this machine (keys are per machine).
+      status.needsKey = !res.ok && (res.status === 401 || res.status === 403);
+      listed = res.models;
+      if (!res.ok) this._log.warn(`[discovery] ${p.name}: ${res.error}`);
+    } else {
+      status.online = true;
+    }
+    status.kind = detectKind(p, listed);
+    status.api = resolveApi(p, status.kind);
+
+    const specs: { meta: ListedModel; isStatic: boolean }[] = [];
+    const seen = new Set<string>();
+    const add = (meta: ListedModel, isStatic: boolean) => {
+      if (!seen.has(meta.id)) {
+        seen.add(meta.id);
+        specs.push({ meta, isStatic });
+      }
+    };
+    for (const sm of p.staticModels || []) if (sm?.id) add({ ...sm }, true);
+    for (const m of listed) if (this._isChatModel(m.id)) add(m, false);
+    // FreeLLMAPI exposes a virtual router model that is not listed by /models.
+    if (p.name === "FreeLLMAPI" && status.online) add({ id: "auto", name: "FreeLLMAPI Auto", vision: true }, true);
+
+    if (status.online && (status.kind === "ollama" || status.kind === "lmstudio")) {
+      await this._probeNativeMeta(p, auth, status.kind, specs.map((s) => s.meta.id));
+    }
+
+    const selection = this.store.getSelection();
+    const overrides = this.store.getOverrides();
+    const models = specs.map((s) => this._buildModel(p, status, s.meta, s.isStatic, selection, overrides));
+    status.modelCount = models.length;
+    return { status, models };
+  }
+
+  /** Reads real context windows / capabilities from Ollama or LM Studio native APIs (cached for a week). */
+  private async _probeNativeMeta(p: ProviderConfig, auth: Auth, kind: ProviderKind, ids: string[]) {
+    const now = Date.now();
+    const missing = ids.filter((id) => {
+      const m = this._meta.get(modelKey(p.name, id));
+      return !m || now - m.fetchedAt > META_TTL_MS;
+    });
+    if (!missing.length) return;
+    const root = nativeRoot(p);
+    const headers = buildHeaders(p, auth);
 
     try {
-      const res = await fetch(chatUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model: modelId,
-          messages: [{ role: "user", content: "What is 2+2?" }],
+      if (kind === "lmstudio") {
+        const res = await fetch(`${root}/api/v0/models`, { headers, signal: AbortSignal.timeout(4000) });
+        if (!res.ok) return;
+        const data: any = await res.json();
+        for (const m of Array.isArray(data?.data) ? data.data : []) {
+          if (typeof m?.id !== "string" || !missing.includes(m.id)) continue;
+          this._meta.set(modelKey(p.name, m.id), {
+            contextWindow: num(m.loaded_context_length) || num(m.max_context_length),
+            vision: m.type === "vlm" ? true : undefined,
+            tools: Array.isArray(m.capabilities) ? m.capabilities.includes("tool_use") : undefined,
+            fetchedAt: now,
+          });
+        }
+        return;
+      }
+
+      // Ollama: one /api/show per model, a few at a time.
+      let next = 0;
+      const worker = async () => {
+        while (next < missing.length) {
+          const id = missing[next++];
+          try {
+            const res = await fetch(`${root}/api/show`, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ model: id }),
+              signal: AbortSignal.timeout(4000),
+            });
+            if (!res.ok) continue;
+            const info: any = await res.json();
+            const ctxKey = Object.keys(info?.model_info || {}).find((k) => k.endsWith(".context_length"));
+            const caps: string[] | undefined = Array.isArray(info?.capabilities) ? info.capabilities : undefined;
+            this._meta.set(modelKey(p.name, id), {
+              contextWindow: ctxKey ? num(info.model_info[ctxKey]) : undefined,
+              tools: caps ? caps.includes("tools") : undefined,
+              vision: caps ? caps.includes("vision") : undefined,
+              reasoning: caps ? caps.includes("thinking") : undefined,
+              fetchedAt: now,
+            });
+          } catch {
+            // older Ollama or model vanished — fall back to guesses
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(4, missing.length) }, worker));
+    } catch (err) {
+      this._log.warn(`[discovery] ${p.name}: native metadata unavailable (${describeFetchError(err)})`);
+    }
+  }
+
+  private _isChatModel(id: string): boolean {
+    if (ALWAYS_INCLUDE.has(id) || id.startsWith("auto/")) return true;
+    const lower = id.toLowerCase();
+    return !EXCLUDE_PATTERNS.some((re) => re.test(lower));
+  }
+
+  private _buildModel(
+    p: ProviderConfig,
+    status: ProviderStatus,
+    meta: ListedModel,
+    isStatic: boolean,
+    selection: Set<string>,
+    overrides: Record<string, ModelOverride>
+  ): CatalogModel {
+    const id = meta.id;
+    const key = modelKey(p.name, id);
+    const lower = id.toLowerCase();
+    const native = this._meta.get(key);
+    const ov = overrides[key];
+
+    // Native APIs (Ollama /api/show, LM Studio loaded context) are more precise than generic /models fields.
+    let serverCtx = native?.contextWindow || meta.contextWindow;
+    // Ollama native chat loads the model with num_ctx; advertise what will actually be used.
+    if (status.api === "ollama") serverCtx = Math.min(serverCtx || Infinity, p.contextLength || DEFAULT_OLLAMA_CONTEXT);
+    const ctx = ov?.contextWindow || serverCtx;
+    const bounds = inferBounds(lower, ctx, ov?.maxOutputTokens || meta.maxOutputTokens, ov?.contextWindow ? undefined : meta.maxInputTokens);
+    const caps: ModelCapabilities = {
+      tools: meta.toolCalling ?? native?.tools ?? true,
+      vision: meta.vision ?? native?.vision ?? VISION_RE.test(lower),
+      reasoning: Boolean(native?.reasoning || meta.reasoning) || REASONING_RE.test(lower),
+      coding: CODING_RE.test(lower),
+    };
+    let pricing: ModelPricing | undefined;
+    if (ov?.inputPerM !== undefined || ov?.outputPerM !== undefined) {
+      pricing = { inputPerM: ov.inputPerM ?? 0, outputPerM: ov.outputPerM ?? 0, source: "override" };
+    } else if (meta.inputPerM !== undefined || meta.outputPerM !== undefined) {
+      pricing = { inputPerM: meta.inputPerM ?? 0, outputPerM: meta.outputPerM ?? 0, source: status.api === "anthropic" ? "list" : "server" };
+    }
+    const model: CatalogModel = {
+      key,
+      providerName: p.name,
+      id,
+      name: ov?.name || meta.name?.trim() || prettifyModelName(id, p.name),
+      ...bounds,
+      contextSource: ov?.contextWindow ? "override" : serverCtx && Number.isFinite(serverCtx) && (native?.contextWindow || meta.contextWindow) ? "server" : "guess",
+      caps,
+      status: "untested",
+      selected: false,
+      isStatic,
+      hasOverride: !!ov,
+      pricing,
+      thinkingSupported: status.api === "anthropic" ? meta.reasoning : status.api === "ollama" ? native?.reasoning : undefined,
+    };
+    this._applyStatus(model, selection, ov);
+    return model;
+  }
+
+  private _applyStatus(m: CatalogModel, selection: Set<string>, ov?: ModelOverride) {
+    const cache = this.getCacheEntry(m.providerName, m.id);
+    let status: ModelStatus = cache ? (cache.working ? "working" : "failed") : "untested";
+    if (this._testing.has(m.key)) status = "testing";
+    m.status = status;
+    m.latencyMs = cache?.latency;
+    m.error = cache?.working ? undefined : cache?.error;
+    m.testedAt = cache?.testedAt;
+    m.toolSupport = cache?.toolSupport ?? (cache?.verifiedTools === true ? "accepted" : cache?.verifiedTools === false ? "unsupported" : undefined);
+    if (m.toolSupport === "unsupported") m.caps.tools = false;
+    else if (m.toolSupport) m.caps.tools = true;
+    if (ov && typeof ov.toolCalling === "boolean") m.caps.tools = ov.toolCalling;
+    if (ov && typeof ov.vision === "boolean") m.caps.vision = ov.vision;
+    m.selected = selection.has(m.key);
+    m.stats = this._stats.get(m.key);
+  }
+
+  private _rebuildStatuses() {
+    const selection = this.store.getSelection();
+    const overrides = this.store.getOverrides();
+    for (const m of this.getModels()) this._applyStatus(m, selection, overrides[m.key]);
+  }
+
+  /** Call after the selection / routes / TTL settings changed outside the engine. */
+  public onSelectionChanged() {
+    this._rebuildStatuses();
+    this._fire(true);
+  }
+
+  // ------------------------------------------------------------- connection
+
+  /**
+   * Probes `/models`. When `sink` is given the raw model list is appended to it.
+   * Works for unsaved providers too (used by the dashboard "Test connection" button).
+   */
+  public async testConnection(p: ProviderConfig, auth: Auth, timeoutMs = DISCOVERY_TIMEOUT_MS): Promise<ConnectionTestResult & { status?: number }> {
+    const res = await transportFor(resolveApi(p, detectKind(p, []))).listModels(p, auth, timeoutMs);
+    return { ok: res.ok, latencyMs: res.latencyMs, modelCount: res.models.length, error: res.error, status: res.status };
+  }
+
+  /** Resolves the wire protocol for a provider, using the kind detected at discovery. */
+  public apiFor(p: ProviderConfig) {
+    return this._catalog.get(p.name)?.status.api ?? resolveApi(p, detectKind(p, []));
+  }
+
+  // ------------------------------------------------------------ verification
+
+  public get isVerifying(): boolean {
+    return this._verifyProgress !== undefined;
+  }
+
+  public cancelVerification() {
+    this._verifyCts?.cancel();
+  }
+
+  /** How many requests a verification run would send, and to which remote providers. */
+  public estimateVerification(models: CatalogModel[], force: boolean): VerificationEstimate {
+    const queue = models.filter((m) => force || m.status === "untested");
+    const perModel = this.store.toolCheck === "full" ? 2 : 1;
+    const remote = new Map<string, number>();
+    const statuses = new Map(this.getProviderStatuses().map((s) => [s.name, s]));
+    for (const m of queue) {
+      if (statuses.get(m.providerName)?.remote) remote.set(m.providerName, (remote.get(m.providerName) || 0) + 1);
+    }
+    return {
+      models: queue.length,
+      requests: queue.length * perModel,
+      remote: [...remote].map(([name, n]) => ({ name, models: n })),
+    };
+  }
+
+  /**
+   * Verifies the given models with a bounded worker pool. Cached results are reused
+   * unless `force` is set. Cancellation stops scheduling new requests.
+   */
+  public async verify(models: CatalogModel[], opts: VerifyOptions = {}): Promise<VerifyProgress> {
+    const queue = models.filter((m) => !this._testing.has(m.key) && (opts.force || !this.getCacheEntry(m.providerName, m.id)));
+    const progress: VerifyProgress = { done: 0, total: queue.length, working: 0, failed: 0 };
+    if (queue.length === 0) return progress;
+
+    const ownsRun = !this._verifyProgress;
+    const cts = new vscode.CancellationTokenSource();
+    const sub = opts.token?.onCancellationRequested(() => cts.cancel());
+    if (ownsRun) {
+      this._verifyProgress = progress;
+      this._verifyCts = cts;
+    }
+    for (const m of queue) this._testing.add(m.key);
+    this._rebuildStatuses();
+    this._fire(true);
+
+    const remote = new Set(this.getProviderStatuses().filter((s) => s.remote).map((s) => s.name));
+    const run = async (m: CatalogModel) => {
+        const ok = await this._testModel(m);
+        this._testing.delete(m.key);
+        progress.done++;
+        if (ok) progress.working++;
+        else progress.failed++;
+        this._rebuildStatuses();
+        this._fire();
+        opts.onProgress?.(progress.done, progress.total, m);
+    };
+
+    try {
+      await runPool(
+        queue,
+        {
+          limit: this.store.concurrency,
+          groupOf: (m) => m.providerName,
+          // Local servers are only bounded by the global limit; remote APIs get a per-provider cap.
+          groupLimit: (name) => (remote.has(name) ? this.store.providerConcurrency : this.store.concurrency),
+          cancelled: () => cts.token.isCancellationRequested,
+        },
+        run
+      );
+    } finally {
+      for (const m of queue) this._testing.delete(m.key);
+      sub?.dispose();
+      cts.dispose();
+      if (ownsRun) {
+        this._verifyProgress = undefined;
+        this._verifyCts = undefined;
+      }
+      this._rebuildStatuses();
+      this._fire(true);
+    }
+    this._log.info(`[verify] ${progress.working} working, ${progress.failed} failed of ${progress.total}`);
+    return progress;
+  }
+
+  /** Re-verifies selected and routed models whose result expired, so they do not silently vanish from Copilot. */
+  public async reverifyExpiredSelection(): Promise<void> {
+    const routed = new Set(this.store.getRoutes().flatMap((r) => r.models));
+    const stale = this.getModels().filter((m) => (m.selected || routed.has(m.key)) && m.status === "untested");
+    if (stale.length) {
+      this._log.info(`[verify] re-checking ${stale.length} selected model(s) with expired results`);
+      await this.verify(stale);
+    }
+  }
+
+  /** Sends a tiny request through the provider's transport; returns what came back. */
+  private async _probe(p: ProviderConfig, auth: Auth, m: CatalogModel, req: Partial<ChatRequest>, timeoutMs: number) {
+    const out = { text: "", toolCalls: 0 };
+    const sink: ChatSink = {
+      text: (s) => (out.text += s),
+      reasoning: () => undefined,
+      toolCall: () => void out.toolCalls++,
+    };
+    await transportFor(this.apiFor(p)).chat(
+      p,
+      auth,
+      { model: m.id, messages: [], wantUsage: false, reasoning: false, numCtx: undefined, ...req } as ChatRequest,
+      sink,
+      AbortSignal.timeout(timeoutMs)
+    );
+    return out;
+  }
+
+  private async _testModel(m: CatalogModel): Promise<boolean> {
+    const p = this.store.findProvider(m.providerName);
+    if (!p) return false;
+    const auth = await this.store.getAuth(p);
+    const local = isLocalUrl(p.endpointUrl);
+    let timeout = timeoutFor(p, TEST_TIMEOUT_MS);
+    const start = Date.now();
+
+    let error: string | undefined;
+    let latency = 0;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const attemptStart = Date.now();
+      try {
+        await this._probe(p, auth, m, { messages: [{ role: "user", content: "Reply with exactly: OK" }], maxTokens: 16, temperature: 0 }, timeout);
+        latency = Date.now() - attemptStart;
+        const toolSupport = this.store.toolCheck === "full" ? await this._checkTools(p, auth, m, timeout) : undefined;
+        this._setCacheEntry({ providerName: m.providerName, modelId: m.id, working: true, latency, toolSupport, testedAt: Date.now() });
+        return true;
+      } catch (err: any) {
+        latency = Date.now() - start;
+        if (err instanceof HttpError) {
+          error = err.message;
+          if (err.status === 429 || err.status >= 500) continue; // transient — retry once
+          break;
+        }
+        error = describeFetchError(err);
+        const timedOut = err?.name === "TimeoutError" || err?.name === "AbortError";
+        if (timedOut && local && attempt === 0) {
+          // A local server may still be loading the model into memory; give it one long attempt.
+          this._log.info(`[verify] ${m.key} timed out after ${timeout}ms — retrying once while the model loads`);
+          timeout = Math.max(timeout * 3, COLD_START_TIMEOUT_MS);
+          continue;
+        }
+        if (timedOut && local) error = "Timed out (the model may still be loading — try again)";
+        if (!timedOut) break;
+      }
+    }
+    this._setCacheEntry({ providerName: m.providerName, modelId: m.id, working: false, latency, error, testedAt: Date.now() });
+    return false;
+  }
+
+  /**
+   * Sends a request that should clearly trigger a tool call. Copilot agent mode always sends tools,
+   * so "unsupported" models are registered without tool calling.
+   */
+  private async _checkTools(p: ProviderConfig, auth: Auth, m: CatalogModel, timeout: number): Promise<ToolSupport> {
+    try {
+      const out = await this._probe(
+        p,
+        auth,
+        m,
+        {
+          messages: [
+            { role: "system", content: "You must use the provided tools to answer. Never compute results yourself." },
+            { role: "user", content: "What is 1234 * 5678? Use the calculator tool." },
+          ],
           tools: [
             {
-              type: "function",
-              function: {
-                name: "calculator",
-                description: "Calculate mathematical expression",
-                parameters: {
-                  type: "object",
-                  properties: { expr: { type: "string" } },
-                  required: ["expr"],
-                },
-              },
+              name: "calculator",
+              description: "Evaluate an arithmetic expression and return the exact result",
+              parameters: { type: "object", properties: { expression: { type: "string" } }, required: ["expression"] },
             },
           ],
-          tool_choice: "auto",
-          max_tokens: 15,
-        }),
-        signal: AbortSignal.timeout(8000),
-      });
-
-      return res.ok;
+          toolChoice: "auto",
+          temperature: 0,
+          maxTokens: this.apiFor(p) === "anthropic" ? 2048 : 200,
+        },
+        timeout
+      );
+      return out.toolCalls ? "called" : "accepted";
     } catch {
-      return false;
+      return "unsupported";
     }
   }
 
-  // Concurrent verification pool for discovering and testing all working models
-  public async verifyAllModels(
-    options: {
-      concurrency?: number;
-      forceRecheck?: boolean;
-      verifyTools?: boolean;
-      onProgress?: (tested: number, total: number, currentModel: string, ok: boolean) => void;
-    } = {}
-  ): Promise<ModelTestResult[]> {
-    const { concurrency = 5, forceRecheck = false, verifyTools = false, onProgress } = options;
-    const allProviders = await this.generateProviders({ profile: "all" });
+  // ------------------------------------------------------------ chat telemetry
 
-    const modelsToTest: { provider: CustomProviderConfig; modelId: string }[] = [];
-    const configuredList = this.getConfiguredProviders();
-
-    for (const prov of allProviders) {
-      const origConfig = configuredList.find((p) => p.name === prov.name) || {
-        name: prov.name,
-        endpointUrl: "",
-        apiKey: prov.apiKey,
-      };
-
-      for (const m of prov.models) {
-        modelsToTest.push({ provider: origConfig, modelId: m.id });
+  /** Records a real chat request (local only — never leaves the machine). */
+  public recordChat(key: string, r: { ok: boolean; ttftMs?: number; durationMs?: number; outputTokens?: number; promptTokens?: number }) {
+    const s: ModelStats = { requests: 0, failures: 0, ...this._stats.get(key) };
+    s.requests++;
+    if (!r.ok) s.failures++;
+    s.lastUsedAt = Date.now();
+    const ema = (prev: number | undefined, v: number) => (prev === undefined ? v : prev * 0.7 + v * 0.3);
+    if (r.ok && r.ttftMs !== undefined) s.ttftMs = Math.round(ema(s.ttftMs, r.ttftMs));
+    if (r.ok && r.outputTokens && r.durationMs && r.ttftMs !== undefined) {
+      const genSec = (r.durationMs - r.ttftMs) / 1000;
+      if (genSec > 0.2 && r.outputTokens > 5) s.tokensPerSec = Math.round(ema(s.tokensPerSec, r.outputTokens / genSec) * 10) / 10;
+    }
+    const m = this.getModel(key);
+    if (r.ok && (r.promptTokens || r.outputTokens)) {
+      s.promptTokens = (s.promptTokens || 0) + (r.promptTokens || 0);
+      s.completionTokens = (s.completionTokens || 0) + (r.outputTokens || 0);
+      if (m?.pricing) {
+        const cost = ((r.promptTokens || 0) * m.pricing.inputPerM + (r.outputTokens || 0) * m.pricing.outputPerM) / 1e6;
+        s.costUsd = Math.round(((s.costUsd || 0) + cost) * 1e6) / 1e6;
       }
     }
-
-    const total = modelsToTest.length;
-    const results: ModelTestResult[] = [];
-    let nextIndex = 0;
-    let completedCount = 0;
-
-    const worker = async () => {
-      while (true) {
-        const idx = nextIndex++;
-        if (idx >= total) break;
-
-        const item = modelsToTest[idx];
-        const cached = !forceRecheck ? this.getCacheEntry(item.provider.name, item.modelId) : undefined;
-
-        let res: ModelTestResult;
-        if (cached) {
-          res = {
-            modelId: cached.modelId,
-            providerName: cached.providerName,
-            working: cached.working,
-            status: cached.working ? 200 : 0,
-            latency: cached.latency,
-            verifiedTools: cached.verifiedTools,
-            testedAt: cached.testedAt,
-          };
-        } else {
-          res = await this.testSingleModel(item.provider, item.modelId, verifyTools);
-        }
-
-        results.push(res);
-        completedCount++;
-
-        if (onProgress) {
-          onProgress(completedCount, total, `${item.provider.name}: ${item.modelId}`, res.working);
-        }
-      }
-    };
-
-    const workerCount = Math.min(concurrency, total || 1);
-    const workers = Array.from({ length: workerCount }, () => worker());
-    await Promise.all(workers);
-
-    return results;
+    this._stats.set(key, s);
+    if (m) m.stats = s;
+    this._fire();
   }
 
-  public async verifySpecificModels(
-    targetModels: { providerName: string; modelId: string }[],
-    options: {
-      concurrency?: number;
-      forceRecheck?: boolean;
-      verifyTools?: boolean;
-      onProgress?: (tested: number, total: number, currentModel: string, ok: boolean) => void;
-    } = {}
-  ): Promise<ModelTestResult[]> {
-    const { concurrency = 8, forceRecheck = false, verifyTools = false, onProgress } = options;
-    const configuredList = this.getConfiguredProviders();
-
-    const modelsToTest: { provider: CustomProviderConfig; modelId: string }[] = [];
-    for (const tm of targetModels) {
-      const prov = configuredList.find((p) => p.name === tm.providerName);
-      if (prov) {
-        modelsToTest.push({ provider: prov, modelId: tm.modelId });
-      }
-    }
-
-    const total = modelsToTest.length;
-    const results: ModelTestResult[] = [];
-    let nextIndex = 0;
-    let completedCount = 0;
-
-    const worker = async () => {
-      while (true) {
-        const idx = nextIndex++;
-        if (idx >= total) break;
-
-        const item = modelsToTest[idx];
-        const cached = !forceRecheck ? this.getCacheEntry(item.provider.name, item.modelId) : undefined;
-
-        let res: ModelTestResult;
-        if (cached) {
-          res = {
-            modelId: cached.modelId,
-            providerName: cached.providerName,
-            working: cached.working,
-            status: cached.working ? 200 : 0,
-            latency: cached.latency,
-            verifiedTools: cached.verifiedTools,
-            testedAt: cached.testedAt,
-          };
-        } else {
-          res = await this.testSingleModel(item.provider, item.modelId, verifyTools);
-        }
-
-        results.push(res);
-        completedCount++;
-
-        if (onProgress) {
-          onProgress(completedCount, total, `${item.provider.name}: ${item.modelId}`, res.working);
-        }
-      }
-    };
-
-    const workerCount = Math.min(concurrency, total || 1);
-    const workers = Array.from({ length: workerCount }, () => worker());
-    await Promise.all(workers);
-
-    return results;
+  /** Total estimated spend across all models. */
+  public totalSpend(): number {
+    return this.getModels().reduce((sum, m) => sum + (m.stats?.costUsd || 0), 0);
   }
 
-  public async checkEndpoints(): Promise<{ all: EndpointStatus[] }> {
-    const configured = this.getConfiguredProviders();
-    const results: EndpointStatus[] = [];
-
-    for (const prov of configured) {
-      const status: EndpointStatus = {
-        name: prov.name,
-        url: prov.endpointUrl,
-        online: false,
-        modelCount: 0,
-      };
-
-      const cleanEndpoint = prov.endpointUrl.replace(/\/+$/, "");
-      const modelsUrl =
-        prov.modelsEndpoint ||
-        (prov.name === "FreeLLMAPI"
-          ? `${cleanEndpoint}/v1/models?execution_status=ready`
-          : `${cleanEndpoint}/v1/models`);
-      const headers: Record<string, string> = { Accept: "application/json" };
-      if (prov.apiKey) {
-        headers["Authorization"] = `Bearer ${prov.apiKey}`;
-      }
-
-      try {
-        const res = await fetch(modelsUrl, {
-          headers,
-          signal: AbortSignal.timeout(4000),
-        });
-        if (res.ok) {
-          const data: any = await res.json();
-          const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-          status.online = true;
-          status.modelCount = list.length + (prov.staticModels?.length || 0);
-        } else {
-          status.online = false;
-          status.error = `HTTP ${res.status}`;
-        }
-      } catch (e: any) {
-        status.online = false;
-        status.error = e.message;
-      }
-      results.push(status);
-    }
-
-    return { all: results };
+  public resetStats() {
+    this._stats.clear();
+    for (const m of this.getModels()) m.stats = undefined;
+    this._fire(true);
   }
 
-  public prettifyModelName(id: string, rawName?: string, providerName?: string): string {
-    if (rawName && rawName.trim().length > 0 && !rawName.startsWith("aihorde/")) {
-      return rawName;
-    }
-    if (id === "auto") return `${providerName || "LLM"} Auto`;
-    if (id === "fusion") return `${providerName || "LLM"} Fusion`;
-
-    const parts = id.split("/");
-    const prefix = parts.length > 1 ? parts.slice(0, -1).join("/") : "";
-    const base = parts[parts.length - 1];
-
-    if (id.startsWith("auto/best-")) {
-      const feat = id.replace("auto/best-", "");
-      return `${providerName || "OmniRoute"} Best ${feat.charAt(0).toUpperCase() + feat.slice(1)}`;
-    }
-    if (id.startsWith("auto/pro-")) {
-      const feat = id.replace("auto/pro-", "");
-      return `${providerName || "OmniRoute"} Pro ${feat.charAt(0).toUpperCase() + feat.slice(1)}`;
-    }
-
-    let name = base
-      .replace(/^meta-llama-|^llama-/, "Llama ")
-      .replace(/^deepseek-ai-|^deepseek-/, "DeepSeek ")
-      .replace(/^qwen-|^qwen/, "Qwen ")
-      .replace(/^claude-/, "Claude ")
-      .replace(/^gpt-/, "GPT-")
-      .replace(/^gemini-/, "Gemini ")
-      .replace(/^mistral-/, "Mistral ")
-      .replace(/^nemotron-/, "Nemotron ")
-      .replace(/-instruct|-it/i, " Instruct")
-      .replace(/-/g, " ")
-      .trim();
-
-    name = name.replace(/\b\w/g, (c) => c.toUpperCase());
-    if (prefix.includes("no-think")) {
-      name += " (Fast/Direct)";
-    } else if (prefix && !prefix.startsWith("auto")) {
-      name += ` (${prefix})`;
-    }
-    return name;
+  /** Characters per token for a model, learned from `usage.prompt_tokens` of real requests. */
+  public charsPerToken(key: string): number {
+    return this._ratios.get(key) ?? DEFAULT_CHARS_PER_TOKEN;
   }
 
-  public normalizeBounds(modelId: string, rawCtx?: number, rawMaxOut?: number, rawMaxIn?: number) {
-    const idLower = modelId.toLowerCase();
-    let contextWindow = rawCtx;
-    let maxOutputTokens = rawMaxOut;
-    let maxInputTokens = rawMaxIn;
-
-    if (!contextWindow) {
-      if (idLower.includes("claude-3-7") || idLower.includes("claude-3-5")) {
-        contextWindow = 200000;
-        maxOutputTokens = maxOutputTokens || 64000;
-      } else if (
-        idLower.includes("deepseek-r1") ||
-        idLower.includes("deepseek-v3") ||
-        idLower.includes("qwen")
-      ) {
-        contextWindow = 131072;
-        maxOutputTokens = maxOutputTokens || 16384;
-      } else if (idLower.includes("gemini")) {
-        contextWindow = 1048576;
-        maxOutputTokens = maxOutputTokens || 65536;
-      } else if (idLower.includes("gpt-4o") || idLower.includes("o1") || idLower.includes("o3")) {
-        contextWindow = 128000;
-        maxOutputTokens = maxOutputTokens || 16384;
-      } else {
-        contextWindow = 131072;
-        maxOutputTokens = maxOutputTokens || 16000;
-      }
-    }
-    if (!maxOutputTokens) maxOutputTokens = 16000;
-    if (!maxInputTokens) {
-      maxInputTokens = Math.max(1000, contextWindow - maxOutputTokens);
-    }
-    return { contextWindow, maxOutputTokens, maxInputTokens };
+  public recordPromptUsage(key: string, chars: number, promptTokens: number) {
+    if (chars < 200 || promptTokens < 50) return; // too small to be meaningful
+    const ratio = Math.min(8, Math.max(1.5, chars / promptTokens));
+    const prev = this._ratios.get(key);
+    this._ratios.set(key, Math.round((prev === undefined ? ratio : prev * 0.7 + ratio * 0.3) * 100) / 100);
   }
 
-  public filterModels(
-    models: VSCodeModel[],
-    profile: string = "all",
-    onlyVerifiedWorking: boolean = false,
-    includeFailed: boolean = false
-  ): VSCodeModel[] {
-    const blacklist = this._blacklistPatterns;
-    const whitelist = new Set(this._whitelistExactIds);
+  // --------------------------------------------------------------- migration
 
-    let filtered = models.filter((m) => {
-      // 1. Exclude models verified as offline/failed (unless includeFailed is requested, e.g. for the dashboard catalog)
-      const cache = this.getCacheEntry(m.providerName || '', m.id);
-      if (!includeFailed) {
-        if (cache && cache.working === false) {
-          return false;
-        }
-        if (m._verifiedWorking === false) {
-          return false;
-        }
-      }
-
-      // 2. If onlyVerifiedWorking mode is active, exclude models that haven't been tested yet
-      if (onlyVerifiedWorking && (!cache || cache.working !== true)) {
-        return false;
-      }
-
-      if (whitelist.has(m.id)) return true;
-      const idLower = m.id.toLowerCase();
-      return !blacklist.some((pat) => idLower.includes(pat.toLowerCase()));
-    });
-
-    if (profile === "top") {
-      return filtered.filter((m) => {
-        if (m.id === "auto" || m.id.startsWith("auto/best-") || m.id.startsWith("auto/pro-"))
-          return true;
-        const idLower = m.id.toLowerCase();
-        return TOP_MODEL_KEYWORDS.some((kw) => idLower.includes(kw));
-      });
-    }
-
-    if (profile === "coding") {
-      return filtered.filter((m) => {
-        if (m.id === "auto" || m.id.includes("coding")) return true;
-        const idLower = m.id.toLowerCase();
-        return CODING_MODEL_KEYWORDS.some((kw) => idLower.includes(kw));
-      });
-    }
-
-    return filtered;
+  /** v1.0.x used an opt-out list; seed the new opt-in list with what users effectively had. */
+  public async migrateLegacySelection(): Promise<void> {
+    if (this.store.hasSelectionSetting()) return;
+    const disabled = this.store.getLegacyDisabledIds();
+    const keys = this.getAllCacheEntries()
+      .filter((e) => e.working && !disabled.has(modelKey(e.providerName, e.modelId)) && !disabled.has(e.modelId))
+      .map((e) => modelKey(e.providerName, e.modelId));
+    await this.store.setSelection(keys);
+    this._log.info(`[migrate] seeded Copilot selection with ${keys.length} previously active model(s)`);
   }
 
-  public async generateProviders(options: GeneratorOptions = {}): Promise<VSCodeProvider[]> {
-    const { profile = "all", onlyVerifiedWorking = false, includeFailed = false, onProgress } = options;
-    const configured = this.getConfiguredProviders();
-    const providers: VSCodeProvider[] = [];
-
-    for (const prov of configured) {
-      if (onProgress) onProgress(`Fetching models from ${prov.name}...`);
-
-      const cleanEndpoint = prov.endpointUrl.replace(/\/+$/, "");
-      const chatUrl = prov.chatEndpoint || `${cleanEndpoint}/v1/chat/completions`;
-      const modelsUrl =
-        prov.modelsEndpoint ||
-        (prov.name === "FreeLLMAPI"
-          ? `${cleanEndpoint}/v1/models?execution_status=ready`
-          : `${cleanEndpoint}/v1/models`);
-
-      let modelsRaw: any[] = [];
-      let isEndpointOnline = false;
-
-      if (prov.autoDiscover !== false) {
-        try {
-          const headers: Record<string, string> = { Accept: "application/json" };
-          if (prov.apiKey) {
-            headers["Authorization"] = `Bearer ${prov.apiKey}`;
-          }
-
-          const res = await fetch(modelsUrl, {
-            headers,
-            signal: AbortSignal.timeout(4000),
-          });
-
-          if (res.ok) {
-            const d: any = await res.json();
-            modelsRaw = Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : [];
-            isEndpointOnline = true;
-          }
-        } catch {
-          // endpoint is unreachable/offline
-          isEndpointOnline = false;
-        }
-      } else {
-        isEndpointOnline = true;
-      }
-
-      const modelsList: VSCodeModel[] = [];
-
-      // Add auto model for FreeLLMAPI ONLY if endpoint is online and reachable
-      if (prov.name === "FreeLLMAPI" && isEndpointOnline) {
-        const cache = this.getCacheEntry(prov.name, "auto");
-        modelsList.push({
-          id: "auto",
-          name: "FreeLLMAPI Auto",
-          url: chatUrl,
-          toolCalling: true,
-          vision: true,
-          maxInputTokens: 128000,
-          maxOutputTokens: 16000,
-          providerName: prov.name,
-          _latency: cache?.latency,
-          _verifiedWorking: cache?.working,
-          _error: cache?.error,
-        });
-      }
-
-      // Add static models defined by user
-      if (Array.isArray(prov.staticModels)) {
-        for (const sm of prov.staticModels) {
-          const bounds = this.normalizeBounds(
-            sm.id,
-            sm.contextWindow,
-            sm.maxOutputTokens,
-            sm.maxInputTokens
-          );
-          const cache = this.getCacheEntry(prov.name, sm.id);
-          modelsList.push({
-            id: sm.id,
-            name: sm.name || this.prettifyModelName(sm.id, undefined, prov.name),
-            url: chatUrl,
-            toolCalling:
-              cache?.verifiedTools !== undefined
-                ? cache.verifiedTools
-                : sm.toolCalling !== undefined
-                ? sm.toolCalling
-                : true,
-            vision: sm.vision !== undefined ? sm.vision : false,
-            maxInputTokens: bounds.maxInputTokens,
-            maxOutputTokens: bounds.maxOutputTokens,
-            contextWindow: bounds.contextWindow,
-            providerName: prov.name,
-            _latency: cache?.latency,
-            _verifiedWorking: cache?.working,
-            _error: cache?.error,
-          });
-        }
-      }
-
-      // Process auto-discovered models
-      for (const raw of modelsRaw) {
-        const id = raw?.id || raw?.model;
-        if (!id) continue;
-        if (modelsList.some((existing) => existing.id === id)) continue;
-
-        const bounds = this.normalizeBounds(
-          id,
-          raw?.contextWindow || raw?.context_window,
-          raw?.maxOutputTokens,
-          raw?.maxInputTokens
-        );
-        const cache = this.getCacheEntry(prov.name, id);
-        modelsList.push({
-          id,
-          name: this.prettifyModelName(id, raw?.name, prov.name),
-          url: chatUrl,
-          toolCalling:
-            cache?.verifiedTools !== undefined
-              ? cache.verifiedTools
-              : raw?.toolCalling !== undefined
-              ? Boolean(raw.toolCalling)
-              : true,
-          vision: Boolean(raw?.vision || raw?.supports_vision),
-          maxInputTokens: bounds.maxInputTokens,
-          maxOutputTokens: bounds.maxOutputTokens,
-          contextWindow: bounds.contextWindow,
-          providerName: prov.name,
-          _latency: cache?.latency,
-          _verifiedWorking: cache?.working,
-        });
-      }
-
-      const filtered = this.filterModels(modelsList, profile, onlyVerifiedWorking, includeFailed);
-      if (filtered.length > 0) {
-        providers.push({
-          name: prov.name,
-          vendor: "customendpoint",
-          apiKey: prov.apiKey || "",
-          apiType: "chat-completions",
-          models: filtered,
-        });
-      }
-    }
-
-    return providers;
+  public dispose() {
+    if (this._saveTimer) this._flushCache();
+    this._meta.flush();
+    this._stats.flush();
+    this._ratios.flush();
+    if (this._fireTimer) clearTimeout(this._fireTimer);
+    this._verifyCts?.cancel();
+    this._onDidChange.dispose();
   }
 }
 
+// ------------------------------------------------------------------- helpers
+
+export function detectKind(p: ProviderConfig, raw: any[]): ProviderKind {
+  let port = "";
+  try {
+    port = new URL(p.endpointUrl).port;
+  } catch {
+    // invalid URL — treat as generic
+  }
+  if (port === "11434" || /ollama/i.test(p.name) || raw.some((r) => r?.owned_by === "library" || r?.owned_by === "ollama")) return "ollama";
+  if (port === "1234" || /lm ?studio/i.test(p.name)) return "lmstudio";
+  return "openai";
+}
+
+export function slug(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "x";
+}
+
+export function inferBounds(idLower: string, ctx?: number, maxOut?: number, maxIn?: number) {
+  let contextWindow = ctx;
+  if (!contextWindow) {
+    if (/gemini/.test(idLower)) contextWindow = 1048576;
+    else if (/claude/.test(idLower)) contextWindow = 200000;
+    else if (/gpt-4\.1|gpt-5/.test(idLower)) contextWindow = 400000;
+    else if (/gpt-4o|(^|[\/\-])o[134]/.test(idLower)) contextWindow = 128000;
+    else contextWindow = 131072;
+  }
+  const maxOutputTokens = Math.min(maxOut || Math.min(16384, Math.max(2048, Math.floor(contextWindow / 4))), Math.floor(contextWindow / 2));
+  const maxInputTokens = maxIn || Math.max(1024, contextWindow - maxOutputTokens);
+  return { contextWindow, maxOutputTokens, maxInputTokens };
+}
+
+export function prettifyModelName(id: string, providerName: string): string {
+  if (id === "auto") return `${providerName} Auto`;
+  const auto = /^auto\/(best|pro)-(.+)$/.exec(id);
+  if (auto) return `${providerName} ${cap(auto[1])} ${cap(auto[2])}`;
+
+  const parts = id.split("/");
+  const base = parts.pop() || id;
+  const prefix = parts.join("/");
+  let name = base
+    .replace(/:latest$/, "")
+    .replace(/^meta-llama-|^llama-/i, "Llama ")
+    .replace(/^deepseek-ai-|^deepseek-/i, "DeepSeek ")
+    .replace(/^gpt-/i, "GPT-")
+    .replace(/[-_:]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  if (prefix.includes("no-think")) name += " (Direct)";
+  return name || id;
+}
+
+function cap(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

@@ -5,3 +5,7 @@ out/
 
 __pycache__/
 *.pyc
+dist/
+.vscode-test/
+media/dashboard.js
+test/visual/out/

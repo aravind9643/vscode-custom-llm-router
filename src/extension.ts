@@ -1,358 +1,378 @@
 import * as vscode from "vscode";
-import { ModelEngine, CustomProviderConfig } from "./modelEngine";
+import { ModelEngine } from "./modelEngine";
+import { ProviderStore } from "./providerStore";
 import { CustomLLMChatProvider } from "./customChatProvider";
-import { ConfigWebviewPanel } from "./configWebview";
+import { DashboardPanel, DashboardFocus } from "./dashboardPanel";
+import { RouterNode, RouterTreeProvider } from "./sidebarTree";
+import { pullOllamaModel } from "./ollama";
+import { CatalogModel } from "./types";
 
-let statusBarItem: vscode.StatusBarItem;
+const CMD = "vscode-custom-llm-router";
+/** Bulk checks touching more remote models than this ask for confirmation first. */
+const REMOTE_CONFIRM_THRESHOLD = 20;
 
-export function activate(context: vscode.ExtensionContext) {
-  const engine = new ModelEngine(context.globalState);
+export async function activate(context: vscode.ExtensionContext) {
+  const log = vscode.window.createOutputChannel("LLM Router", { log: true });
+  const store = new ProviderStore(context.secrets);
+  await store.init();
+  const engine = new ModelEngine(context.globalState, store, log);
+  const chatProvider = new CustomLLMChatProvider(engine, log);
+  const tree = new RouterTreeProvider(engine);
+  const statusBar = vscode.window.createStatusBarItem("llmRouter.status", vscode.StatusBarAlignment.Right, 100);
+  statusBar.name = "LLM Router";
+  statusBar.command = `${CMD}.showMenu`;
+  statusBar.show();
 
-  function refreshEngineFromSettings() {
-    const config = vscode.workspace.getConfiguration("customLlmRouter");
-    const providers = config.get<CustomProviderConfig[]>("providers") || [];
-    const disabledModels = config.get<string[]>("disabledModelIds") || [];
-    engine.updateConfig(providers, disabledModels);
-  }
+  context.subscriptions.push(log, engine, chatProvider, tree, statusBar);
+  context.subscriptions.push(vscode.lm.registerLanguageModelChatProvider("custom-llm-router", chatProvider));
 
-  refreshEngineFromSettings();
+  const updateStatusBar = () => renderStatusBar(statusBar, engine);
+  updateStatusBar();
+  context.subscriptions.push(engine.onDidChange(updateStatusBar));
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("customLlmRouter")) {
-        refreshEngineFromSettings();
-        customChatProvider.notifyModelsChanged();
-        updateHealthStatus(engine);
+      if (e.affectsConfiguration("customLlmRouter.providers")) {
+        void store.init().then(() => engine.refresh());
+      } else if (e.affectsConfiguration("customLlmRouter.modelOverrides")) {
+        void engine.refresh(); // limits are computed at discovery time
+      } else if (
+        e.affectsConfiguration("customLlmRouter.copilotModels") ||
+        e.affectsConfiguration("customLlmRouter.routes") ||
+        e.affectsConfiguration("customLlmRouter.cacheTtlHours")
+      ) {
+        engine.onSelectionChanged();
       }
     })
   );
 
-  const customChatProvider = new CustomLLMChatProvider(engine);
-  try {
-    const providerRegistration = vscode.lm.registerLanguageModelChatProvider(
-      "custom-llm-router",
-      customChatProvider
-    );
-    context.subscriptions.push(providerRegistration);
-  } catch (err) {
-    console.warn("[Custom LLM Router] Native LanguageModelChatProvider registration notice:", err);
-  }
+  const showDashboard = (focus?: DashboardFocus) => DashboardPanel.show(context.extensionUri, engine, focus);
+  const nodeModel = (node?: RouterNode): CatalogModel | undefined => (node?.kind === "model" ? engine.getModel(node.key) : undefined);
+  const nodeProvider = (node?: RouterNode) => (node?.kind === "provider" ? node.name : undefined);
 
-  // 1. Status Bar Item
-  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBarItem.command = "vscode-custom-llm-router.showMenu";
-  statusBarItem.text = "$(hubot) LLM Router";
-  statusBarItem.tooltip = "Click to open Custom LLM Router Dashboard";
-  statusBarItem.show();
-  context.subscriptions.push(statusBarItem);
+  const register = (id: string, fn: (...args: any[]) => unknown) =>
+    context.subscriptions.push(vscode.commands.registerCommand(`${CMD}.${id}`, fn));
 
-  // 2. Command: Open Dashboard
-  const openDashboardCommand = vscode.commands.registerCommand(
-    "vscode-custom-llm-router.openDashboard",
-    () => {
-      ConfigWebviewPanel.createOrShow(engine);
-    }
-  );
+  register("openDashboard", (focus?: DashboardFocus) => showDashboard(focus));
+  register("addProvider", () => showDashboard({ tab: "providers", addProvider: true }));
+  register("manageProviders", () => vscode.commands.executeCommand("llmRouter.providers.focus"));
+  register("showLogs", () => log.show());
 
-  // 3. Command: Sync Models
-  const syncCommand = vscode.commands.registerCommand(
-    "vscode-custom-llm-router.syncModels",
-    async (profileArg?: "all" | "coding" | "top") => {
-      const profile = profileArg || "all";
-      await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: `Discovering Custom LLM Models (${profile})...`,
-          cancellable: false,
-        },
-        async (progress) => {
-          refreshEngineFromSettings();
-          progress.report({ message: "Discovering and filtering models..." });
-          const providers = await engine.generateProviders({
-            profile,
-            onProgress: (m) => progress.report({ message: m }),
-          });
-
-          const totalModels = providers.reduce((acc, p) => acc + (p.models?.filter(m => !engine.isModelDisabled(p.name, m.id)).length || 0), 0);
-          updateStatusBar(totalModels > 0, totalModels);
-          updateHealthStatus(engine);
-          customChatProvider.notifyModelsChanged();
-
-          if (providers.length === 0) {
-            vscode.window.showWarningMessage(
-              "No active models found. Please configure an endpoint in the Dashboard.",
-              "Open Dashboard"
-            ).then((action) => {
-              if (action === "Open Dashboard") vscode.commands.executeCommand("vscode-custom-llm-router.openDashboard");
-            });
-            return;
-          }
-
-          vscode.window.showInformationMessage(
-            `Successfully refreshed ${totalModels} custom models across ${providers.length} provider(s)!`
-          );
-        }
-      );
-    }
-  );
-
-  // 4. Command: Concurrent Model Verification & Benchmarking
-  const testAllModelsCommand = vscode.commands.registerCommand(
-    "vscode-custom-llm-router.testAllModels",
-    async (forceArg: boolean = false) => {
-      refreshEngineFromSettings();
-
-      const config = vscode.workspace.getConfiguration("customLlmRouter");
-      const concurrency = config.get<number>("testConcurrency") || 8;
-
-      await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: "Verifying Models (Health & Tool Calling Check)...",
-          cancellable: true,
-        },
-        async (progress, token) => {
-          let workingCount = 0;
-          let failedCount = 0;
-
-          const results = await engine.verifyAllModels({
-            concurrency,
-            forceRecheck: forceArg,
-            verifyTools: true,
-            onProgress: (tested, total, name, ok) => {
-              if (ok) workingCount++;
-              else failedCount++;
-              progress.report({
-                message: `[${tested}/${total}] ${name} -> ${ok ? "OK" : "FAILED"}`,
-                increment: (1 / total) * 100,
-              });
-              ConfigWebviewPanel.postMessageToActivePanel({
-                cmd: "testProgress",
-                tested,
-                total,
-                name,
-                ok,
-              });
-            },
-          });
-
-          ConfigWebviewPanel.postMessageToActivePanel({
-            cmd: "testComplete",
-            workingCount,
-            failedCount,
-          });
-
-          customChatProvider.notifyModelsChanged();
-
-          vscode.window.showInformationMessage(
-            `Verification Finished! ${workingCount} working, ${failedCount} offline/failed. Cached for 48h.`,
-            "View Dashboard"
-          ).then((action) => {
-            if (action === "View Dashboard") {
-              vscode.commands.executeCommand("vscode-custom-llm-router.openDashboard");
-            }
-          });
-        }
-      );
-    }
-  );
-
-  const testSpecificModelsCommand = vscode.commands.registerCommand(
-    "vscode-custom-llm-router.testSpecificModels",
-    async (modelsArg: { providerName: string; modelId: string }[], forceArg: boolean = false) => {
-      refreshEngineFromSettings();
-      if (!Array.isArray(modelsArg) || modelsArg.length === 0) return;
-
-      const config = vscode.workspace.getConfiguration("customLlmRouter");
-      const concurrency = config.get<number>("testConcurrency") || 8;
-
-      await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: `Verifying ${modelsArg.length} Filtered Models...`,
-          cancellable: true,
-        },
-        async (progress) => {
-          let workingCount = 0;
-          let failedCount = 0;
-
-          await engine.verifySpecificModels(modelsArg, {
-            concurrency,
-            forceRecheck: forceArg,
-            verifyTools: true,
-            onProgress: (tested, total, name, ok) => {
-              if (ok) workingCount++;
-              else failedCount++;
-              progress.report({
-                message: `[${tested}/${total}] ${name} -> ${ok ? "OK" : "FAILED"}`,
-                increment: (1 / total) * 100,
-              });
-              ConfigWebviewPanel.postMessageToActivePanel({
-                cmd: "testProgress",
-                tested,
-                total,
-                name,
-                ok,
-              });
-            },
-          });
-
-          ConfigWebviewPanel.postMessageToActivePanel({
-            cmd: "testComplete",
-            workingCount,
-            failedCount,
-          });
-
-          customChatProvider.notifyModelsChanged();
-          vscode.window.showInformationMessage(
-            `Tested ${modelsArg.length} models: ${workingCount} working, ${failedCount} offline/failed.`
-          );
-        }
-      );
-    }
-  );
-  context.subscriptions.push(testSpecificModelsCommand);
-
-  // 5. Command: Check Status
-  const statusCommand = vscode.commands.registerCommand("vscode-custom-llm-router.checkStatus", async () => {
-    refreshEngineFromSettings();
-    const outputChannel = vscode.window.createOutputChannel("Custom LLM Router Status");
-    outputChannel.show();
-    outputChannel.appendLine(`=== Custom LLM Router: Endpoints Status ===`);
-    outputChannel.appendLine(`Time: ${new Date().toISOString()}\n`);
-
-    const status = await engine.checkEndpoints();
-    for (const ep of status.all) {
-      if (ep.online) {
-        outputChannel.appendLine(`[ONLINE] ${ep.name} (${ep.url}) - ${ep.modelCount} models ready`);
-      } else {
-        outputChannel.appendLine(`[OFFLINE] ${ep.name} (${ep.url}) - Error: ${ep.error || "Unreachable"}`);
+  register("syncModels", () =>
+    vscode.window.withProgress({ location: { viewId: "llmRouter.providers" }, title: vscode.l10n.t("Refreshing models") }, async () => {
+      await engine.refresh();
+      const offline = engine.getProviderStatuses().filter((s) => s.enabled && s.online === false);
+      if (offline.length) {
+        const pick = await vscode.window.showWarningMessage(
+          vscode.l10n.t("Unreachable: {0}", offline.map((s) => s.name).join(", ")),
+          vscode.l10n.t("Show Logs")
+        );
+        if (pick) log.show();
       }
-    }
-    outputChannel.appendLine(`\nTip: Run 'Custom LLM Router: Open Configuration Dashboard' to manage endpoints.`);
-  });
-
-  // 6. Command: Switch Profile
-  const selectProfileCommand = vscode.commands.registerCommand("vscode-custom-llm-router.selectProfile", async () => {
-    const items: (vscode.QuickPickItem & { profile: "all" | "coding" | "top" })[] = [
-      {
-        label: "$(sparkle) All Models",
-        description: "Deploy complete catalog from all enabled providers",
-        profile: "all",
-      },
-      {
-        label: "$(code) Coding Only",
-        description: "Specialized coding/developer models (Claude, Qwen-Coder, DeepSeek, etc.)",
-        profile: "coding",
-      },
-      {
-        label: "$(rocket) Top Tier",
-        description: "Premier flagship models only (Claude 3.7, GPT-4o, DeepSeek R1/V3, etc.)",
-        profile: "top",
-      },
-    ];
-
-    const pick = await vscode.window.showQuickPick(items, {
-      placeHolder: "Select which model profile to make available in VS Code Copilot",
-    });
-
-    if (pick) {
-      engine.setActiveProfile(pick.profile);
-      vscode.commands.executeCommand("vscode-custom-llm-router.syncModels", pick.profile);
-      customChatProvider.notifyModelsChanged();
-      vscode.window.showInformationMessage(`Active Copilot profile set to: ${pick.label}`);
-    }
-  });
-
-  // 7. Direct shortcuts that open the Dashboard
-  const addProviderCommand = vscode.commands.registerCommand("vscode-custom-llm-router.addProvider", () => {
-    vscode.commands.executeCommand("vscode-custom-llm-router.openDashboard");
-  });
-
-  const manageProvidersCommand = vscode.commands.registerCommand("vscode-custom-llm-router.manageProviders", () => {
-    vscode.commands.executeCommand("vscode-custom-llm-router.openDashboard");
-  });
-
-  const clearCacheCommand = vscode.commands.registerCommand("vscode-custom-llm-router.clearCache", async () => {
-    await engine.clearCache();
-    vscode.window.showInformationMessage("Verified models cache cleared.");
-    vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
-  });
-
-  // 8. Master Menu
-  const showMenuCommand = vscode.commands.registerCommand("vscode-custom-llm-router.showMenu", async () => {
-    const options = [
-      { label: "$(dashboard) Open Dashboard", detail: "Dedicated configuration page for providers, live tests & models catalog", id: "dashboard" },
-      { label: "$(beaker) Verify & Benchmark Models", detail: "Run live testing and tool-calling validation on all models", id: "testAll" },
-      { label: "$(sync) Sync Models", detail: "Scan configured endpoints and update Copilot models", id: "sync" },
-      { label: "$(trash) Clear Verified Cache", detail: "Clear all cached verification and benchmark entries", id: "clearCache" },
-      { label: "$(filter) Switch Profile", detail: "Filter by All, Coding, or Top-tier models", id: "profile" },
-      { label: "$(pulse) Check Endpoints Status", detail: "Probe connectivity and model counts across endpoints", id: "status" },
-    ];
-
-    const chosen = await vscode.window.showQuickPick(options, {
-      placeHolder: "Custom LLM Router Actions",
-    });
-
-    if (!chosen) return;
-
-    if (chosen.id === "dashboard") {
-      vscode.commands.executeCommand("vscode-custom-llm-router.openDashboard");
-    } else if (chosen.id === "testAll") {
-      vscode.commands.executeCommand("vscode-custom-llm-router.testAllModels", false);
-    } else if (chosen.id === "sync") {
-      vscode.commands.executeCommand("vscode-custom-llm-router.syncModels");
-    } else if (chosen.id === "clearCache") {
-      vscode.commands.executeCommand("vscode-custom-llm-router.clearCache");
-    } else if (chosen.id === "profile") {
-      vscode.commands.executeCommand("vscode-custom-llm-router.selectProfile");
-    } else if (chosen.id === "status") {
-      vscode.commands.executeCommand("vscode-custom-llm-router.checkStatus");
-    }
-  });
-
-  context.subscriptions.push(
-    openDashboardCommand,
-    syncCommand,
-    testAllModelsCommand,
-    statusCommand,
-    selectProfileCommand,
-    addProviderCommand,
-    manageProvidersCommand,
-    clearCacheCommand,
-    showMenuCommand
+    })
   );
 
-  updateHealthStatus(engine);
-}
+  register("testAllModels", async (arg?: { keys?: string[]; providerName?: string; force?: boolean; skipConfirm?: boolean }) => {
+    if (engine.isVerifying) {
+      void vscode.window.showInformationMessage(vscode.l10n.t("A verification run is already in progress."));
+      return;
+    }
+    await engine.ensureDiscovered();
+    let targets = engine.getModels();
+    if (arg?.keys) {
+      const keys = new Set(arg.keys);
+      targets = targets.filter((m) => keys.has(m.key));
+    } else if (arg?.providerName) {
+      targets = engine.getModels(arg.providerName);
+    }
+    const force = !!arg?.force;
+    // Single-model re-tests (row buttons) report inline in the tree and dashboard, not via notifications.
+    if (targets.length === 1) {
+      await engine.verify(targets, { force });
+      return;
+    }
 
-function updateHealthStatus(engine: ModelEngine) {
-  engine.checkEndpoints().then((status) => {
-    const onlineCount = status.all.filter((s) => s.online).length;
-    const totalCount = status.all.length;
-    if (totalCount === 0) {
-      statusBarItem.text = `$(hubot) LLM Router`;
-      statusBarItem.tooltip = "Click to configure Custom Model Providers";
-    } else if (onlineCount > 0) {
-      statusBarItem.text = `$(hubot) LLM Router (${onlineCount}/${totalCount})`;
-      statusBarItem.tooltip = `${onlineCount} of ${totalCount} providers online. Click for Dashboard.`;
-    } else {
-      statusBarItem.text = `$(hubot) LLM Router $(warning)`;
-      statusBarItem.tooltip = "All configured providers are offline. Click to open Dashboard.";
+    const estimate = engine.estimateVerification(targets, force);
+    if (!estimate.models) {
+      void vscode.window.showInformationMessage(vscode.l10n.t("All models already have fresh results. Use “Re-test shown” in the dashboard to force a new run."));
+      return;
+    }
+    const remoteModels = estimate.remote.reduce((n, r) => n + r.models, 0);
+    if (!arg?.skipConfirm && remoteModels > REMOTE_CONFIRM_THRESHOLD) {
+      const routed = new Set(store.getRoutes().flatMap((r) => r.models));
+      const chosen = targets.filter((m) => (m.selected || routed.has(m.key)) && (force || m.status === "untested"));
+      const all = vscode.l10n.t("Check all {0}", estimate.models);
+      const onlyChosen = vscode.l10n.t("Only selected ({0})", chosen.length);
+      const pick = await vscode.window.showWarningMessage(
+        vscode.l10n.t(
+          "This sends about {0} requests to {1}. On paid or rate-limited APIs that can cost money or trigger limits.",
+          estimate.requests,
+          estimate.remote.map((r) => `${r.name} (${r.models})`).join(", ")
+        ),
+        { modal: true, detail: vscode.l10n.t("Tip: set “LLM Router › Tool Check” to “basic” to halve the number of requests.") },
+        ...(chosen.length ? [onlyChosen, all] : [all])
+      );
+      if (!pick) return;
+      if (pick === onlyChosen) targets = chosen;
+    }
+
+    const result = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t("Verifying models"), cancellable: true },
+      (progress, token) =>
+        engine.verify(targets, {
+          force,
+          token,
+          onProgress: (done, total, m) =>
+            progress.report({ increment: 100 / total, message: `${done}/${total} · ${m.providerName}: ${m.name}` }),
+        })
+    );
+
+    const openDashboard = vscode.l10n.t("Open Dashboard");
+    const actions = [openDashboard];
+    const unselectedWorking = engine.getModels().filter((m) => m.status === "working" && !m.selected);
+    const addAll = vscode.l10n.t("Add {0} to Copilot", unselectedWorking.length);
+    if (engine.getCopilotModels().length === 0 && unselectedWorking.length) actions.unshift(addAll);
+    // Don't await the notification: the command (and anyone awaiting it) finishes when verification does.
+    void vscode.window
+      .showInformationMessage(vscode.l10n.t("Verification finished: {0} working, {1} failed.", result.working, result.failed), ...actions)
+      .then((pick) => {
+        if (pick === openDashboard) showDashboard({ tab: "models" });
+        else if (pick === addAll) void store.setSelected(unselectedWorking.map((m) => m.key), true);
+      });
+    return result;
+  });
+
+  register("clearCache", async () => {
+    const clear = vscode.l10n.t("Clear");
+    const ok = await vscode.window.showWarningMessage(
+      vscode.l10n.t("Clear all verification results? Selected models are re-tested right away and stay hidden from Copilot until they pass."),
+      { modal: true },
+      clear
+    );
+    if (ok !== clear) return;
+    await engine.clearCache();
+    void engine.reverifyExpiredSelection();
+  });
+
+  register("testProvider", async (node?: RouterNode) => {
+    const p = store.findProvider(nodeProvider(node) || "");
+    if (!p) return;
+    const res = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t("Connecting to {0}…", p.name) },
+      async () => engine.testConnection(p, await store.getAuth(p))
+    );
+    if (res.ok) void vscode.window.showInformationMessage(vscode.l10n.t("{0}: connected in {1}ms, {2} models listed.", p.name, res.latencyMs, res.modelCount ?? 0));
+    else void vscode.window.showErrorMessage(`${p.name}: ${res.error}`);
+    void engine.refresh();
+  });
+  register("verifyProvider", (node?: RouterNode) =>
+    vscode.commands.executeCommand(`${CMD}.testAllModels`, { providerName: nodeProvider(node), force: true })
+  );
+  register("editProvider", (node?: RouterNode) => showDashboard({ tab: "providers", editProvider: nodeProvider(node) }));
+  register("enableProvider", (node?: RouterNode) => nodeProvider(node) && store.setProviderEnabled(nodeProvider(node)!, true));
+  register("disableProvider", (node?: RouterNode) => nodeProvider(node) && store.setProviderEnabled(nodeProvider(node)!, false));
+  register("deleteProvider", async (node?: RouterNode) => {
+    const name = nodeProvider(node);
+    if (!name) return;
+    const remove = vscode.l10n.t("Remove");
+    const ok = await vscode.window.showWarningMessage(
+      vscode.l10n.t("Remove provider “{0}”? Its API key and Copilot selections are removed too.", name),
+      { modal: true },
+      remove
+    );
+    if (ok === remove) await store.deleteProvider(name);
+  });
+  register("setApiKey", async (node?: RouterNode) => {
+    const p = store.findProvider(nodeProvider(node) || "");
+    if (!p) return;
+    const key = await vscode.window.showInputBox({
+      title: vscode.l10n.t("API key for {0}", p.name),
+      prompt: vscode.l10n.t("Stored in VS Code's encrypted secret storage on this machine. Leave empty to remove it."),
+      password: true,
+      ignoreFocusOut: true,
+    });
+    if (key === undefined) return;
+    await store.setApiKey(p.name, key);
+    await engine.refresh();
+    const status = engine.getProviderStatuses().find((s) => s.name === p.name);
+    if (status?.online) void vscode.window.showInformationMessage(vscode.l10n.t("{0} is connected.", p.name));
+    else if (status?.error) void vscode.window.showWarningMessage(`${p.name}: ${status.error}`);
+  });
+  register("pingModel", async (node?: RouterNode) => {
+    const m = nodeModel(node);
+    if (!m) return;
+    await engine.verify([m], { force: true });
+    const after = engine.getModel(m.key);
+    if (after?.status === "failed") void vscode.window.showErrorMessage(`${m.name}: ${after.error || "failed"}`);
+  });
+  register("editModel", (node?: RouterNode) => {
+    const m = nodeModel(node);
+    if (m) showDashboard({ tab: "models", editModel: m.key });
+  });
+
+  register("pullOllamaModel", async (node?: RouterNode | string) => {
+    const name = typeof node === "string" ? node : nodeProvider(node);
+    const p = store.findProvider(name || "");
+    if (!p) return;
+    const model = (
+      await vscode.window.showInputBox({
+        title: vscode.l10n.t("Pull a model into {0}", p.name),
+        prompt: vscode.l10n.t("Model name from the Ollama library, e.g. qwen2.5-coder:7b"),
+        placeHolder: "qwen2.5-coder:7b",
+        ignoreFocusOut: true,
+        validateInput: (v) => (/^[\w.\-\/:]+$/.test(v.trim()) ? undefined : vscode.l10n.t("Enter a model name such as llama3.1:8b")),
+      })
+    )?.trim();
+    if (!model) return;
+    const error = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t("Pulling {0}", model), cancellable: true },
+      async (progress, token) => pullOllamaModel(p, await store.getAuth(p), model, progress, token)
+    );
+    if (error) {
+      void vscode.window.showErrorMessage(vscode.l10n.t("Could not pull {0}: {1}", model, error));
+      return;
+    }
+    await engine.refresh();
+    const key = engine.getModels(p.name).find((m) => m.id === model || m.id === `${model}:latest`)?.key;
+    const add = vscode.l10n.t("Add to Copilot");
+    const pick = await vscode.window.showInformationMessage(vscode.l10n.t("{0} is ready.", model), ...(key ? [add] : []));
+    if (pick === add && key) {
+      await store.setSelected([key], true);
+      const m = engine.getModel(key);
+      if (m) void engine.verify([m]);
     }
   });
+
+  register("exportConfig", async () => {
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file("llm-router-config.json"),
+      filters: { JSON: ["json"] },
+      title: vscode.l10n.t("Export LLM Router configuration (API keys are not included)"),
+    });
+    if (!uri) return;
+    const payload = {
+      version: 3,
+      providers: store.getProviders().map(({ apiKey: _omit, ...p }) => p),
+      copilotModels: [...store.getSelection()],
+      routes: store.getRoutes(),
+      modelOverrides: store.getOverrides(),
+    };
+    await vscode.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(payload, null, 2), "utf8"));
+    void vscode.window.showInformationMessage(vscode.l10n.t("Exported {0} provider(s). API keys were not included.", payload.providers.length));
+  });
+
+  register("importConfig", async () => {
+    const [uri] = (await vscode.window.showOpenDialog({ canSelectMany: false, filters: { JSON: ["json"] }, title: vscode.l10n.t("Import LLM Router configuration") })) || [];
+    if (!uri) return;
+    let parsed: any;
+    try {
+      parsed = JSON.parse(Buffer.from(await vscode.workspace.fs.readFile(uri)).toString("utf8"));
+    } catch (err: any) {
+      void vscode.window.showErrorMessage(vscode.l10n.t("Not a valid JSON file: {0}", err.message));
+      return;
+    }
+    if (!Array.isArray(parsed?.providers)) {
+      void vscode.window.showErrorMessage(vscode.l10n.t("Invalid configuration: missing a “providers” array."));
+      return;
+    }
+    const replace = vscode.l10n.t("Replace");
+    const ok = await vscode.window.showWarningMessage(
+      vscode.l10n.t("Replace your {0} provider(s) with {1} from {2}?", store.getProviders().length, parsed.providers.length, uri.path.split("/").pop() || ""),
+      { modal: true },
+      replace
+    );
+    if (ok !== replace) return;
+    await store.replaceProviders(parsed.providers);
+    if (Array.isArray(parsed.copilotModels)) await store.setSelection(parsed.copilotModels.filter((k: unknown) => typeof k === "string"));
+    if (Array.isArray(parsed.routes)) await store.saveRoutes(parsed.routes);
+    if (parsed.modelOverrides && typeof parsed.modelOverrides === "object") {
+      for (const [k, v] of Object.entries(parsed.modelOverrides)) await store.setOverride(k, v as any);
+    }
+  });
+
+  register("showMenu", async () => {
+    const items: (vscode.QuickPickItem & { run?: () => unknown })[] = [
+      { label: `$(dashboard) ${vscode.l10n.t("Open Dashboard")}`, detail: vscode.l10n.t("Manage providers, verify models and choose what Copilot shows"), run: () => showDashboard() },
+      { label: `$(add) ${vscode.l10n.t("Add Provider")}`, run: () => showDashboard({ tab: "providers", addProvider: true }) },
+      { label: `$(refresh) ${vscode.l10n.t("Refresh Models")}`, detail: vscode.l10n.t("Re-fetch the model list from every provider"), run: () => vscode.commands.executeCommand(`${CMD}.syncModels`) },
+      { label: `$(beaker) ${vscode.l10n.t("Verify Untested Models")}`, run: () => vscode.commands.executeCommand(`${CMD}.testAllModels`) },
+      { label: `$(list-tree) ${vscode.l10n.t("Show in Sidebar")}`, run: () => vscode.commands.executeCommand("llmRouter.providers.focus") },
+      { label: `$(output) ${vscode.l10n.t("Show Logs")}`, run: () => log.show() },
+    ];
+    if (engine.isVerifying) items.splice(1, 0, { label: `$(debug-stop) ${vscode.l10n.t("Cancel Verification")}`, run: () => engine.cancelVerification() });
+    const pick = await vscode.window.showQuickPick(items, { placeHolder: "LLM Router" });
+    await pick?.run?.();
+  });
+
+  checkProxyConfiguration(log);
+
+  // Providers whose key is missing on this machine (SecretStorage does not sync): ask once per session.
+  const askedForKey = new Set<string>();
+  context.subscriptions.push(
+    engine.onDidChange(() => {
+      for (const s of engine.getProviderStatuses()) {
+        if (!s.needsKey || s.keySource !== "none" || askedForKey.has(s.name)) continue;
+        askedForKey.add(s.name);
+        const enter = vscode.l10n.t("Enter API Key");
+        void vscode.window
+          .showWarningMessage(vscode.l10n.t("{0} needs an API key on this machine. Keys are stored per machine and are not synced.", s.name), enter)
+          .then((pick) => pick && vscode.commands.executeCommand(`${CMD}.setApiKey`, { kind: "provider", name: s.name }));
+      }
+    })
+  );
+
+  // Startup: never block activation on the network.
+  void (async () => {
+    await engine.migrateLegacySelection();
+    await engine.refresh();
+    await engine.reverifyExpiredSelection();
+  })().catch((err) => log.error("[startup]", err));
 }
 
-function updateStatusBar(online: boolean, count: number) {
-  if (online) {
-    statusBarItem.text = `$(check) LLM Router (${count})`;
+/**
+ * Requests go through Node's fetch, which only honours `http.proxy` while VS Code's
+ * `http.fetchAdditionalSupport` is on (the default). Warn when a proxy is set but that is off.
+ */
+function checkProxyConfiguration(log: vscode.LogOutputChannel) {
+  const http = vscode.workspace.getConfiguration("http");
+  const proxy = http.get<string>("proxy") || process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+  if (!proxy) return;
+  if (http.get<boolean>("fetchAdditionalSupport") === false) {
+    log.warn("[network] A proxy is configured but http.fetchAdditionalSupport is off, so model requests bypass the proxy.");
+    const open = vscode.l10n.t("Open Setting");
+    void vscode.window.showWarningMessage(vscode.l10n.t("LLM Router: a proxy is configured, but “http.fetchAdditionalSupport” is off, so model requests will not use it."), open).then((pick) => {
+      if (pick) void vscode.commands.executeCommand("workbench.action.openSettings", "http.fetchAdditionalSupport");
+    });
   } else {
-    statusBarItem.text = `$(hubot) LLM Router $(alert)`;
+    log.info("[network] Using VS Code proxy settings for model requests.");
   }
 }
 
-export function deactivate() {
-  if (statusBarItem) {
-    statusBarItem.dispose();
+function renderStatusBar(item: vscode.StatusBarItem, engine: ModelEngine) {
+  const statuses = engine.getProviderStatuses().filter((s) => s.enabled);
+  const active = engine.getCopilotModels().length + engine.getRoutes().filter((r) => r.available).length;
+  const offline = statuses.filter((s) => s.online === false);
+  const progress = engine.verifyProgress;
+
+  if (progress) item.text = `$(sync~spin) ${progress.done}/${progress.total}`;
+  else if (!statuses.length) item.text = "$(hubot) LLM Router";
+  else item.text = `$(hubot) ${active}${offline.length ? " $(warning)" : ""}`;
+
+  item.backgroundColor = statuses.length && offline.length === statuses.length ? new vscode.ThemeColor("statusBarItem.warningBackground") : undefined;
+
+  const md = new vscode.MarkdownString(undefined, true);
+  md.isTrusted = { enabledCommands: [`${CMD}.openDashboard`, `${CMD}.addProvider`] };
+  if (!statuses.length) {
+    md.appendMarkdown(`${vscode.l10n.t("No providers configured.")}\n\n[$(add) ${vscode.l10n.t("Add a provider")}](command:${CMD}.addProvider)`);
+  } else {
+    md.appendMarkdown(`**LLM Router** — ${vscode.l10n.t("{0} model(s) in Copilot", active)}\n\n`);
+    for (const s of statuses) {
+      const icon = s.online === undefined ? "$(loading~spin)" : s.online ? "$(pass-filled)" : "$(error)";
+      md.appendMarkdown(`${icon} ${s.name} — ${s.online === false ? s.error || "offline" : vscode.l10n.t("{0} models", s.modelCount)}  \n`);
+    }
+    md.appendMarkdown(`\n[$(dashboard) ${vscode.l10n.t("Open Dashboard")}](command:${CMD}.openDashboard)`);
   }
+  item.tooltip = md;
 }
+
+export function deactivate() {}

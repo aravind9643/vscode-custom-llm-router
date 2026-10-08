@@ -1,23 +1,25 @@
 {
   "name": "vscode-custom-llm-router",
-  "displayName": "Custom LLM Router",
-  "description": "Native Language Model Provider for VS Code Copilot & Chat: Connect Ollama, LM Studio, vLLM, OpenRouter, DeepSeek, OpenAI, FreeLLMAPI, OmniRoute & custom OpenAI-compatible endpoints with real-time streaming.",
-  "version": "1.0.1",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "2.2.0",
   "publisher": "aravind9643",
   "license": "MIT",
   "keywords": [
-    "ai",
     "copilot",
     "chat",
     "language-models",
+    "byok",
     "ollama",
-    "deepseek",
-    "openai",
-    "openrouter",
     "lm-studio",
     "vllm",
-    "freellmapi",
-    "omniroute",
+    "openrouter",
+    "anthropic",
+    "claude",
+    "azure-openai",
+    "deepseek",
+    "groq",
+    "gemini",
     "llm-router"
   ],
   "repository": {
@@ -37,7 +39,7 @@
     "Machine Learning",
     "Programming Languages"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -45,78 +47,305 @@
     "commands": [
       {
         "command": "vscode-custom-llm-router.openDashboard",
-        "title": "Custom LLM Router: Open Dashboard",
-        "category": "Custom LLM"
+        "title": "%command.openDashboard%",
+        "category": "%category%",
+        "icon": "$(dashboard)"
       },
       {
         "command": "vscode-custom-llm-router.showMenu",
-        "title": "Custom LLM Router: Show Menu",
-        "category": "Custom LLM"
-      },
-      {
-        "command": "vscode-custom-llm-router.syncModels",
-        "title": "Custom LLM Router: Refresh / Sync Models",
-        "category": "Custom LLM"
-      },
-      {
-        "command": "vscode-custom-llm-router.testAllModels",
-        "title": "Custom LLM Router: Verify & Benchmark Models",
-        "category": "Custom LLM"
-      },
-      {
-        "command": "vscode-custom-llm-router.clearCache",
-        "title": "Custom LLM Router: Clear Verified Cache",
-        "category": "Custom LLM"
+        "title": "%command.showMenu%",
+        "category": "%category%",
+        "icon": "$(menu)"
       },
       {
         "command": "vscode-custom-llm-router.addProvider",
-        "title": "Custom LLM Router: Add Custom Model Provider",
-        "category": "Custom LLM"
+        "title": "%command.addProvider%",
+        "category": "%category%",
+        "icon": "$(add)"
       },
       {
         "command": "vscode-custom-llm-router.manageProviders",
-        "title": "Custom LLM Router: Manage / Toggle Providers",
-        "category": "Custom LLM"
+        "title": "%command.manageProviders%",
+        "category": "%category%",
+        "icon": "$(list-tree)"
       },
       {
-        "command": "vscode-custom-llm-router.checkStatus",
-        "title": "Custom LLM Router: Check Endpoints Status",
-        "category": "Custom LLM"
+        "command": "vscode-custom-llm-router.syncModels",
+        "title": "%command.syncModels%",
+        "category": "%category%",
+        "icon": "$(refresh)"
       },
       {
-        "command": "vscode-custom-llm-router.selectProfile",
-        "title": "Custom LLM Router: Switch Model Profile",
-        "category": "Custom LLM"
+        "command": "vscode-custom-llm-router.testAllModels",
+        "title": "%command.testAllModels%",
+        "category": "%category%",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "vscode-custom-llm-router.clearCache",
+        "title": "%command.clearCache%",
+        "category": "%category%",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "vscode-custom-llm-router.exportConfig",
+        "title": "%command.exportConfig%",
+        "category": "%category%",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "vscode-custom-llm-router.importConfig",
+        "title": "%command.importConfig%",
+        "category": "%category%",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "vscode-custom-llm-router.showLogs",
+        "title": "%command.showLogs%",
+        "category": "%category%",
+        "icon": "$(output)"
+      },
+      {
+        "command": "vscode-custom-llm-router.testProvider",
+        "title": "%command.testProvider%",
+        "category": "%category%",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "vscode-custom-llm-router.verifyProvider",
+        "title": "%command.verifyProvider%",
+        "category": "%category%",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "vscode-custom-llm-router.editProvider",
+        "title": "%command.editProvider%",
+        "category": "%category%",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "vscode-custom-llm-router.enableProvider",
+        "title": "%command.enableProvider%",
+        "category": "%category%",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "vscode-custom-llm-router.disableProvider",
+        "title": "%command.disableProvider%",
+        "category": "%category%",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "vscode-custom-llm-router.deleteProvider",
+        "title": "%command.deleteProvider%",
+        "category": "%category%",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "vscode-custom-llm-router.pingModel",
+        "title": "%command.pingModel%",
+        "category": "%category%",
+        "icon": "$(debug-rerun)"
+      },
+      {
+        "command": "vscode-custom-llm-router.editModel",
+        "title": "%command.editModel%",
+        "category": "%category%",
+        "icon": "$(settings)"
+      },
+      {
+        "command": "vscode-custom-llm-router.pullOllamaModel",
+        "title": "%command.pullOllamaModel%",
+        "category": "%category%",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "vscode-custom-llm-router.setApiKey",
+        "title": "%command.setApiKey%",
+        "category": "%category%",
+        "icon": "$(key)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "llmRouter",
+          "title": "%view.container%",
+          "icon": "media/sidebar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "llmRouter": [
+        {
+          "id": "llmRouter.providers",
+          "name": "%view.providers%",
+          "icon": "media/sidebar-icon.svg",
+          "contextualTitle": "LLM Router"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "llmRouter.providers",
+        "contents": "%view.welcome%"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "vscode-custom-llm-router.openDashboard"
+          "command": "vscode-custom-llm-router.testProvider",
+          "when": "false"
         },
         {
-          "command": "vscode-custom-llm-router.showMenu"
+          "command": "vscode-custom-llm-router.verifyProvider",
+          "when": "false"
         },
         {
-          "command": "vscode-custom-llm-router.syncModels"
+          "command": "vscode-custom-llm-router.editProvider",
+          "when": "false"
         },
         {
-          "command": "vscode-custom-llm-router.testAllModels"
+          "command": "vscode-custom-llm-router.enableProvider",
+          "when": "false"
         },
         {
-          "command": "vscode-custom-llm-router.clearCache"
+          "command": "vscode-custom-llm-router.disableProvider",
+          "when": "false"
         },
         {
-          "command": "vscode-custom-llm-router.addProvider"
+          "command": "vscode-custom-llm-router.deleteProvider",
+          "when": "false"
         },
         {
-          "command": "vscode-custom-llm-router.manageProviders"
+          "command": "vscode-custom-llm-router.pingModel",
+          "when": "false"
         },
         {
-          "command": "vscode-custom-llm-router.checkStatus"
+          "command": "vscode-custom-llm-router.editModel",
+          "when": "false"
         },
         {
-          "command": "vscode-custom-llm-router.selectProfile"
+          "command": "vscode-custom-llm-router.pullOllamaModel",
+          "when": "false"
+        },
+        {
+          "command": "vscode-custom-llm-router.setApiKey",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "vscode-custom-llm-router.addProvider",
+          "when": "view == llmRouter.providers",
+          "group": "navigation@1"
+        },
+        {
+          "command": "vscode-custom-llm-router.syncModels",
+          "when": "view == llmRouter.providers",
+          "group": "navigation@2"
+        },
+        {
+          "command": "vscode-custom-llm-router.testAllModels",
+          "when": "view == llmRouter.providers",
+          "group": "navigation@3"
+        },
+        {
+          "command": "vscode-custom-llm-router.openDashboard",
+          "when": "view == llmRouter.providers",
+          "group": "navigation@4"
+        },
+        {
+          "command": "vscode-custom-llm-router.importConfig",
+          "when": "view == llmRouter.providers",
+          "group": "2_config@1"
+        },
+        {
+          "command": "vscode-custom-llm-router.exportConfig",
+          "when": "view == llmRouter.providers",
+          "group": "2_config@2"
+        },
+        {
+          "command": "vscode-custom-llm-router.clearCache",
+          "when": "view == llmRouter.providers",
+          "group": "3_maintenance@1"
+        },
+        {
+          "command": "vscode-custom-llm-router.showLogs",
+          "when": "view == llmRouter.providers",
+          "group": "3_maintenance@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "vscode-custom-llm-router.setApiKey",
+          "when": "view == llmRouter.providers && viewItem =~ /needskey/",
+          "group": "inline@0"
+        },
+        {
+          "command": "vscode-custom-llm-router.verifyProvider",
+          "when": "view == llmRouter.providers && viewItem =~ /^provider\\.enabled/",
+          "group": "inline@1"
+        },
+        {
+          "command": "vscode-custom-llm-router.editProvider",
+          "when": "view == llmRouter.providers && viewItem =~ /^provider/",
+          "group": "inline@2"
+        },
+        {
+          "command": "vscode-custom-llm-router.testProvider",
+          "when": "view == llmRouter.providers && viewItem =~ /^provider\\.enabled/",
+          "group": "1_test@1"
+        },
+        {
+          "command": "vscode-custom-llm-router.verifyProvider",
+          "when": "view == llmRouter.providers && viewItem =~ /^provider\\.enabled/",
+          "group": "1_test@2"
+        },
+        {
+          "command": "vscode-custom-llm-router.pullOllamaModel",
+          "when": "view == llmRouter.providers && viewItem == provider.enabled.ollama",
+          "group": "1_test@3"
+        },
+        {
+          "command": "vscode-custom-llm-router.editProvider",
+          "when": "view == llmRouter.providers && viewItem =~ /^provider/",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "vscode-custom-llm-router.disableProvider",
+          "when": "view == llmRouter.providers && viewItem =~ /^provider\\.enabled/",
+          "group": "2_edit@2"
+        },
+        {
+          "command": "vscode-custom-llm-router.enableProvider",
+          "when": "view == llmRouter.providers && viewItem =~ /^provider\\.disabled/",
+          "group": "2_edit@2"
+        },
+        {
+          "command": "vscode-custom-llm-router.deleteProvider",
+          "when": "view == llmRouter.providers && viewItem =~ /^provider/",
+          "group": "3_danger@1"
+        },
+        {
+          "command": "vscode-custom-llm-router.pingModel",
+          "when": "view == llmRouter.providers && viewItem =~ /^model\\.(working|failed|untested)$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "vscode-custom-llm-router.pingModel",
+          "when": "view == llmRouter.providers && viewItem =~ /^model\\./",
+          "group": "1_model@1"
+        },
+        {
+          "command": "vscode-custom-llm-router.editModel",
+          "when": "view == llmRouter.providers && viewItem =~ /^model\\./",
+          "group": "1_model@2"
+        },
+        {
+          "command": "vscode-custom-llm-router.setApiKey",
+          "when": "view == llmRouter.providers && viewItem =~ /^provider/",
+          "group": "2_edit@3"
         }
       ]
     },
@@ -127,11 +356,11 @@
       }
     ],
     "configuration": {
-      "title": "Custom LLM Router",
+      "title": "%config.title%",
       "properties": {
         "customLlmRouter.providers": {
           "type": "array",
-          "description": "List of custom OpenAI-compatible language model providers (e.g. Ollama, LM Studio, vLLM, OpenRouter, DeepSeek, Groq)",
+          "order": 0,
           "default": [],
           "items": {
             "type": "object",
@@ -142,69 +371,266 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "Friendly provider name"
+                "description": "Unique display name."
               },
               "endpointUrl": {
                 "type": "string",
-                "description": "Base URL of OpenAI-compatible API (e.g. http://localhost:11434 or https://api.groq.com/openai/v1)"
+                "description": "Base URL, with or without /v1 (e.g. http://localhost:11434 or https://api.groq.com/openai/v1)."
               },
               "apiKey": {
                 "type": "string",
-                "description": "API key or bearer token (optional for local endpoints like Ollama/LM Studio)"
+                "markdownDescription": "Plain-text API key. **Not recommended** — set the key from the dashboard so it is stored in secret storage."
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Extra HTTP headers sent with every request."
               },
               "autoDiscover": {
                 "type": "boolean",
                 "default": true,
-                "description": "Automatically discover models via GET /v1/models"
+                "description": "Discover models from the /models endpoint."
               },
               "modelsEndpoint": {
                 "type": "string",
-                "description": "Custom models discovery URL override"
+                "description": "Full URL override for the models list."
               },
               "chatEndpoint": {
                 "type": "string",
-                "description": "Custom chat completions URL override"
+                "description": "Full URL override for chat completions."
+              },
+              "timeoutMs": {
+                "type": "number",
+                "description": "Health-check timeout in milliseconds (default 20000)."
               },
               "enabled": {
                 "type": "boolean",
                 "default": true,
-                "description": "Enable or disable this provider"
+                "description": "Enable or disable this provider."
+              },
+              "staticModels": {
+                "type": "array",
+                "description": "Models to add manually (for servers without a /models endpoint).",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "contextWindow": {
+                      "type": "number"
+                    },
+                    "maxInputTokens": {
+                      "type": "number"
+                    },
+                    "maxOutputTokens": {
+                      "type": "number"
+                    },
+                    "toolCalling": {
+                      "type": "boolean"
+                    },
+                    "vision": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              },
+              "keepAlive": {
+                "type": "string"
+              },
+              "api": {
+                "type": "string",
+                "enum": [
+                  "openai",
+                  "ollama",
+                  "anthropic"
+                ],
+                "description": "Wire protocol. Default: ollama for Ollama servers, anthropic for api.anthropic.com, otherwise openai."
+              },
+              "authHeader": {
+                "type": "string",
+                "enum": [
+                  "bearer",
+                  "api-key",
+                  "x-api-key"
+                ],
+                "default": "bearer",
+                "description": "How the API key is sent on OpenAI-compatible APIs (Azure OpenAI uses api-key)."
+              },
+              "contextLength": {
+                "type": "number",
+                "minimum": 1024,
+                "description": "Ollama only: context length (num_ctx) models are loaded with. Default 32768."
               }
             }
-          }
+          },
+          "markdownDescription": "%config.providers%"
         },
-        "customLlmRouter.disabledModelIds": {
+        "customLlmRouter.copilotModels": {
           "type": "array",
-          "description": "List of model IDs excluded from VS Code Copilot model picker",
-          "default": [],
+          "order": 1,
           "items": {
             "type": "string"
-          }
+          },
+          "markdownDescription": "%config.copilotModels%"
         },
         "customLlmRouter.testConcurrency": {
           "type": "integer",
+          "order": 2,
           "default": 8,
           "minimum": 1,
           "maximum": 25,
-          "description": "Number of concurrent workers used during model health and tool calling verification (default: 8)."
+          "description": "%config.testConcurrency%"
+        },
+        "customLlmRouter.cacheTtlHours": {
+          "type": "integer",
+          "order": 3,
+          "default": 48,
+          "minimum": 1,
+          "maximum": 720,
+          "description": "%config.cacheTtlHours%"
+        },
+        "customLlmRouter.showReasoning": {
+          "type": "boolean",
+          "order": 6,
+          "default": true,
+          "description": "%config.showReasoning%"
+        },
+        "customLlmRouter.disabledModelIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDeprecationMessage": "Replaced by `#customLlmRouter.copilotModels#`. Only read once to migrate your previous selection."
+        },
+        "customLlmRouter.modelOverrides": {
+          "type": "object",
+          "order": 2,
+          "default": {},
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "contextWindow": {
+                "type": "number",
+                "minimum": 1024
+              },
+              "maxOutputTokens": {
+                "type": "number",
+                "minimum": 256
+              },
+              "toolCalling": {
+                "type": "boolean"
+              },
+              "vision": {
+                "type": "boolean"
+              },
+              "inputPerM": {
+                "type": "number",
+                "minimum": 0
+              },
+              "outputPerM": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "markdownDescription": "%config.modelOverrides%"
+        },
+        "customLlmRouter.routes": {
+          "type": "array",
+          "order": 3,
+          "default": [],
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "models"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "models": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "markdownDescription": "%config.routes%"
+        },
+        "customLlmRouter.toolCheck": {
+          "type": "string",
+          "order": 5,
+          "enum": [
+            "full",
+            "basic"
+          ],
+          "default": "full",
+          "markdownDescription": "%config.toolCheck%"
+        },
+        "customLlmRouter.providerConcurrency": {
+          "type": "integer",
+          "order": 7,
+          "default": 3,
+          "minimum": 1,
+          "maximum": 25,
+          "description": "%config.providerConcurrency%"
         }
       }
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run typecheck && npm run bundle",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "bundle": "npm run bundle:ext && npm run bundle:webview",
+    "test": "npm run typecheck && npm run compile && npm run bundle:webview && node test/unit.test.js && node test/tree.test.js && node test/dashboard.test.js",
+    "test:integration": "npm run compile && npm run bundle && vscode-test",
     "package": "vsce package --no-dependencies",
-    "install:insiders": "npm run compile && vsce package --no-dependencies && code-insiders --install-extension vscode-custom-llm-router-1.0.1.vsix --force"
+    "install:insiders": "npm run package && code-insiders --install-extension vscode-custom-llm-router-2.2.0.vsix --force",
+    "l10n:export": "vscode-l10n-dev export -o ./l10n ./src",
+    "typecheck": "tsc -p ./ --noEmit && tsc -p tsconfig.webview.json",
+    "bundle:ext": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.js --minify --sourcemap",
+    "bundle:webview": "esbuild src/webview/dashboard.ts --bundle --platform=browser --format=iife --target=es2022 --outfile=media/dashboard.js",
+    "screenshots": "npm run bundle:webview && node test/visual/screenshots.js"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "^26.6.4",
     "@types/vscode": "^1.140.0",
+    "@vscode/l10n-dev": "^0.0.35",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.25.0",
+    "jsdom": "^24.1.3",
+    "mocha": "^11.1.0",
+    "playwright": "^1.64.0",
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@vscode/codicons": "^0.0.46-24"
-  }
+    "@anthropic-ai/sdk": "^0.132.1"
+  },
+  "l10n": "./l10n",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1b1f3a",
+    "theme": "dark"
+  },
+  "pricing": "Free",
+  "qna": "https://github.com/aravind9643/vscode-custom-llm-router/issues"
 }
