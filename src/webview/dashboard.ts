@@ -195,7 +195,14 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
       ? `<span class="stat"><span class="dot ${anyOffline ? "err" : online ? "ok" : ""}"></span><strong>${online}/${enabled.length}</strong> providers online</span>
          <span class="stat">${icon("pass")}<strong>${working}</strong> verified</span>
          <span class="stat">${icon("copilot")}<strong>${inCopilot}</strong> in Copilot</span>` +
-        (S.spend > 0 ? `<span class="stat" title="Estimated from reported usage × model prices (list or provider prices; correct them per model with ⚙)">${icon("credit-card")}<strong>~${money(S.spend)}</strong> spent</span>` : "")
+        (S.spend > 0 ? `<span class="stat" title="Estimated from reported usage × model prices (list or provider prices; correct them per model with ⚙)">${icon("credit-card")}<strong>~${money(S.spend)}</strong> spent</span>` : "") +
+        (S.settings.budgetLimitUsd && S.settings.budgetLimitUsd > 0
+          ? (() => {
+              const pct = Math.min(100, Math.round((S.spend / S.settings.budgetLimitUsd) * 100));
+              const colorCls = pct >= 100 ? "err" : pct >= 75 ? "warn" : "ok";
+              return `<span class="stat budget-pill" title="Budget: ${money(S.spend)} of $${S.settings.budgetLimitUsd} (${pct}%)"><span class="budget-mini-track"><span class="budget-mini-fill ${colorCls}" style="width:${pct}%"></span></span><strong>${pct}%</strong> of $${S.settings.budgetLimitUsd} budget</span>`;
+            })()
+          : "")
       : "";
 
     const vb = ($("#verifyBtn") as HTMLButtonElement);
@@ -230,8 +237,15 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
 
   function matchesBase(m, ignoreStatus) {
     const q = ui.q.trim().toLowerCase();
-    if (q && !`${m.name} ${m.id} ${m.providerName}`.toLowerCase().includes(q)) return false;
-    if (ui.provider && m.providerName !== ui.provider) return false;
+    if (q && !`${m.name} ${m.id} ${m.providerName} ${m.subProvider || ""}`.toLowerCase().includes(q)) return false;
+    if (ui.provider) {
+      if (ui.provider.includes("::")) {
+        const [pName, sName] = ui.provider.split("::");
+        if (m.providerName !== pName || m.subProvider !== sName) return false;
+      } else if (m.providerName !== ui.provider) {
+        return false;
+      }
+    }
     if (!ignoreStatus && !matchesStatus(m, ui.status)) return false;
     return true;
   }
@@ -259,10 +273,30 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
   function renderModels() {
     // Provider filter
     const names = [...new Set(S.providers.filter((p) => p.enabled).map((p) => p.name))];
-    if (ui.provider && !names.includes(ui.provider)) ui.provider = "";
-    $("#provSel").innerHTML =
-      `<option value="">All providers</option>` +
-      names.map((n) => `<option value="${esc(n)}" ${n === ui.provider ? "selected" : ""}>${esc(n)}</option>`).join("");
+    const provOptions: { value: string; label: string }[] = [{ value: "", label: "All providers" }];
+    const validValues = new Set<string>([""]);
+    for (const name of names) {
+      provOptions.push({ value: name, label: name });
+      validValues.add(name);
+      const subProviders = [
+        ...new Set(
+          S.models
+            .filter((m) => m.providerName === name && m.subProvider && m.subProvider.toLowerCase() !== name.toLowerCase())
+            .map((m) => m.subProvider!)
+        ),
+      ].sort();
+      if (subProviders.length > 1) {
+        for (const sub of subProviders) {
+          const val = `${name}::${sub}`;
+          provOptions.push({ value: val, label: `  ↳ ${name} / ${sub}` });
+          validValues.add(val);
+        }
+      }
+    }
+    if (ui.provider && !validValues.has(ui.provider)) ui.provider = "";
+    $("#provSel").innerHTML = provOptions
+      .map((opt) => `<option value="${esc(opt.value)}" ${opt.value === ui.provider ? "selected" : ""}>${esc(opt.label)}</option>`)
+      .join("");
 
     // Status segments (counts respect search + provider)
     const base = S.models.filter((m) => matchesBase(m, true));
@@ -370,15 +404,15 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
     }
     const failed = S.models.filter((m) => m.status === "failed");
     if (failed.length > 5) {
-      const authCount = failed.filter((m) => /401|403|unauthorized|forbidden|api key/i.test(m.error || "")).length;
+      const authCount = failed.filter((m) => /401|403|unauthorized|forbidden|api key|no credentials/i.test(m.error || "")).length;
       const notFoundCount = failed.filter((m) => /404|not found|does not exist/i.test(m.error || "")).length;
       const timeoutCount = failed.filter((m) => /timeout|timed out|abort/i.test(m.error || "")).length;
       const parts: string[] = [];
-      if (authCount) parts.push(`${authCount} auth/key`);
+      if (authCount) parts.push(`${authCount} auth/unconfigured`);
       if (notFoundCount) parts.push(`${notFoundCount} not found`);
       if (timeoutCount) parts.push(`${timeoutCount} timeouts`);
       const details = parts.length ? ` (${parts.join(", ")})` : "";
-      out.push(`<div class="banner warn">${icon("error")}<span class="grow"><strong>${failed.length} models failed verification</strong>${esc(details)}. Your proxy or provider catalog may include unentitled or deprecated model IDs.</span>
+      out.push(`<div class="banner warn">${icon("error")}<span class="grow"><strong>${failed.length} models failed verification</strong>${esc(details)}. Multi-provider gateways (like OmniRoute) often advertise upstream models whose API keys are not configured.</span>
         <button class="btn small" data-action="status" data-status="working">Show working only</button>
         <button class="btn small" data-action="clear-failed" title="Reset failed models so they can be re-tested">Clear failed results</button></div>`);
     }
@@ -447,8 +481,16 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
 
     return `<tr class="${m.selected ? "selected" : ""}">
       <td class="col-check"><input type="checkbox" data-action="toggle-model" data-key="${key}" ${m.selected ? "checked" : ""} ${canCheck ? "" : "disabled"} title="${esc(checkTitle)}" aria-label="In Copilot: ${esc(m.name)}"></td>
-      <td><div class="model-name" title="${esc(m.name)}">${esc(m.name)}</div><div class="model-id" title="${esc(m.id)}">${esc(m.id)}</div></td>
-      <td class="col-provider"><span class="tag" title="${esc(m.providerName)}">${esc(m.providerName)}</span></td>
+      <td><div class="model-name" title="${esc(m.name)}">${
+        m.subProvider && m.subProvider.toLowerCase() !== m.providerName.toLowerCase()
+          ? `<span class="model-prefix">[${esc(m.subProvider)}]</span> `
+          : ""
+      }${esc(m.name)}</div><div class="model-id" title="${esc(m.id)}">${esc(m.id)}</div></td>
+      <td class="col-provider"><div class="prov-cell">${
+        m.subProvider && m.subProvider.toLowerCase() !== m.providerName.toLowerCase()
+          ? `<span class="tag sub-prov" title="${esc(m.providerName)} / ${esc(m.subProvider)}">${esc(m.subProvider)}</span><span class="prov-via" title="via ${esc(m.providerName)}">via ${esc(m.providerName)}</span>`
+          : `<span class="tag" title="${esc(m.providerName)}">${esc(m.providerName)}</span>`
+      }</div></td>
       <td class="col-caps"><div class="caps">${caps}</div></td>
       <td class="col-ctx num ${m.contextSource}" title="${esc(`${m.contextWindow.toLocaleString()} tokens context (${ctxNote}) · ${m.maxOutputTokens.toLocaleString()} max output${ollamaNote}`)}">${m.contextSource === "guess" ? "~" : ""}${kTokens(m.contextWindow)}${m.hasOverride ? icon("pinned", "ov") : ""}${
         m.pricing ? `<div class="price" title="USD per million tokens, input · output (${m.pricing.source === "list" ? "list price" : m.pricing.source === "override" ? "your price" : "provider price"})">$${m.pricing.inputPerM} · $${m.pricing.outputPerM}</div>` : ""
@@ -791,10 +833,13 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
           <span class="muted">${r.available}/${r.models.length} working · ${r.available ? "in Copilot" : "hidden until a member works"}</span>
           <button class="icon-btn" data-action="route-delete" data-route="${esc(r.name)}" title="Delete route">${icon("trash")}</button></div>
         <ol class="members">${r.models.map((k, i) => memberLine(r, k, i)).join("") || `<li class="muted">No models yet — add one below.</li>`}</ol>
-        <div class="row"><select data-route-add="${esc(r.name)}" aria-label="Add a model to ${esc(r.name)}">
-          <option value="">Add a model…</option>
-          ${options.filter((m) => !r.models.includes(m.key)).map((m) => `<option value="${esc(m.key)}">${esc(m.name)} — ${esc(m.providerName)}${m.status === "working" ? "" : " (untested)"}</option>`).join("")}
-        </select></div>
+        <div class="row">
+          <input type="text" class="route-filter" data-route-filter="${esc(r.name)}" placeholder="Filter models…" aria-label="Filter models to add to ${esc(r.name)}">
+          <select data-route-add="${esc(r.name)}" aria-label="Add a model to ${esc(r.name)}">
+            <option value="">Add a model…</option>
+            ${options.filter((m) => !r.models.includes(m.key)).map((m) => `<option value="${esc(m.key)}">${esc(m.name)} — ${esc(m.providerName)}${m.status === "working" ? "" : " (untested)"}</option>`).join("")}
+          </select>
+        </div>
       </div>`).join("");
     el.innerHTML = `<div class="routes">
       <div class="section-head"><h2>Routes</h2></div>
@@ -824,6 +869,8 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
           <select data-setting="toolCheck" aria-label="Tool-calling check">
             <option value="full" ${s.toolCheck !== "basic" ? "selected" : ""}>Full</option>
             <option value="basic" ${s.toolCheck === "basic" ? "selected" : ""}>Basic</option></select></div>
+        <div class="setting"><div class="text"><div>Prune stale cache</div><div>Remove cache entries for deleted models or results expired past 2× cache lifetime.</div></div>
+          <button class="btn" data-action="prune-cache">${icon("discard")}Prune stale</button></div>
         <div class="setting"><div class="text"><div>Clear verification results</div><div>Forget every health-check result and start over.</div></div>
           <button class="btn danger" data-action="clear-cache">${icon("trash")}Clear</button></div>
       </div>
@@ -1018,6 +1065,7 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
     },
 
     "clear-cache": () => post({ type: "clearCache" }),
+    "prune-cache": () => post({ type: "pruneCache" }),
     export: () => post({ type: "exportConfig" }),
     "export-stats": () => post({ type: "exportStats" }),
     "scan-local": () => {
@@ -1085,6 +1133,17 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
         el.classList.remove("invalid");
         const err = document.getElementById(`err-${el.dataset.field}`);
         if (err) err.textContent = "";
+      }
+    } else if (el.dataset.routeFilter !== undefined) {
+      const q = el.value.toLowerCase().trim();
+      const rName = el.dataset.routeFilter;
+      const sel = document.querySelector(`select[data-route-add="${rName}"]`) as HTMLSelectElement | null;
+      if (sel) {
+        for (let i = 1; i < sel.options.length; i++) {
+          const opt = sel.options[i];
+          const match = !q || opt.text.toLowerCase().includes(q) || opt.value.toLowerCase().includes(q);
+          opt.hidden = !match;
+        }
       }
     }
   });

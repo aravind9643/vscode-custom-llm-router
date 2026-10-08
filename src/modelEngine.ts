@@ -235,6 +235,46 @@ export class ModelEngine implements vscode.Disposable {
     }
   }
 
+  /** Prunes expired or orphaned cache entries that no longer exist in any active provider catalog. */
+  public async pruneCache(): Promise<number> {
+    const activeKeys = new Set(this.getModels().map((m) => m.key));
+    const now = Date.now();
+    const ttl = this.store.cacheTtlMs;
+    let pruned = 0;
+
+    for (const [k, e] of Object.entries(this._cache.entries)) {
+      const orphaned = this._discovered && !activeKeys.has(k);
+      const expired = now - e.testedAt > ttl * 2;
+      if (orphaned || expired) {
+        delete this._cache.entries[k];
+        pruned++;
+      }
+    }
+
+    if (pruned > 0) {
+      await this._memento.update(CACHE_KEY, this._cache);
+      this._rebuildStatuses();
+      this._fire(true);
+    }
+    return pruned;
+  }
+
+  /** Returns verification cache breakdown statistics. */
+  public getCacheStats(): { total: number; working: number; failed: number; expired: number } {
+    const entries = Object.values(this._cache.entries);
+    const now = Date.now();
+    const ttl = this.store.cacheTtlMs;
+    let working = 0;
+    let failed = 0;
+    let expired = 0;
+    for (const e of entries) {
+      if (now - e.testedAt > ttl) expired++;
+      else if (e.working) working++;
+      else failed++;
+    }
+    return { total: entries.length, working, failed, expired };
+  }
+
   /** Marks a model as failed after a definitive runtime error (e.g. 404 model not found). */
   public markFailed(providerName: string, modelId: string, error: string) {
     this._setCacheEntry({ providerName, modelId, working: false, latency: 0, error, testedAt: Date.now() });
@@ -410,7 +450,8 @@ export class ModelEngine implements vscode.Disposable {
     if (!existingNames.has("balanced load")) {
       const topPerProvider = new Map<string, CatalogModel>();
       for (const m of [...working].sort((a, b) => (a.latencyMs ?? 9999) - (b.latencyMs ?? 9999))) {
-        if (!topPerProvider.has(m.providerName)) topPerProvider.set(m.providerName, m);
+        const provKey = `${m.providerName}::${m.subProvider || ""}`;
+        if (!topPerProvider.has(provKey)) topPerProvider.set(provKey, m);
       }
       const diverse = Array.from(topPerProvider.values());
       if (diverse.length < 2) {
@@ -419,6 +460,26 @@ export class ModelEngine implements vscode.Disposable {
       const keys = pick(diverse, 4);
       if (keys.length >= 2) {
         newRoutes.push({ name: "Balanced Load", models: keys, policy: "round-robin" });
+      }
+    }
+
+    // 4. Cost Saver (priority policy, cheapest/free models first)
+    if (!existingNames.has("cost saver")) {
+      const isFreeOrLocal = (m: CatalogModel) =>
+        /:free/i.test(m.id) ||
+        !this.getProviderStatuses().find((p) => p.name === m.providerName)?.remote ||
+        (m.pricing?.inputPerM === 0 && m.pricing?.outputPerM === 0);
+      const costSorted = [...working].sort((a, b) => {
+        const freeA = isFreeOrLocal(a) ? 0 : 1;
+        const freeB = isFreeOrLocal(b) ? 0 : 1;
+        if (freeA !== freeB) return freeA - freeB;
+        const priceA = a.pricing?.inputPerM ?? 999;
+        const priceB = b.pricing?.inputPerM ?? 999;
+        return priceA - priceB || (a.latencyMs ?? 9999) - (b.latencyMs ?? 9999);
+      });
+      const keys = pick(costSorted, 4);
+      if (keys.length >= 2) {
+        newRoutes.push({ name: "Cost Saver", models: keys, policy: "priority" });
       }
     }
 
@@ -666,7 +727,7 @@ export class ModelEngine implements vscode.Disposable {
       tools: meta.toolCalling ?? native?.tools ?? true,
       vision: meta.vision ?? native?.vision ?? VISION_RE.test(lower),
       reasoning: Boolean(native?.reasoning || meta.reasoning) || REASONING_RE.test(lower),
-      coding: CODING_RE.test(lower),
+      coding: CODING_RE.test(lower) || /auto\/coding/i.test(lower),
     };
     let pricing: ModelPricing | undefined;
     if (ov?.inputPerM !== undefined || ov?.outputPerM !== undefined) {
@@ -679,6 +740,7 @@ export class ModelEngine implements vscode.Disposable {
       ov?.name ||
       (rawName && !rawName.includes("/") && rawName.toLowerCase() !== id.toLowerCase() ? rawName : undefined) ||
       prettifyModelName(rawName || id, p.name);
+    const subProvider = detectSubProvider(id, meta.ownedBy);
     const model: CatalogModel = {
       key,
       providerName: p.name,
@@ -693,6 +755,7 @@ export class ModelEngine implements vscode.Disposable {
       hasOverride: !!ov,
       pricing,
       thinkingSupported: status.api === "anthropic" ? meta.reasoning : status.api === "ollama" ? native?.reasoning : undefined,
+      subProvider,
     };
     this._applyStatus(model, selection, ov);
     return model;
@@ -869,7 +932,7 @@ export class ModelEngine implements vscode.Disposable {
     for (let attempt = 0; attempt < 2; attempt++) {
       const attemptStart = Date.now();
       try {
-        await this._probe(p, auth, m, { messages: [{ role: "user", content: "Reply with exactly: OK" }], maxTokens: 16, temperature: 0 }, timeout);
+        await this._probe(p, auth, m, { messages: [{ role: "user", content: "Reply with exactly: OK" }], maxTokens: 64 }, timeout);
         latency = Date.now() - attemptStart;
         const toolSupport = this.store.toolCheck === "full" ? await this._checkTools(p, auth, m, timeout) : undefined;
         this._setCacheEntry({ providerName: m.providerName, modelId: m.id, working: true, latency, toolSupport, testedAt: Date.now() });
@@ -920,7 +983,6 @@ export class ModelEngine implements vscode.Disposable {
             },
           ],
           toolChoice: "auto",
-          temperature: 0,
           maxTokens: this.apiFor(p) === "anthropic" ? 2048 : 200,
         },
         timeout
@@ -1038,10 +1100,96 @@ export function inferBounds(idLower: string, ctx?: number, maxOut?: number, maxI
   return { contextWindow, maxOutputTokens, maxInputTokens };
 }
 
+const SUB_PROVIDER_MAP: Record<string, string> = {
+  cc: "Claude Code",
+  gh: "GitHub Models",
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+  google: "Google",
+  gemini: "Google",
+  deepseek: "DeepSeek",
+  qwen: "Qwen",
+  alibaba: "Qwen",
+  meta: "Meta",
+  "meta-llama": "Meta",
+  llama: "Meta",
+  mistralai: "Mistral",
+  mistral: "Mistral",
+  groq: "Groq",
+  together: "Together AI",
+  togethercomputer: "Together AI",
+  cerebras: "Cerebras",
+  cohere: "Cohere",
+  xai: "xAI",
+  grok: "xAI",
+  openrouter: "OpenRouter",
+  ollama: "Ollama",
+  novita: "Novita AI",
+  hyperbolic: "Hyperbolic",
+  fireworks: "Fireworks",
+  deepinfra: "DeepInfra",
+  lepton: "Lepton AI",
+  nebius: "Nebius AI",
+  sambanova: "SambaNova",
+  ai21: "AI21 Labs",
+  perplexity: "Perplexity",
+  upstage: "Upstage",
+  cloudflare: "Cloudflare",
+  azure: "Azure",
+  aws: "AWS Bedrock",
+  bedrock: "AWS Bedrock",
+};
+
+/**
+ * Identifies the upstream sub-provider or backend vendor from a model ID or owned_by field.
+ * Essential for multi-provider gateways and aggregators like OmniRoute and OpenRouter.
+ */
+export function detectSubProvider(id: string, metaOwnedBy?: string): string | undefined {
+  if (!id) return undefined;
+  let cleanId = id.trim();
+
+  // Strip routing wrapper prefixes
+  cleanId = cleanId.replace(/^(no-think|direct|stream|raw)\//i, "");
+
+  if (cleanId === "auto" || cleanId.startsWith("auto/")) {
+    return "OmniRoute Auto";
+  }
+
+  if (cleanId.includes("/")) {
+    const segment = cleanId.split("/")[0].toLowerCase();
+    if (SUB_PROVIDER_MAP[segment]) return SUB_PROVIDER_MAP[segment];
+    if (segment && !/^\d+$/.test(segment)) {
+      return segment.replace(/[-_]/g, " ").replace(/\b[a-z]/g, (c) => c.toUpperCase());
+    }
+  }
+
+  if (metaOwnedBy) {
+    const owned = metaOwnedBy.trim().toLowerCase();
+    if (SUB_PROVIDER_MAP[owned]) return SUB_PROVIDER_MAP[owned];
+    if (owned && !["system", "organization", "user", "openai", "default"].includes(owned)) {
+      return owned.replace(/[-_]/g, " ").replace(/\b[a-z]/g, (c) => c.toUpperCase());
+    }
+  }
+
+  const lower = cleanId.toLowerCase();
+  if (/^claude\b/i.test(lower)) return "Anthropic";
+  if (/^(gpt-|o[134]\b)/i.test(lower)) return "OpenAI";
+  if (/^gemini\b/i.test(lower)) return "Google";
+  if (/^deepseek\b/i.test(lower)) return "DeepSeek";
+  if (/^qwen\b/i.test(lower)) return "Qwen";
+  if (/^(llama|codellama)\b/i.test(lower)) return "Meta";
+  if (/^(mistral|codestral|mixtral)\b/i.test(lower)) return "Mistral";
+  if (/^grok\b/i.test(lower)) return "xAI";
+
+  return undefined;
+}
+
 export function prettifyModelName(id: string, providerName: string): string {
   if (id === "auto") return `${providerName} Auto`;
   const auto = /^auto\/(best|pro)-(.+)$/.exec(id);
   if (auto) return `${providerName} ${cap(auto[1])} ${cap(auto[2])}`;
+  const autoNamed = /^auto\/(coding|fast|cheap)$/i.exec(id);
+  if (autoNamed) return `${providerName} Auto ${cap(autoNamed[1])}`;
 
   const parts = id.split("/");
   let base = parts.pop() || id;

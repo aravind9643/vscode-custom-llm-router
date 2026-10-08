@@ -189,6 +189,9 @@ export class DashboardPanel implements vscode.Disposable {
       case "clearCache":
         await vscode.commands.executeCommand("vscode-custom-llm-router.clearCache");
         break;
+      case "pruneCache":
+        await this._engine.pruneCache();
+        break;
       case "clearFailed":
         await this._engine.clearFailedCache();
         break;

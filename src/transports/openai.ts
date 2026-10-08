@@ -42,12 +42,28 @@ export const openaiTransport: Transport = {
     const headers = buildHeaders(p, auth, "sse");
     let res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body), signal });
 
-    // Some servers reject unknown fields; retry once without the usage request and remember that.
-    if (!res.ok && wantUsage && (res.status === 400 || res.status === 422)) {
+    // Some servers reject unsupported or unknown parameters; retry once with compatible parameters.
+    if (!res.ok && (res.status === 400 || res.status === 422)) {
       const text = await res.text().catch(() => "");
-      if (/stream_options|include_usage|extra (inputs|fields)|unrecognized|unknown (field|param)/i.test(text)) {
+      let retried = false;
+      if (body.stream_options && /stream_options|include_usage|extra (inputs|fields)|unrecognized|unknown (field|param)/i.test(text)) {
         noStreamOptions.add(p.name);
         delete body.stream_options;
+        retried = true;
+      }
+      if (body.temperature !== undefined && /temperature/i.test(text)) {
+        delete body.temperature;
+        retried = true;
+      }
+      if (body.max_tokens !== undefined && /max_completion_tokens/i.test(text)) {
+        body.max_completion_tokens = body.max_tokens;
+        delete body.max_tokens;
+        retried = true;
+      } else if (body.max_tokens !== undefined && /max_tokens/i.test(text)) {
+        delete body.max_tokens;
+        retried = true;
+      }
+      if (retried) {
         res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body), signal });
       } else {
         throw new HttpError(res.status, summarizeErrorBody(res.status, text));

@@ -344,6 +344,20 @@ export async function activate(context: vscode.ExtensionContext) {
     void vscode.window.showInformationMessage(vscode.l10n.t("Configured {0} recommended route(s).", routes.length));
   });
 
+  register("toggleTreeFilter", () => {
+    const active = tree.toggleFilter();
+    void vscode.window.showInformationMessage(
+      active
+        ? vscode.l10n.t("Sidebar tree: showing working and Copilot models only.")
+        : vscode.l10n.t("Sidebar tree: showing all models.")
+    );
+  });
+
+  register("pruneCache", async () => {
+    const count = await engine.pruneCache();
+    void vscode.window.showInformationMessage(vscode.l10n.t("Pruned {0} stale verification cache entry(ies).", count));
+  });
+
   register("showMenu", async () => {
     const items: (vscode.QuickPickItem & { run?: () => unknown })[] = [
       { label: `$(dashboard) ${vscode.l10n.t("Open Dashboard")}`, detail: vscode.l10n.t("Manage providers, verify models and choose what Copilot shows"), run: () => showDashboard() },
@@ -382,6 +396,7 @@ export async function activate(context: vscode.ExtensionContext) {
   void (async () => {
     await engine.migrateLegacySelection();
     await engine.refresh();
+    await engine.pruneCache();
     await engine.reverifyExpiredSelection();
   })().catch((err) => log.error("[startup]", err));
 }

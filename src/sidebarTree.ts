@@ -49,6 +49,22 @@ export class RouterTreeProvider implements vscode.TreeDataProvider<RouterNode>, 
     if (untested.length) void this._engine.verify(untested);
   }
 
+  private _filterWorkingOnly = false;
+
+  public get filterWorkingOnly(): boolean {
+    return this._filterWorkingOnly;
+  }
+
+  public set filterWorkingOnly(val: boolean) {
+    this._filterWorkingOnly = val;
+    this._onDidChangeTreeData.fire();
+  }
+
+  public toggleFilter(): boolean {
+    this.filterWorkingOnly = !this.filterWorkingOnly;
+    return this.filterWorkingOnly;
+  }
+
   getChildren(node?: RouterNode): RouterNode[] {
     if (!node) {
       if (!this._engine.isDiscovered && this._engine.store.getProviders().length) {
@@ -57,7 +73,11 @@ export class RouterTreeProvider implements vscode.TreeDataProvider<RouterNode>, 
       return this._engine.getProviderStatuses().map((s) => ({ kind: "provider", name: s.name }));
     }
     if (node.kind === "provider") {
-      return [...this._engine.getModels(node.name)]
+      let list = [...this._engine.getModels(node.name)];
+      if (this._filterWorkingOnly) {
+        list = list.filter((m) => m.selected || m.status === "working");
+      }
+      return list
         .sort(
           (a, b) =>
             Number(b.selected) - Number(a.selected) ||
@@ -155,7 +175,8 @@ export class RouterTreeProvider implements vscode.TreeDataProvider<RouterNode>, 
     }
 
     const md = new vscode.MarkdownString(undefined, true);
-    md.appendMarkdown(`**${escapeMd(m.name)}**  \n\`${m.id}\`\n\n`);
+    const subNote = m.subProvider && m.subProvider.toLowerCase() !== m.providerName.toLowerCase() ? ` · *${escapeMd(m.subProvider)}*` : "";
+    md.appendMarkdown(`**${escapeMd(m.name)}**  \n\`${m.id}\`${subNote}\n\n`);
     const ctxSource = m.contextSource === "server" ? "reported by server" : m.contextSource === "override" ? "your override" : "estimated";
     md.appendMarkdown(`Context ${Math.round(m.contextWindow / 1000)}k (${ctxSource}) · max output ${Math.round(m.maxOutputTokens / 1000)}k\n\n`);
     const tools = m.toolSupport === "called" ? "calls tools" : m.toolSupport === "accepted" ? "accepts tools but did not call one" : m.toolSupport === "unsupported" ? "no tool calling" : "tools not checked";

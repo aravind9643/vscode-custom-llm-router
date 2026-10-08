@@ -151,8 +151,8 @@ npx @vscode/vsce package --no-dependencies
 _Last updated: 2026-10-08._
 
 ### Where things are
-- **Branch `redesign/v2`**: comprehensive resilience, route policies, prompt caching, telemetry export, budget warnings, local server scanning, presets, proxy prefix stripping & model name prettifying, top model curation, filter chips (canonical, 128k+ ctx, <250ms), failed verification breakdown, and smart route auto-generation implemented.
-- **Local verification at handoff**: `npm test` → 24 unit + 6 tree + 15 dashboard tests passing; `npm run test:integration` → 5 passing on VS Code 1.141.
+- **Branch `redesign/v2`**: comprehensive resilience, route policies, prompt caching, telemetry export, budget warnings, visual spend progress meter, local server scanning, presets, proxy prefix stripping & model name prettifying, top model curation, filter chips (canonical, 128k+ ctx, <250ms), failed verification breakdown, smart route auto-generation (including Cost Saver and sub-provider diversity), cache auto-pruning, route member search filter, single-model transient retry, sidebar tree filtering, and OmniRoute / multi-provider gateway support (sub-provider detection, provider filter dropdown hierarchy, sub-provider badges, and unconfigured upstream diagnostic).
+- **Local verification at handoff**: `npm test` → 25 unit + 7 tree + 16 dashboard tests passing; `npm run test:integration` → 5 passing on VS Code 1.141.
 - **CI**: green on **ubuntu-latest and windows-latest**.
 
 ### Suggested next steps

@@ -263,6 +263,43 @@ const failed = (async () => run([
     t.click(t.$('[data-action="export-stats"]'));
     assert.deepStrictEqual(t.sent.at(-1), { type: "exportStats" });
   }],
+
+  ["OmniRoute sub-providers appear in filter and render badges", () => {
+    t.deliver({
+      type: "state",
+      state: {
+        ...baseState(),
+        providers: [{ name: "OmniRoute", endpointUrl: "http://localhost:20128/v1", enabled: true, online: true, modelCount: 3, keySource: "none", kind: "openai" }],
+        models: [
+          mk("cc/claude-3-7-sonnet", "working", { providerName: "OmniRoute", subProvider: "Claude Code", name: "Claude 3.7 Sonnet" }),
+          mk("gh/gpt-4o", "working", { providerName: "OmniRoute", subProvider: "GitHub Models", name: "GPT 4o" }),
+          mk("auto/coding", "working", { providerName: "OmniRoute", subProvider: "OmniRoute Auto", name: "OmniRoute Auto Coding" }),
+        ],
+      },
+    });
+    t.click(t.$('[data-tab="models"]'));
+    const options = t.$$("#provSel option");
+    assert.ok(options.some((o) => o.value === "OmniRoute::Claude Code" && o.textContent.includes("OmniRoute / Claude Code")));
+    assert.ok(options.some((o) => o.value === "OmniRoute::GitHub Models" && o.textContent.includes("OmniRoute / GitHub Models")));
+
+    // Sub-provider badges in table
+    const badges = t.$$(".sub-prov");
+    assert.strictEqual(badges.length, 3);
+    assert.strictEqual(badges[0].textContent, "Claude Code");
+
+    // Filter by sub-provider
+    t.change(Object.assign(t.$("#provSel"), { value: "OmniRoute::Claude Code" }));
+    assert.strictEqual(t.$$("#tbody tr").length, 1);
+    assert.ok(t.$("#tbody .model-name").textContent.includes("Claude 3.7 Sonnet"));
+    assert.strictEqual(t.$("#tbody .model-prefix").textContent, "[Claude Code]");
+
+    // Search by sub-provider name
+    t.change(Object.assign(t.$("#provSel"), { value: "" }));
+    t.input(t.$("#q"), "github");
+    assert.strictEqual(t.$$("#tbody tr").length, 1);
+    assert.ok(t.$("#tbody .model-name").textContent.includes("GPT 4o"));
+    t.input(t.$("#q"), "");
+  }],
 ]))();
 
 failed.then((n) => process.exit(n ? 1 : 0));

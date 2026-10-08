@@ -91,4 +91,16 @@ run([
     changed.fire();
     assert.strictEqual(view.message, undefined);
   }],
+
+  ["tree filter toggles showing only working and Copilot models", () => {
+    assert.strictEqual(tree.filterWorkingOnly, false);
+    tree.toggleFilter();
+    assert.strictEqual(tree.filterWorkingOnly, true);
+    const filtered = tree.getChildren({ kind: "provider", name: "Lab" }).map((n) => n.key.split("::")[1]);
+    assert.deepStrictEqual(filtered, ["chosen", "fast", "slow"]);
+    tree.toggleFilter();
+    assert.strictEqual(tree.filterWorkingOnly, false);
+    const all = tree.getChildren({ kind: "provider", name: "Lab" }).map((n) => n.key.split("::")[1]);
+    assert.strictEqual(all.length, 5);
+  }],
 ]).then((n) => process.exit(n ? 1 : 0));

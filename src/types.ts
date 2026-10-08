@@ -111,6 +111,8 @@ export interface CatalogModel {
   pricing?: ModelPricing;
   /** Native thinking support (Ollama `thinking` capability, Anthropic adaptive thinking). */
   thinkingSupported?: boolean;
+  /** Underlying sub-provider vendor (e.g. for aggregators like OmniRoute, OpenRouter). */
+  subProvider?: string;
 }
 
 export interface RouteView {

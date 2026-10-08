@@ -8,7 +8,7 @@ const vscode = installVscodeStub();
 const out = (m) => require(path.join(ROOT, "out", m));
 const { resolveChatUrl, resolveModelsUrl, nativeRoot, isLocalUrl, resolveApi } = out("endpoints.js");
 const { ProviderStore, SECRET_SENTINEL } = out("providerStore.js");
-const { ModelEngine, prettifyModelName } = out("modelEngine.js");
+const { ModelEngine, prettifyModelName, detectSubProvider } = out("modelEngine.js");
 const { CustomLLMChatProvider, ThinkTagSplitter, stripReasoning } = out("customChatProvider.js");
 const { pullOllamaModel } = out("ollama.js");
 const { runPool } = out("pool.js");
@@ -355,6 +355,29 @@ const token = () => new vscode.CancellationTokenSource().token;
       assert.strictEqual(prettifyModelName("meta-llama/llama-3.3-70b-instruct:free", "OpenRouter"), "Llama 3.3 70b Instruct (Free)");
       assert.strictEqual(prettifyModelName("gh/gpt-4o-2024-08-06", "Proxy"), "GPT 4o (2024-08-06)");
       assert.strictEqual(prettifyModelName("auto", "Local"), "Local Auto");
+      assert.strictEqual(prettifyModelName("auto/coding", "OmniRoute"), "OmniRoute Auto Coding");
+      assert.strictEqual(prettifyModelName("auto/fast", "OmniRoute"), "OmniRoute Auto Fast");
+    }],
+
+    ["detectSubProvider correctly maps prefixes, organizations and model families", () => {
+      assert.strictEqual(detectSubProvider("cc/claude-3-7-sonnet"), "Claude Code");
+      assert.strictEqual(detectSubProvider("no-think/cc/claude-3-7-sonnet"), "Claude Code");
+      assert.strictEqual(detectSubProvider("gh/gpt-4o"), "GitHub Models");
+      assert.strictEqual(detectSubProvider("anthropic/claude-3-5-sonnet"), "Anthropic");
+      assert.strictEqual(detectSubProvider("openai/gpt-4o"), "OpenAI");
+      assert.strictEqual(detectSubProvider("google/gemini-2.5-pro"), "Google");
+      assert.strictEqual(detectSubProvider("deepseek/deepseek-chat"), "DeepSeek");
+      assert.strictEqual(detectSubProvider("meta-llama/llama-3.3-70b"), "Meta");
+      assert.strictEqual(detectSubProvider("mistralai/mistral-large"), "Mistral");
+      assert.strictEqual(detectSubProvider("auto"), "OmniRoute Auto");
+      assert.strictEqual(detectSubProvider("auto/coding"), "OmniRoute Auto");
+      assert.strictEqual(detectSubProvider("qwen/qwen-2.5-coder"), "Qwen");
+      assert.strictEqual(detectSubProvider("together/llama-3-70b"), "Together AI");
+      assert.strictEqual(detectSubProvider("claude-3-5-sonnet", "anthropic"), "Anthropic");
+      assert.strictEqual(detectSubProvider("gpt-4o"), "OpenAI");
+      assert.strictEqual(detectSubProvider("claude-3-7-sonnet"), "Anthropic");
+      assert.strictEqual(detectSubProvider("deepseek-r1"), "DeepSeek");
+      assert.strictEqual(detectSubProvider("gemini-2.0-flash"), "Google");
     }],
 
     ["curateTopSelection, deselectAll, clearFailedCache, and autoGenerateRoutes", async () => {
@@ -378,6 +401,12 @@ const token = () => new vscode.CancellationTokenSource().token;
       assert.strictEqual(engine.getModel("Mock2::mock-gpt-4o").status, "failed");
       await engine.clearFailedCache();
       assert.strictEqual(engine.getModel("Mock2::mock-gpt-4o").status, "untested");
+
+      // Cache stats and pruneCache
+      const stats = engine.getCacheStats();
+      assert.ok(stats.total >= 0);
+      const pruned = await engine.pruneCache();
+      assert.strictEqual(typeof pruned, "number");
     }],
   ]);
 

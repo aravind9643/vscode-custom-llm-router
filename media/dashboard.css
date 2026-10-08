@@ -166,7 +166,7 @@ tbody tr.selected { background: color-mix(in srgb, var(--vscode-button-backgroun
 tbody tr.selected:hover { background: color-mix(in srgb, var(--vscode-button-background) 14%, transparent); }
 tbody tr:last-child td { border-bottom: none; }
 .col-check { width: 40px; text-align: center; }
-.col-provider { width: 130px; }
+.col-provider { width: 140px; }
 .col-caps { width: 120px; }
 .col-ctx { width: 92px; }
 .col-status { width: 230px; }
@@ -175,10 +175,27 @@ tbody tr:last-child td { border-bottom: none; }
 .icon-btn.on { background: var(--vscode-toolbar-activeBackground, var(--hover)); }
 
 .model-name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.model-prefix { font-weight: 500; color: var(--accent); margin-right: 2px; }
 .model-id { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prov-cell { display: flex; flex-direction: column; gap: 1px; justify-content: center; min-height: 0; max-width: 100%; }
+.prov-via {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 2px;
+}
 .tag {
   display: inline-block; max-width: 100%; padding: 1px 7px; border-radius: 4px; font-size: 11px; border: 1px solid var(--border);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+}
+.tag.sub-prov {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  font-weight: 500;
 }
 .caps { display: flex; gap: 2px; }
 .cap { width: 22px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; }
@@ -293,6 +310,13 @@ details.advanced .form { margin-top: 0; }
 .member .m-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .route select { min-width: 280px; }
 .route .policy-select { min-width: auto; height: 24px; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+.route-filter { max-width: 150px; font-size: 11px; padding: 2px 6px; height: 24px; }
+.budget-pill { display: inline-flex; align-items: center; gap: 6px; }
+.budget-mini-track { width: 44px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; }
+.budget-mini-fill { display: block; height: 100%; border-radius: 3px; }
+.budget-mini-fill.ok { background: var(--ok); }
+.budget-mini-fill.warn { background: var(--warn); }
+.budget-mini-fill.err { background: var(--err); }
 
 /* ----------------------------------------------------------- settings */
 .settings { max-width: 760px; display: grid; gap: 12px; }

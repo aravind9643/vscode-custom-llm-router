@@ -124,6 +124,18 @@
         "icon": "$(split-horizontal)"
       },
       {
+        "command": "vscode-custom-llm-router.toggleTreeFilter",
+        "title": "%command.toggleTreeFilter%",
+        "category": "%category%",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "vscode-custom-llm-router.pruneCache",
+        "title": "%command.pruneCache%",
+        "category": "%category%",
+        "icon": "$(discard)"
+      },
+      {
         "command": "vscode-custom-llm-router.showLogs",
         "title": "%command.showLogs%",
         "category": "%category%",
@@ -278,6 +290,11 @@
           "command": "vscode-custom-llm-router.openDashboard",
           "when": "view == llmRouter.providers",
           "group": "navigation@4"
+        },
+        {
+          "command": "vscode-custom-llm-router.toggleTreeFilter",
+          "when": "view == llmRouter.providers",
+          "group": "navigation@5"
         },
         {
           "command": "vscode-custom-llm-router.importConfig",

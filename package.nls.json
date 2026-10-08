@@ -39,5 +39,7 @@
   "config.providerConcurrency": "Parallel checks against a single remote provider (to stay under its rate limits). Local servers only use the overall limit.",
   "command.curateTop": "Curate Top 10 Models for Copilot",
   "command.deselectAll": "Deselect All Copilot Models",
-  "command.autoRoutes": "Auto-generate Recommended Routes"
+  "command.autoRoutes": "Auto-generate Recommended Routes",
+  "command.toggleTreeFilter": "Filter: Toggle Working Models Only",
+  "command.pruneCache": "Prune Stale Verification Cache"
 }

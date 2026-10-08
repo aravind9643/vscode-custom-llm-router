@@ -56,12 +56,15 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider, 
     const infos: vscode.LanguageModelChatInformation[] = this._engine.getCopilotModels().map((m) => {
       const id = registrationId(m);
       this._routes.set(id, m.key);
+      const sub = m.subProvider && m.subProvider.toLowerCase() !== m.providerName.toLowerCase() ? m.subProvider : undefined;
+      const label = sub || (this._engine.store.getProviders().length > 1 ? m.providerName : undefined);
+      const name = label ? `[${label}] ${m.name}` : m.name;
       return {
         id,
-        name: m.name,
+        name,
         family: slug(m.providerName),
-        detail: m.providerName,
-        tooltip: `${m.id} via ${m.providerName} · ${Math.round(m.contextWindow / 1000)}k context${m.latencyMs ? ` · ${m.latencyMs}ms` : ""}`,
+        detail: sub ? `${m.providerName} · ${sub}` : m.providerName,
+        tooltip: `${m.id} via ${m.providerName}${sub ? ` (${sub})` : ""} · ${Math.round(m.contextWindow / 1000)}k context${m.latencyMs ? ` · ${m.latencyMs}ms` : ""}`,
         version: "1.0.0",
         maxInputTokens: m.maxInputTokens,
         maxOutputTokens: m.maxOutputTokens,
@@ -124,7 +127,15 @@ export class CustomLLMChatProvider implements vscode.LanguageModelChatProvider, 
         return;
       } catch (err) {
         if (token.isCancellationRequested) return;
-        if (!(err instanceof RetryableError) || !isRoute) throw err;
+        if (!(err instanceof RetryableError)) throw err;
+        if (!isRoute) {
+          // Direct single-model chat: retry once after a short delay on transient network error before failing
+          this._log.warn(`[chat] ${model.key} transient failure (${err.message}), retrying once...`);
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          if (token.isCancellationRequested) return;
+          await this._requestModel(model, messages, options, progress, token, false);
+          return;
+        }
         failures.push(`${model.name}: ${err.message}`);
         this._log.warn(`[route] ${info.name}: ${model.key} failed, trying next — ${err.message}`);
       }
