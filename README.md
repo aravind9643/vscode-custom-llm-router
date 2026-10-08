@@ -1,6 +1,6 @@
 # Custom LLM Router for VS Code
 
-[![CI](https://github.com/aravind9643/vscode-custom-llm-router/actions/workflows/ci.yml/badge.svg)](https://github.com/aravind9643/vscode-custom-llm-router/actions/workflows/ci.yml)
+[![CI](https://github.com/AravindMerugu/vscode-custom-llm-router/actions/workflows/ci.yml/badge.svg)](https://github.com/AravindMerugu/vscode-custom-llm-router/actions/workflows/ci.yml)
 [![VS Code](https://img.shields.io/badge/VS%20Code-%E2%89%A51.140-blue.svg)](https://code.visualstudio.com/)
 [![Language Model Provider](https://img.shields.io/badge/API-vscode.lm-blue.svg)](https://code.visualstudio.com/api/extension-guides/ai/language-model-chat-provider)
 

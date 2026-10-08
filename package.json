@@ -3,7 +3,7 @@
   "displayName": "%displayName%",
   "description": "%description%",
   "version": "1.0.0",
-  "publisher": "aravind9643",
+  "publisher": "AravindMerugu",
   "license": "MIT",
   "keywords": [
     "copilot",
@@ -24,12 +24,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/aravind9643/vscode-custom-llm-router.git"
+    "url": "https://github.com/AravindMerugu/vscode-custom-llm-router.git"
   },
   "bugs": {
-    "url": "https://github.com/aravind9643/vscode-custom-llm-router/issues"
+    "url": "https://github.com/AravindMerugu/vscode-custom-llm-router/issues"
   },
-  "homepage": "https://github.com/aravind9643/vscode-custom-llm-router#readme",
+  "homepage": "https://github.com/AravindMerugu/vscode-custom-llm-router#readme",
   "engines": {
     "vscode": "^1.140.0"
   },
@@ -714,5 +714,5 @@
     "theme": "dark"
   },
   "pricing": "Free",
-  "qna": "https://github.com/aravind9643/vscode-custom-llm-router/issues"
+  "qna": "https://github.com/AravindMerugu/vscode-custom-llm-router/issues"
 }
