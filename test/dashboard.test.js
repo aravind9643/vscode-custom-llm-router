@@ -117,6 +117,8 @@ const failed = (async () => run([
     t.input(t.$("#q"), "");
     t.click(t.$('[data-col="name"]'));
     assert.strictEqual(t.$$("#tbody .model-name")[2].textContent, "LLAMA-70B");
+    t.click(t.$('[data-action="curate-top"]'));
+    assert.deepStrictEqual(t.sent.at(-1), { type: "curateTop", limit: 10 });
   }],
 
   ["tool support, estimated context and speed stats are shown", () => {
@@ -176,6 +178,8 @@ const failed = (async () => run([
     assert.strictEqual(t.sent.at(-1).routes[0].policy, "round-robin");
     t.click(t.$('[data-action="route-delete"]'));
     assert.deepStrictEqual(t.sent.at(-1), { type: "saveRoutes", routes: [] });
+    t.click(t.$('[data-action="auto-routes"]'));
+    assert.deepStrictEqual(t.sent.at(-1), { type: "autoRoutes" });
   }],
 
   ["long model lists render in a scroll window", () => {

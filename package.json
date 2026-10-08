@@ -2,7 +2,7 @@
   "name": "vscode-custom-llm-router",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "2.3.0",
+  "version": "1.0.0",
   "publisher": "aravind9643",
   "license": "MIT",
   "keywords": [
@@ -104,6 +104,24 @@
         "title": "%command.importConfig%",
         "category": "%category%",
         "icon": "$(cloud-download)"
+      },
+      {
+        "command": "vscode-custom-llm-router.curateTop",
+        "title": "%command.curateTop%",
+        "category": "%category%",
+        "icon": "$(star)"
+      },
+      {
+        "command": "vscode-custom-llm-router.deselectAll",
+        "title": "%command.deselectAll%",
+        "category": "%category%",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "vscode-custom-llm-router.autoRoutes",
+        "title": "%command.autoRoutes%",
+        "category": "%category%",
+        "icon": "$(split-horizontal)"
       },
       {
         "command": "vscode-custom-llm-router.showLogs",
@@ -624,7 +642,7 @@
     "test": "npm run typecheck && npm run compile && npm run bundle:webview && node test/unit.test.js && node test/tree.test.js && node test/dashboard.test.js",
     "test:integration": "npm run compile && npm run bundle && vscode-test",
     "package": "vsce package --no-dependencies",
-    "install:insiders": "npm run package && code-insiders --install-extension vscode-custom-llm-router-2.2.0.vsix --force",
+    "install:insiders": "npm run package && code-insiders --install-extension vscode-custom-llm-router-1.0.0.vsix --force",
     "l10n:export": "vscode-l10n-dev export -o ./l10n ./src",
     "typecheck": "tsc -p ./ --noEmit && tsc -p tsconfig.webview.json",
     "bundle:ext": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.js --minify --sourcemap",

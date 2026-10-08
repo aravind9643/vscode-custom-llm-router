@@ -10,6 +10,7 @@ import {
   ProviderConfig,
   ProviderKind,
   ProviderStatus,
+  RouteConfig,
   RouteView,
   ToolSupport,
   VerifiedCacheEntry,
@@ -218,6 +219,22 @@ export class ModelEngine implements vscode.Disposable {
     this._fire(true);
   }
 
+  /** Clears cache entries for failed models so they return to untested and can be re-verified. */
+  public async clearFailedCache(): Promise<void> {
+    let changed = false;
+    for (const [k, e] of Object.entries(this._cache.entries)) {
+      if (!e.working) {
+        delete this._cache.entries[k];
+        changed = true;
+      }
+    }
+    if (changed) {
+      await this._memento.update(CACHE_KEY, this._cache);
+      this._rebuildStatuses();
+      this._fire(true);
+    }
+  }
+
   /** Marks a model as failed after a definitive runtime error (e.g. 404 model not found). */
   public markFailed(providerName: string, modelId: string, error: string) {
     this._setCacheEntry({ providerName, modelId, working: false, latency: 0, error, testedAt: Date.now() });
@@ -278,6 +295,136 @@ export class ModelEngine implements vscode.Disposable {
   /** Models exposed to Copilot: selected by the user AND verified working. */
   public getCopilotModels(): CatalogModel[] {
     return this.getModels().filter((m) => m.selected && m.status === "working");
+  }
+
+  /** Curates the top working models for Copilot based on coding/reasoning capabilities, latency, and family diversity. */
+  public async curateTopSelection(limit = 10): Promise<string[]> {
+    const models = this.getModels();
+    const working = models.filter((m) => m.status === "working");
+    if (working.length === 0) return [];
+
+    const scored = working.map((m) => {
+      let score = 0;
+      if (m.caps.coding) score += 30;
+      if (m.caps.reasoning) score += 25;
+      if (m.caps.vision) score += 10;
+      if (m.toolSupport === "called" || m.toolSupport === "accepted") score += 20;
+
+      const lat = m.latencyMs ?? 1000;
+      if (lat < 250) score += 20;
+      else if (lat < 600) score += 10;
+      else if (lat < 1500) score += 5;
+
+      if (m.stats?.tokensPerSec && m.stats.tokensPerSec > 50) score += 10;
+      if (m.contextWindow >= 128000) score += 10;
+
+      // Penalize snapshot / date variants to prefer clean canonical models
+      if (/\d{8}|\d{4}-\d{2}-\d{2}/.test(m.id)) score -= 15;
+
+      return { model: m, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+
+    const familyOf = (id: string): string => {
+      const l = id.toLowerCase();
+      if (l.includes("claude")) return "claude";
+      if (l.includes("gpt-4") || l.includes("o1") || l.includes("o3") || l.includes("o4")) return "openai";
+      if (l.includes("gemini")) return "gemini";
+      if (l.includes("deepseek")) return "deepseek";
+      if (l.includes("qwen")) return "qwen";
+      if (l.includes("llama")) return "llama";
+      if (l.includes("mistral") || l.includes("codestral")) return "mistral";
+      return "other";
+    };
+
+    const selectedKeys: string[] = [];
+    const seenFamilies = new Map<string, number>();
+
+    // Pass 1: balanced distribution (max 2 per model family)
+    for (const item of scored) {
+      if (selectedKeys.length >= limit) break;
+      const fam = familyOf(item.model.id);
+      const count = seenFamilies.get(fam) || 0;
+      if (count < 2) {
+        selectedKeys.push(item.model.key);
+        seenFamilies.set(fam, count + 1);
+      }
+    }
+
+    // Pass 2: fill remaining slots up to limit
+    if (selectedKeys.length < limit) {
+      for (const item of scored) {
+        if (selectedKeys.length >= limit) break;
+        if (!selectedKeys.includes(item.model.key)) {
+          selectedKeys.push(item.model.key);
+        }
+      }
+    }
+
+    await this.store.setSelection(selectedKeys);
+    this.onSelectionChanged();
+    return selectedKeys;
+  }
+
+  /** Clears all model selections from Copilot. */
+  public async deselectAll(): Promise<void> {
+    await this.store.setSelection([]);
+    this.onSelectionChanged();
+  }
+
+  /** Auto-generates recommended routes (Fast Coding, Deep Reasoning, Balanced Load) from working models. */
+  public async autoGenerateRoutes(): Promise<RouteConfig[]> {
+    const working = this.getModels().filter((m) => m.status === "working");
+    if (working.length === 0) return this.store.getRoutes();
+
+    const existing = this.store.getRoutes();
+    const existingNames = new Set(existing.map((r) => r.name.toLowerCase()));
+    const newRoutes: RouteConfig[] = [...existing];
+
+    const pick = (candidates: CatalogModel[], limit = 4) => candidates.slice(0, limit).map((m) => m.key);
+
+    // 1. Fast Coding (least-latency policy)
+    if (!existingNames.has("fast coding")) {
+      const codingModels = [...working]
+        .filter((m) => m.caps.coding || /code|coder|claude|gpt|deepseek/i.test(m.id))
+        .sort((a, b) => (a.latencyMs ?? 9999) - (b.latencyMs ?? 9999));
+      const keys = pick(codingModels, 4);
+      if (keys.length >= 2) {
+        newRoutes.push({ name: "Fast Coding", models: keys, policy: "least-latency" });
+      }
+    }
+
+    // 2. Deep Reasoning (priority policy)
+    if (!existingNames.has("deep reasoning")) {
+      const reasoningModels = [...working]
+        .filter((m) => m.caps.reasoning || /reason|think|r1|o1|o3|o4|opus|sonnet/i.test(m.id))
+        .sort((a, b) => (b.contextWindow ?? 0) - (a.contextWindow ?? 0));
+      const keys = pick(reasoningModels, 4);
+      if (keys.length >= 2) {
+        newRoutes.push({ name: "Deep Reasoning", models: keys, policy: "priority" });
+      }
+    }
+
+    // 3. Balanced Load (round-robin policy)
+    if (!existingNames.has("balanced load")) {
+      const topPerProvider = new Map<string, CatalogModel>();
+      for (const m of [...working].sort((a, b) => (a.latencyMs ?? 9999) - (b.latencyMs ?? 9999))) {
+        if (!topPerProvider.has(m.providerName)) topPerProvider.set(m.providerName, m);
+      }
+      const diverse = Array.from(topPerProvider.values());
+      if (diverse.length < 2) {
+        diverse.push(...working.filter((m) => !diverse.includes(m)).slice(0, 4 - diverse.length));
+      }
+      const keys = pick(diverse, 4);
+      if (keys.length >= 2) {
+        newRoutes.push({ name: "Balanced Load", models: keys, policy: "round-robin" });
+      }
+    }
+
+    await this.store.saveRoutes(newRoutes);
+    this._fire(true);
+    return newRoutes;
   }
 
   public getRoutes(): RouteView[] {
@@ -527,11 +674,16 @@ export class ModelEngine implements vscode.Disposable {
     } else if (meta.inputPerM !== undefined || meta.outputPerM !== undefined) {
       pricing = { inputPerM: meta.inputPerM ?? 0, outputPerM: meta.outputPerM ?? 0, source: status.api === "anthropic" ? "list" : "server" };
     }
+    const rawName = meta.name?.trim();
+    const displayName =
+      ov?.name ||
+      (rawName && !rawName.includes("/") && rawName.toLowerCase() !== id.toLowerCase() ? rawName : undefined) ||
+      prettifyModelName(rawName || id, p.name);
     const model: CatalogModel = {
       key,
       providerName: p.name,
       id,
-      name: ov?.name || meta.name?.trim() || prettifyModelName(id, p.name),
+      name: displayName,
       ...bounds,
       contextSource: ov?.contextWindow ? "override" : serverCtx && Number.isFinite(serverCtx) && (native?.contextWindow || meta.contextWindow) ? "server" : "guess",
       caps,
@@ -892,19 +1044,60 @@ export function prettifyModelName(id: string, providerName: string): string {
   if (auto) return `${providerName} ${cap(auto[1])} ${cap(auto[2])}`;
 
   const parts = id.split("/");
-  const base = parts.pop() || id;
+  let base = parts.pop() || id;
   const prefix = parts.join("/");
-  let name = base
-    .replace(/:latest$/, "")
-    .replace(/^meta-llama-|^llama-/i, "Llama ")
-    .replace(/^deepseek-ai-|^deepseek-/i, "DeepSeek ")
+
+  let isFree = false;
+  let isDirect = prefix.includes("no-think") || base.includes("no-think");
+  let tier: string | undefined;
+
+  // Strip trailing :free or tags
+  if (/:free$/i.test(base)) {
+    isFree = true;
+    base = base.replace(/:free$/i, "");
+  }
+  base = base.replace(/:latest$/i, "").replace(/:beta$/i, "");
+
+  // Detect and extract snapshot dates (e.g. 2024-08-06 or 20251001)
+  let snapshotDate: string | undefined;
+  const dateMatch = /\b(202\d)[-_]?(\d{2})[-_]?(\d{2})\b/.exec(base);
+  if (dateMatch) {
+    snapshotDate = `(${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]})`;
+    base = base.replace(dateMatch[0], "");
+  }
+
+  // Detect and strip effort/quant tiers (-low, -medium, -high)
+  const tierMatch = /-(low|medium|high)$/i.exec(base);
+  if (tierMatch) {
+    tier = cap(tierMatch[1].toLowerCase());
+    base = base.replace(/-(low|medium|high)$/i, "");
+  }
+
+  // Common prefix cleanups
+  base = base
+    .replace(/^meta-llama-|^llama-/i, "Llama-")
+    .replace(/^deepseek-ai-|^deepseek-/i, "DeepSeek-")
     .replace(/^gpt-/i, "GPT-")
+    .replace(/^claude-/i, "Claude-")
+    .replace(/^gemini-/i, "Gemini-")
+    .replace(/^qwen-/i, "Qwen-")
+    .replace(/^mistral-/i, "Mistral-")
+    .replace(/^codestral-/i, "Codestral-");
+
+  // Version numbers like 3-5 -> 3.5, 4-6 -> 4.6 (1-2 digits only)
+  base = base.replace(/\b(\d{1,2})-(\d{1,2})\b/g, "$1.$2");
+
+  let name = base
     .replace(/[-_:]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b[a-z]/g, (c) => c.toUpperCase());
-  if (prefix.includes("no-think")) name += " (Direct)";
-  return name || id;
+
+  if (snapshotDate) name += ` ${snapshotDate}`;
+  if (tier) name += ` (${tier})`;
+  if (isDirect) name += " (Direct)";
+  if (isFree) name += " (Free)";
+  return name.trim() || id;
 }
 
 function cap(s: string) {

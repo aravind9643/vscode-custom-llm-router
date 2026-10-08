@@ -36,7 +36,8 @@ export type HostMessage =
 
 /** Webview → host. */
 export type WebviewMessage =
-  | { type: "ready" | "refresh" | "cancelVerify" | "clearCache" | "exportConfig" | "importConfig" | "exportStats" | "scanLocalServers" | "openSettings" | "showLogs" | "resetStats" }
+  | { type: "ready" | "refresh" | "cancelVerify" | "clearCache" | "clearFailed" | "exportConfig" | "importConfig" | "exportStats" | "scanLocalServers" | "openSettings" | "showLogs" | "resetStats" | "autoRoutes" }
+  | { type: "curateTop"; limit?: number }
   | { type: "verify"; keys?: string[]; force?: boolean }
   | { type: "setSelected"; keys: string[]; selected: boolean }
   | { type: "setSelectionExactly"; keys: string[] }

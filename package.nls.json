@@ -36,5 +36,8 @@
   "command.setApiKey": "Set API Key…",
   "command.exportStats": "Export Usage Statistics…",
   "config.budgetLimitUsd": "Monthly estimated spend budget limit in USD. When spend exceeds this threshold, a warning banner is shown in the dashboard. Set to 0 to disable.",
-  "config.providerConcurrency": "Parallel checks against a single remote provider (to stay under its rate limits). Local servers only use the overall limit."
+  "config.providerConcurrency": "Parallel checks against a single remote provider (to stay under its rate limits). Local servers only use the overall limit.",
+  "command.curateTop": "Curate Top 10 Models for Copilot",
+  "command.deselectAll": "Deselect All Copilot Models",
+  "command.autoRoutes": "Auto-generate Recommended Routes"
 }

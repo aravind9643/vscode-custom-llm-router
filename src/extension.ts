@@ -329,9 +329,27 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   });
 
+  register("curateTop", async () => {
+    const count = (await engine.curateTopSelection(10)).length;
+    void vscode.window.showInformationMessage(vscode.l10n.t("Curated top {0} model(s) for Copilot.", count));
+  });
+
+  register("deselectAll", async () => {
+    await engine.deselectAll();
+    void vscode.window.showInformationMessage(vscode.l10n.t("Deselected all models from Copilot."));
+  });
+
+  register("autoRoutes", async () => {
+    const routes = await engine.autoGenerateRoutes();
+    void vscode.window.showInformationMessage(vscode.l10n.t("Configured {0} recommended route(s).", routes.length));
+  });
+
   register("showMenu", async () => {
     const items: (vscode.QuickPickItem & { run?: () => unknown })[] = [
       { label: `$(dashboard) ${vscode.l10n.t("Open Dashboard")}`, detail: vscode.l10n.t("Manage providers, verify models and choose what Copilot shows"), run: () => showDashboard() },
+      { label: `$(star) ${vscode.l10n.t("Curate Top 10 Models for Copilot")}`, detail: vscode.l10n.t("Keep Copilot's dropdown clean: pick top 10 fastest coding/reasoning models"), run: () => vscode.commands.executeCommand(`${CMD}.curateTop`) },
+      { label: `$(clear-all) ${vscode.l10n.t("Deselect All Copilot Models")}`, detail: vscode.l10n.t("Clear all models from GitHub Copilot Chat dropdown"), run: () => vscode.commands.executeCommand(`${CMD}.deselectAll`) },
+      { label: `$(split-horizontal) ${vscode.l10n.t("Auto-generate Recommended Routes")}`, detail: vscode.l10n.t("Create Fast Coding, Deep Reasoning, and Balanced routes"), run: () => vscode.commands.executeCommand(`${CMD}.autoRoutes`) },
       { label: `$(add) ${vscode.l10n.t("Add Provider")}`, run: () => showDashboard({ tab: "providers", addProvider: true }) },
       { label: `$(refresh) ${vscode.l10n.t("Refresh Models")}`, detail: vscode.l10n.t("Re-fetch the model list from every provider"), run: () => vscode.commands.executeCommand(`${CMD}.syncModels`) },
       { label: `$(beaker) ${vscode.l10n.t("Verify Untested Models")}`, run: () => vscode.commands.executeCommand(`${CMD}.testAllModels`) },

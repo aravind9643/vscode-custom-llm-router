@@ -71,7 +71,10 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
     { id: "reasoning", label: "Reasoning", icon: "lightbulb", test: (m) => m.caps.reasoning },
     { id: "vision", label: "Vision", icon: "eye", test: (m) => m.caps.vision },
     { id: "tools", label: "Tools", icon: "tools", test: (m) => m.caps.tools },
+    { id: "canonical", label: "No snapshots", icon: "filter", test: (m) => !/\d{8}|\d{4}-\d{2}-\d{2}/.test(m.id) },
+    { id: "huge", label: "128k+ ctx", icon: "database", test: (m) => m.contextWindow >= 128000 },
     { id: "fast", label: "Fast < 1s", icon: "zap", test: (m) => m.status === "working" && m.latencyMs < 1000 },
+    { id: "fast250", label: "< 250ms", icon: "rocket", test: (m) => m.status === "working" && m.latencyMs < 250 },
   ];
 
   // ------------------------------------------------------------ helpers
@@ -293,6 +296,8 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
     const shownSelected = rows.filter((m) => m.selected).length;
     $("#bulk").innerHTML = S.models.length
       ? `<span class="grow">Showing <strong>${rows.length}</strong> of ${S.models.length} · <strong>${inCopilot}</strong> in Copilot</span>
+         <button class="btn small" data-action="curate-top" title="Select top 10 fastest coding/reasoning models and deselect the rest">${icon("star")}Curate Top 10</button>
+         <button class="btn small" data-action="deselect-all" ${inCopilot > 0 || S.models.some((m) => m.selected) ? "" : "disabled"} title="Deselect all models from Copilot">${icon("clear-all")}Deselect All</button>
          <button class="btn small" data-action="bulk-add" ${shownSelectable ? "" : "disabled"} title="Add every shown model that has not failed">${icon("add")}Add shown to Copilot</button>
          <button class="btn small" data-action="bulk-remove" ${shownSelected ? "" : "disabled"}>${icon("remove")}Remove shown</button>
          <button class="btn small" data-action="bulk-test" ${rows.length && !S.verifying ? "" : "disabled"} title="Re-test every shown model, ignoring cached results">${icon("beaker")}Re-test shown</button>`
@@ -363,6 +368,28 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
       out.push(`<div class="banner">${icon("copilot")}<span class="grow">No models are in Copilot yet. Tick the ones you want in the model picker, or add every working model.</span>
         <button class="btn small primary" data-action="add-all-working">Add ${plural(working.length, "working model")}</button></div>`);
     }
+    const failed = S.models.filter((m) => m.status === "failed");
+    if (failed.length > 5) {
+      const authCount = failed.filter((m) => /401|403|unauthorized|forbidden|api key/i.test(m.error || "")).length;
+      const notFoundCount = failed.filter((m) => /404|not found|does not exist/i.test(m.error || "")).length;
+      const timeoutCount = failed.filter((m) => /timeout|timed out|abort/i.test(m.error || "")).length;
+      const parts: string[] = [];
+      if (authCount) parts.push(`${authCount} auth/key`);
+      if (notFoundCount) parts.push(`${notFoundCount} not found`);
+      if (timeoutCount) parts.push(`${timeoutCount} timeouts`);
+      const details = parts.length ? ` (${parts.join(", ")})` : "";
+      out.push(`<div class="banner warn">${icon("error")}<span class="grow"><strong>${failed.length} models failed verification</strong>${esc(details)}. Your proxy or provider catalog may include unentitled or deprecated model IDs.</span>
+        <button class="btn small" data-action="status" data-status="working">Show working only</button>
+        <button class="btn small" data-action="clear-failed" title="Reset failed models so they can be re-tested">Clear failed results</button></div>`);
+    }
+
+    const selectedCount = S.models.filter((m) => m.selected).length;
+    if (selectedCount > 25) {
+      out.push(`<div class="banner info">${icon("info")}<span class="grow"><strong>${selectedCount} models</strong> are currently selected for Copilot Chat. A long list can clutter the Copilot dropdown.</span>
+        <button class="btn small primary" data-action="curate-top">Curate Top 10</button>
+        <button class="btn small" data-action="deselect-all">Deselect All</button></div>`);
+    }
+
     if (S.settings.budgetLimitUsd && S.spend >= S.settings.budgetLimitUsd) {
       out.push(`<div class="banner warn">${icon("warning")}<span class="grow">Estimated spend of <strong>${money(S.spend)}</strong> has reached or exceeded your budget limit of <strong>$${S.settings.budgetLimitUsd}</strong>.</span>
         <button class="btn small" data-action="tab" data-tab="settings">Adjust budget</button></div>`);
@@ -773,7 +800,8 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
       <div class="section-head"><h2>Routes</h2></div>
       <p class="muted intro">A route is one entry in the Copilot model picker that tries several models in order. If a model is down, rate-limited or errors before answering, the next one takes over — e.g. a fast local model first, a cloud model as backup.</p>
       <div class="row new-route"><input type="text" id="newRouteName" placeholder="Route name, e.g. Coding (auto)" aria-label="New route name">
-        <button class="btn primary" data-action="route-create">${icon("add")}Create route</button></div>
+        <button class="btn primary" data-action="route-create">${icon("add")}Create route</button>
+        <button class="btn" data-action="auto-routes" title="Generate recommended Fast Coding, Deep Reasoning, and Balanced routes from verified working models">${icon("sparkle")}Auto-generate smart routes</button></div>
       <div class="cards single">${cards || `<div class="empty">${icon("git-merge")}No routes yet.</div>`}</div>
     </div>`;
   }
@@ -890,6 +918,10 @@ declare function acquireVsCodeApi(): { postMessage(msg: WebviewMessage): void; g
     "bulk-add": () => setSelected(visibleModels().filter((m) => !m.selected && m.status !== "failed").map((m) => m.key), true),
     "bulk-remove": () => setSelected(visibleModels().filter((m) => m.selected).map((m) => m.key), false),
     "bulk-test": () => post({ type: "verify", keys: visibleModels().map((m) => m.key), force: true }),
+    "curate-top": () => post({ type: "curateTop", limit: 10 }),
+    "deselect-all": () => post({ type: "setSelectionExactly", keys: [] }),
+    "clear-failed": () => post({ type: "clearFailed" }),
+    "auto-routes": () => post({ type: "autoRoutes" }),
     "add-all-working": () => setSelected(S.models.filter((m) => m.status === "working" && !m.selected).map((m) => m.key), true),
     ping: (el) => post({ type: "verify", keys: [el.dataset.key], force: true }),
     "edit-limits": (el) => openLimits(ui.limitsFor === el.dataset.key ? null : el.dataset.key),

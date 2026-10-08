@@ -8,7 +8,7 @@ const vscode = installVscodeStub();
 const out = (m) => require(path.join(ROOT, "out", m));
 const { resolveChatUrl, resolveModelsUrl, nativeRoot, isLocalUrl, resolveApi } = out("endpoints.js");
 const { ProviderStore, SECRET_SENTINEL } = out("providerStore.js");
-const { ModelEngine } = out("modelEngine.js");
+const { ModelEngine, prettifyModelName } = out("modelEngine.js");
 const { CustomLLMChatProvider, ThinkTagSplitter, stripReasoning } = out("customChatProvider.js");
 const { pullOllamaModel } = out("ollama.js");
 const { runPool } = out("pool.js");
@@ -347,6 +347,37 @@ const token = () => new vscode.CancellationTokenSource().token;
       config.providers = config.providers.map((p) => (p.name === "Mock2" ? { ...p, endpointUrl: `${mock.url}/nope` } : p));
       await assert.rejects(send("mock2/mock-gpt-4o", "hi"), /rejected the request \(HTTP 404/);
       assert.strictEqual(engine.getModel("Mock2::mock-gpt-4o").status, "failed");
+    }],
+
+    ["prettifyModelName cleans proxy prefixes, tiers, version dots and snapshots", () => {
+      assert.strictEqual(prettifyModelName("no-think/cc/claude-opus-4-6-low", "OmniRoute"), "Claude Opus 4.6 (Low) (Direct)");
+      assert.strictEqual(prettifyModelName("cc/claude-haiku-4-5-20251001-high", "OmniRoute"), "Claude Haiku 4.5 (2025-10-01) (High)");
+      assert.strictEqual(prettifyModelName("meta-llama/llama-3.3-70b-instruct:free", "OpenRouter"), "Llama 3.3 70b Instruct (Free)");
+      assert.strictEqual(prettifyModelName("gh/gpt-4o-2024-08-06", "Proxy"), "GPT 4o (2024-08-06)");
+      assert.strictEqual(prettifyModelName("auto", "Local"), "Local Auto");
+    }],
+
+    ["curateTopSelection, deselectAll, clearFailedCache, and autoGenerateRoutes", async () => {
+      // Curate top selections
+      const top = await engine.curateTopSelection(5);
+      assert.ok(top.length > 0 && top.length <= 5);
+      const selectedModels = engine.getCopilotModels();
+      assert.strictEqual(selectedModels.length, top.length);
+      assert.ok(selectedModels.every((m) => m.status === "working"));
+
+      // Deselect all
+      await engine.deselectAll();
+      assert.strictEqual(engine.getCopilotModels().length, 0);
+
+      // Auto-generate routes
+      const routes = await engine.autoGenerateRoutes();
+      assert.ok(routes.length >= 1);
+      assert.ok(routes.some((r) => r.name === "Fast Coding" || r.name === "Deep Reasoning" || r.name === "Balanced Load"));
+
+      // Clear failed cache
+      assert.strictEqual(engine.getModel("Mock2::mock-gpt-4o").status, "failed");
+      await engine.clearFailedCache();
+      assert.strictEqual(engine.getModel("Mock2::mock-gpt-4o").status, "untested");
     }],
   ]);
 
